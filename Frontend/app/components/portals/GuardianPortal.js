@@ -89,7 +89,7 @@ function FeesView({ studentId }) {
   async function pay() {
     try {
       const r = await http.post("/fees/online/initiate", { invoiceIds: [...sel], gateway: gateway || gateways[0] });
-      window.location.href = r.paymentUrl;
+      window.location.assign(r.paymentUrl);
     } catch (e) { toast.error(e); }
   }
   return (
@@ -219,7 +219,7 @@ function MessageTeacher({ studentId, teachers }) {
   );
 }
 
-function SupportView({ children }) {
+function SupportView({ students: children }) {
   const toast = useToast();
   const [complaints, setComplaints] = useState([]);
   const [slots, setSlots] = useState([]);
@@ -318,14 +318,14 @@ export default function GuardianPortal({ onLogout }) {
                 </button>
               ))}
             </div>
-            {home.children.length > 1 && <Card title="Combined dues"><p className="text-2xl font-extrabold">{money(home.totalDue)}</p><p className="text-sm text-slate-500">Open a child's Fees tab to pay; one payment can cover several invoices.</p></Card>}
+            {home.children.length > 1 && <Card title="Combined dues"><p className="text-2xl font-extrabold">{money(home.totalDue)}</p><p className="text-sm text-slate-500">Open a child&rsquo;s Fees tab to pay; one payment can cover several invoices.</p></Card>}
             <Card title="Notices">
               {!home.notices.length ? <EmptyState title="No notices." /> : <div className="space-y-2">{home.notices.map((n) => (
                 <div key={n.id} className={`rounded-xl p-3 text-sm ${n.priority === "Emergency" ? "bg-rose-50" : "bg-slate-50"}`}><div className="flex justify-between"><b>{n.title}</b><span className="text-xs text-slate-500">{formatDate(n.createdAt)}</span></div><p className="mt-1 text-slate-600">{n.message}</p></div>
               ))}</div>}
             </Card>
             <Conversations />
-            <SupportView children={home.children} />
+            <SupportView students={home.children} />
           </div>
         ) : (
           <div>

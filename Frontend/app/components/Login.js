@@ -1,5 +1,7 @@
 "use client";
 
+
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Lock, Unlock, User, Loader2, Smartphone, KeyRound } from "lucide-react";
 import { authApi, authExtraApi, publicApi } from "../lib/api";
@@ -346,8 +348,8 @@ export default function Login({ onLoginSuccess }) {
         </div>
 
         <div className="mt-5 flex w-full gap-3">
-          <a href="/apply" className="flex-1 rounded-[18px] border border-white/15 bg-white/[0.05] px-4 py-3 text-center text-sm font-semibold text-white/85 hover:bg-white/10">Online admission</a>
-          <a href="/result" className="flex-1 rounded-[18px] border border-white/15 bg-white/[0.05] px-4 py-3 text-center text-sm font-semibold text-white/85 hover:bg-white/10">Check result</a>
+          <Link href="/apply" className="flex-1 rounded-[18px] border border-white/15 bg-white/[0.05] px-4 py-3 text-center text-sm font-semibold text-white/85 hover:bg-white/10">Online admission</Link>
+          <Link href="/result" className="flex-1 rounded-[18px] border border-white/15 bg-white/[0.05] px-4 py-3 text-center text-sm font-semibold text-white/85 hover:bg-white/10">Check result</Link>
         </div>
 
         {/* Demo Helper Instructions (Click to Autofill) – development builds only */}

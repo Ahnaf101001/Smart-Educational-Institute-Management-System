@@ -46,11 +46,12 @@ function useLoad(fn, deps) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const toast = useToast();
+  const key = JSON.stringify(deps);
   const load = useCallback(async () => {
     setLoading(true);
     try { setData(await fn()); } catch (e) { toast.error(e); } finally { setLoading(false); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [key, toast]);
   useEffect(() => { load(); }, [load]);
   return { data, loading, reload: load, setData };
 }

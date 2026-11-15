@@ -1,7 +1,6 @@
 const express = require("express");
 const { query } = require("../db/pool");
 const asyncHandler = require("../utils/asyncHandler");
-const { keysToCamel } = require("../utils/case");
 
 const router = express.Router();
 

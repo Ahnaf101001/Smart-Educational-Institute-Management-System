@@ -233,7 +233,7 @@ export default function ExamsOverview() {
             
             {exams.length === 0 && (
               <div className="p-8 text-center text-slate-500 font-medium">
-                No exams scheduled yet. Click "New Exam" to create one.
+                No exams scheduled yet. Click &ldquo;New Exam&rdquo; to create one.
               </div>
             )}
           </div>

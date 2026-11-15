@@ -141,10 +141,10 @@ export default function ResourceManager({ config, embedded = false, fixedFilters
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
 
-  const module = config.module;
-  const allowCreate = config.create !== false && can(user, module, "create");
-  const allowEdit = config.edit !== false && can(user, module, "edit");
-  const allowDelete = config.delete !== false && can(user, module, "delete");
+  const permModule = config.module;
+  const allowCreate = config.create !== false && can(user, permModule, "create");
+  const allowEdit = config.edit !== false && can(user, permModule, "edit");
+  const allowDelete = config.delete !== false && can(user, permModule, "delete");
   const fixedKey = JSON.stringify(fixedFilters);
 
   const load = useCallback(async () => {
@@ -248,7 +248,7 @@ export default function ResourceManager({ config, embedded = false, fixedFilters
     }
   }
 
-  const canExport = can(user, module, "export") || can(user, module, "view");
+  const canExport = can(user, permModule, "export") || can(user, permModule, "view");
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const ctx = { reload: load, toast, ask, user };
 

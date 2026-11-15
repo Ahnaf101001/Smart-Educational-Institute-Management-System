@@ -62,8 +62,8 @@ import { authApi, http, systemSettingsApi, instituteProfileApi } from "../lib/ap
 import { can, UserContext } from "../lib/access";
 import { I18nContext, toBanglaDate, toBnDigits, toHijriDate, translate } from "../lib/i18n";
 
-const RM = (key) => () => <ResourceManager config={CONFIGS[key]} />;
-const RMX = (key) => () => <ResourceManager config={EXTRA_CONFIGS[key]} />;
+const RM = (key) => function ResourcePage() { return <ResourceManager config={CONFIGS[key]} />; };
+const RMX = (key) => function ExtraResourcePage() { return <ResourceManager config={EXTRA_CONFIGS[key]} />; };
 const OPTIONAL = ["madrasa", "transport", "library", "inventory", "online_classes", "hostel", "donations"];
 const OPT_IN_ONLY = ["madrasa", "hostel", "donations"];
 

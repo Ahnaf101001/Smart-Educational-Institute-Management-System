@@ -10,6 +10,12 @@ function errorHandler(error, req, res, next) {
 
   // Database validation errors are the client's input, not server faults.
   const INVALID_INPUT = ["23514", "23502", "22P02", "22007", "22008", "22003", "22001"];
+  // Schema validation thrown directly (e.g. schema.parse) is a 422, not a server fault.
+  if (error?.name === "ZodError" && !error.status) {
+    error.status = 422;
+    error.details = error.issues;
+    error.message = (error.issues || []).map((i) => `${(i.path || []).join(".") || "value"}: ${i.message}`).join("; ") || "Validation failed.";
+  }
   const status =
     error.status ||
     (["23503", "23505"].includes(error.code) ? 409 : INVALID_INPUT.includes(error.code) ? 422 : 500);
@@ -26,8 +32,10 @@ function errorHandler(error, req, res, next) {
               ? `Invalid value: ${error.message}`
               : error.message || "Internal server error";
 
+  // Full stack only for server faults; expected client errors get one short line.
   if (process.env.NODE_ENV !== "test") {
-    console.error(error);
+    if (status >= 500) console.error(error);
+    else console.warn(`${status} ${req.method} ${req.originalUrl.split("?")[0]} – ${message}`);
   }
 
   res.status(status).json({

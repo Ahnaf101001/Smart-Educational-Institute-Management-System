@@ -1,7 +1,10 @@
 const path = require("node:path");
 const dotenv = require("dotenv");
 
+// Load backend/.env regardless of the directory the process was started from;
+// a .env in the current directory (if any) takes precedence.
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 function required(name, fallback) {
   const value = process.env[name] || fallback;

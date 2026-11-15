@@ -456,7 +456,8 @@ export function MadrasaHub({ initialTab = "hifz" }) {
 function LiveBuses() {
   const toast = useToast();
   const [rows, setRows] = useState([]);
-  const load = useCallback(() => http.get("/ops/transport/live").then(setRows).catch((e) => toast.error(e)), [toast]);
+  const [checkedAt, setCheckedAt] = useState(0);
+  const load = useCallback(() => http.get("/ops/transport/live").then((r) => { setRows(r); setCheckedAt(Date.now()); }).catch((e) => toast.error(e)), [toast]);
   useEffect(() => { load(); const t = setInterval(load, 30000); return () => clearInterval(t); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
@@ -464,7 +465,7 @@ function LiveBuses() {
       {!rows.length ? <EmptyState title="No vehicles yet." icon={Bus} /> : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {rows.map((v) => {
-            const fresh = v.recordedAt && Date.now() - new Date(v.recordedAt).getTime() < 10 * 60 * 1000;
+            const fresh = v.recordedAt && checkedAt - new Date(v.recordedAt).getTime() < 10 * 60 * 1000;
             return (
               <div key={v.id} className="rounded-xl border border-slate-200 p-4">
                 <div className="flex items-center justify-between"><p className="font-bold">{v.registrationNo}</p><Badge tone={fresh ? "green" : "slate"}>{fresh ? "Live" : "Offline"}</Badge></div>

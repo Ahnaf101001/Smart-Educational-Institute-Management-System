@@ -1,6 +1,6 @@
 // Idempotent system data: default roles, grading templates, fee heads, leave
 // types, message templates, chart of accounts and the 10 ID card templates.
-const { query, transaction } = require("../db/pool");
+const { transaction } = require("../db/pool");
 const { DEFAULT_ROLES, LEGACY_ROLE_MATRIX, allModules } = require("./permissions");
 const { GRADE_TEMPLATES } = require("./grading");
 const { TEMPLATES } = require("../data/idCardTemplates");

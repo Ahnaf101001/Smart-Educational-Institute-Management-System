@@ -44,7 +44,7 @@ export default function MarksEntryPro() {
   }, [sel]);
   useEffect(() => { load(); }, [load]);
 
-  const comps = sheet?.components || [];
+  const comps = useMemo(() => sheet?.components || [], [sheet]);
   const locked = sheet && ["Submitted", "Locked", "Unlock Requested"].includes(sheet.entryStatus);
   const cls = classes.find((c) => c.id === sel.classId);
 
