@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Info, Loader2, X } from "lucide-react";
 
 export function cx(...classes) {
@@ -235,11 +235,13 @@ export function ToastProvider({ children }) {
 }
 export function useToast() {
   const { push } = useContext(ToastContext);
-  return {
+  // Stable identity: callers list `toast` in hook dependencies, and a fresh object per
+  // render made those effects re-run forever (endless request loops).
+  return useMemo(() => ({
     success: (m) => push(m, "success"),
     error: (m) => push(m?.message || String(m), "error"),
     warning: (m) => push(m, "warning"),
-  };
+  }), [push]);
 }
 
 // Prompt dialog for reasons (maker–checker requires reasons for many actions).
