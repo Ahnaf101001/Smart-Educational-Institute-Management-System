@@ -1,0 +1,30 @@
+# Smart Educational Institute Management System
+# Docker Compose project names must be lowercase, so the stack appears in
+# Docker Desktop as "smart-educational-institute-management-system".
+name: smart-educational-institute-management-system
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: edumanage-postgres
+    restart: unless-stopped
+    labels:
+      com.smart-edu.app: "Smart Educational Institute Management System"
+    environment:
+      POSTGRES_DB: madrasha_edumanage
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345678
+    ports:
+      - "5432:5432"
+    volumes:
+      - edumanage_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d madrasha_edumanage"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  edumanage_pgdata:
+    # Keep using the existing data volume created under the old "backend" project name.
+    name: backend_edumanage_pgdata

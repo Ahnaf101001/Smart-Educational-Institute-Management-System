@@ -1,0 +1,207 @@
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: #f7f8fb;
+  color: #172033;
+  font-family: "Inter", sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+input,
+select,
+textarea {
+  color: #1e293b;
+  border-color: #cbd5e1;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #94a3b8;
+}
+
+select {
+  color: #1e293b;
+}
+
+.dashboard-panel {
+  border: 1px solid #e4e9f0;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08);
+}
+
+.dashboard-title {
+  font-size: 1.25rem;
+  font-weight: 750;
+  color: #0f172a;
+}
+
+.dashboard-subtitle {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.sidebar-scroll {
+  scrollbar-color: rgba(111, 177, 255, 0.35) transparent;
+  scrollbar-width: thin;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(111, 177, 255, 0.35);
+}
+
+/* Robust Global Dark Mode using Tailwind v4 Theme Variables */
+.dark-shell {
+  /* Invert Slate Colors */
+  --color-white: #1e293b;
+  --color-slate-50: #0f172a;
+  --color-slate-100: #1e293b;
+  --color-slate-200: #334155;
+  --color-slate-300: #475569;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #cbd5e1;
+  --color-slate-600: #e2e8f0;
+  --color-slate-700: #f1f5f9;
+  --color-slate-800: #f8fafc;
+  --color-slate-900: #ffffff;
+
+  /* Invert Colored Backgrounds for Cards/Badges */
+  --color-blue-50: #1e3a8a;
+  --color-blue-100: #1e3a8a;
+  --color-emerald-50: #064e3b;
+  --color-rose-50: #4c0519;
+  --color-amber-50: #78350f;
+  --color-orange-50: #7c2d12;
+  --color-purple-50: #581c87;
+  --color-indigo-50: #312e81;
+
+  background-color: var(--color-slate-50);
+  color: var(--color-slate-800);
+}
+
+.dark-shell main {
+  background-color: var(--color-slate-50);
+}
+
+.dark-shell header {
+  background-color: var(--color-white);
+  border-color: var(--color-slate-200);
+}
+
+.dark-shell input,
+.dark-shell select,
+.dark-shell textarea {
+  color: var(--color-slate-800);
+  background-color: var(--color-slate-50);
+  border-color: var(--color-slate-200);
+}
+
+/* Modals */
+.dark-shell .bg-slate-900\/40 {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+}
+
+/* ID card print root: rendered off-screen at true size for PDF capture & printing */
+.card-print-root {
+  position: fixed;
+  left: -100000px;
+  top: 0;
+}
+
+@page cards {
+  size: auto;
+  margin: 0;
+}
+
+@media print {
+  body.printing-cards > *:not(.card-print-root) {
+    display: none !important;
+  }
+  body.printing-cards .card-print-root {
+    position: static !important;
+    left: auto !important;
+  }
+  body.printing-cards .print-page {
+    page: cards;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+  .id-card-face {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+@media (max-width: 380px) {
+  aside {
+    width: min(322px, 90vw);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@media print {
+  @page {
+    margin: 0.5cm;
+  }
+  aside, header {
+    display: none !important;
+  }
+  body, html {
+    background: white !important;
+    height: auto !important;
+  }
+  main, main > div, .dashboard-panel {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    background: white !important;
+    border: none !important;
+    box-shadow: none !important;
+    min-height: 0 !important;
+  }
+  #marksheet-content {
+    border: none !important;
+    box-shadow: none !important;
+  }
+  .print\:hidden {
+    display: none !important;
+  }
+}

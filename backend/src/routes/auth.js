@@ -1,0 +1,253 @@
+const express = require("express");
+const crypto = require("node:crypto");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const { z } = require("zod");
+const env = require("../config/env");
+const { query } = require("../db/pool");
+const validate = require("../middleware/validate");
+const rateLimit = require("../middleware/rateLimit");
+const { authenticate } = require("../middleware/auth");
+const asyncHandler = require("../utils/asyncHandler");
+const httpError = require("../utils/httpError");
+const { keysToCamel } = require("../utils/case");
+const { resolveAccess } = require("../services/access");
+const { MODULES, ACTIONS } = require("../services/permissions");
+const { writeAudit } = require("../services/audit");
+const { queueMessage, processQueue } = require("../services/notifications");
+
+const router = express.Router();
+const loginLimiter = rateLimit({ windowMs: 15 * 60_000, max: 20, message: "Too many login attempts. Try again in 15 minutes." });
+const otpLimiter = rateLimit({ windowMs: 15 * 60_000, max: 5, message: "Too many OTP requests. Try again later." });
+
+const loginSchema = z.object({
+  email: z.string().min(3).optional(),
+  identifier: z.string().min(3).optional(),
+  password: z.string().min(6),
+}).refine((v) => v.email || v.identifier, { message: "Email or mobile is required." });
+
+function normalizeMobile(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.startsWith("880")) return `0${digits.slice(3)}`;
+  return digits;
+}
+
+async function findUser(identifier) {
+  const id = String(identifier || "").trim();
+  const mobile = normalizeMobile(id);
+  const result = await query(
+    `SELECT * FROM users WHERE LOWER(email) = LOWER($1) OR (phone IS NOT NULL AND phone = $2) LIMIT 1`,
+    [id, mobile || "__none__"],
+  );
+  return result.rows[0];
+}
+
+async function settings() {
+  return (await query("SELECT max_login_attempts, session_timeout_minutes FROM system_settings WHERE id = 1")).rows[0] || {};
+}
+
+async function issueSession(req, user) {
+  const access = await resolveAccess(user);
+  const token = jwt.sign(
+    { sub: user.id, role: user.role, tv: Number(user.token_version || 0) },
+    env.jwtSecret,
+    { expiresIn: env.jwtExpiresIn },
+  );
+  await query("UPDATE users SET last_login_at = NOW(), failed_attempts = 0, locked_until = NULL WHERE id = $1", [user.id]);
+  await writeAudit({ ...req, user: { id: user.id, name: user.name } }, { entity: "users", entityId: user.id, action: "LOGIN" });
+  const safe = { ...user };
+  delete safe.password_hash; delete safe.otp_hash;
+  return {
+    token,
+    user: keysToCamel({
+      ...safe,
+      roles: access.roleNames,
+      isAdmin: access.isAdmin,
+      matrix: access.matrix,
+      canViewSensitive: access.canViewSensitive,
+      permissions: access.isAdmin ? ["All Modules"] : [],
+    }),
+  };
+}
+
+async function sendOtp(user, purpose) {
+  const code = String(crypto.randomInt(100000, 1000000));
+  const hash = await bcrypt.hash(code, 10);
+  await query(
+    "UPDATE users SET otp_hash = $1, otp_expires_at = NOW() + INTERVAL '5 minutes', otp_sent_count = otp_sent_count + 1 WHERE id = $2",
+    [hash, user.id],
+  );
+  if (user.phone) {
+    await queueMessage({
+      channel: "SMS", eventType: "OTP", recipient: user.phone, recipientType: "User", recipientId: user.id,
+      body: `Your ${purpose} code is ${code}. It expires in 5 minutes. Do not share it.`,
+    });
+    processQueue().catch(() => {});
+  }
+  // Development convenience only: expose the code when no SMS provider exists.
+  return env.nodeEnv === "development" && !env.sms.apiUrl ? code : undefined;
+}
+
+router.post("/login", loginLimiter, validate(loginSchema), asyncHandler(async (req, res) => {
+  const identifier = req.body.identifier || req.body.email;
+  const user = await findUser(identifier);
+  const policy = await settings();
+
+  if (user?.locked_until && new Date(user.locked_until) > new Date()) {
+    throw httpError(423, "Account temporarily locked after repeated failed attempts. Try again later.");
+  }
+  if (!user || user.status !== "Active" || !(await bcrypt.compare(req.body.password, user.password_hash))) {
+    if (user) {
+      const attempts = Number(user.failed_attempts || 0) + 1;
+      const max = Number(policy.max_login_attempts || 5);
+      await query(
+        `UPDATE users SET failed_attempts = $1,
+           locked_until = CASE WHEN $1 >= $2 THEN NOW() + INTERVAL '15 minutes' ELSE locked_until END WHERE id = $3`,
+        [attempts >= max ? 0 : attempts, max, user.id],
+      );
+      await writeAudit({ ...req, user: { id: user.id, name: user.name } }, { entity: "users", entityId: user.id, action: "LOGIN_FAILED" });
+    }
+    throw httpError(401, "Email/mobile or password is incorrect.");
+  }
+
+  if (user.two_factor_enabled) {
+    const devCode = await sendOtp(user, "login");
+    const challenge = jwt.sign({ sub: user.id, purpose: "2fa" }, env.jwtSecret, { expiresIn: "5m" });
+    return res.json({ success: true, data: { requiresOtp: true, challenge, maskedPhone: user.phone ? `***${user.phone.slice(-3)}` : null, devCode } });
+  }
+
+  res.json({ success: true, data: await issueSession(req, user) });
+}));
+
+router.post("/verify-otp", otpLimiter, asyncHandler(async (req, res) => {
+  const { challenge, code } = req.body || {};
+  let payload;
+  try { payload = jwt.verify(String(challenge || ""), env.jwtSecret); } catch { throw httpError(401, "OTP session expired. Sign in again."); }
+  const user = (await query("SELECT * FROM users WHERE id = $1", [payload.sub])).rows[0];
+  if (!user || !user.otp_hash || !user.otp_expires_at || new Date(user.otp_expires_at) < new Date()) {
+    throw httpError(401, "OTP expired. Request a new code.");
+  }
+  if (!(await bcrypt.compare(String(code || ""), user.otp_hash))) throw httpError(401, "Incorrect OTP.");
+  await query("UPDATE users SET otp_hash = NULL, otp_expires_at = NULL, otp_sent_count = 0 WHERE id = $1", [user.id]);
+  res.json({ success: true, data: await issueSession(req, user) });
+}));
+
+// Guardian / staff OTP login by mobile number (GA-01, GDX-03).
+router.post("/otp/request", otpLimiter, asyncHandler(async (req, res) => {
+  const mobile = normalizeMobile(req.body?.mobile);
+  if (mobile.length < 10) throw httpError(422, "A valid mobile number is required.");
+  const user = (await query("SELECT * FROM users WHERE phone = $1 AND status = 'Active'", [mobile])).rows[0];
+  // Same response whether or not the account exists (prevents enumeration).
+  let devCode;
+  let challenge = jwt.sign({ sub: null, purpose: "otp-login" }, env.jwtSecret, { expiresIn: "5m" });
+  if (user) {
+    if (Number(user.otp_sent_count || 0) >= 5 && user.otp_expires_at && new Date(user.otp_expires_at) > new Date()) {
+      throw httpError(429, "OTP resend limit reached. Please wait a few minutes.");
+    }
+    devCode = await sendOtp(user, "login");
+    challenge = jwt.sign({ sub: user.id, purpose: "otp-login" }, env.jwtSecret, { expiresIn: "5m" });
+  }
+  res.json({ success: true, data: { challenge, message: "If the number is registered, an OTP has been sent.", devCode } });
+}));
+
+router.post("/otp/verify", otpLimiter, asyncHandler(async (req, res) => {
+  const { challenge, code } = req.body || {};
+  let payload;
+  try { payload = jwt.verify(String(challenge || ""), env.jwtSecret); } catch { throw httpError(401, "OTP session expired."); }
+  if (!payload.sub) throw httpError(401, "Incorrect OTP.");
+  const user = (await query("SELECT * FROM users WHERE id = $1 AND status = 'Active'", [payload.sub])).rows[0];
+  if (!user || !user.otp_hash || new Date(user.otp_expires_at) < new Date()) throw httpError(401, "OTP expired.");
+  if (!(await bcrypt.compare(String(code || ""), user.otp_hash))) throw httpError(401, "Incorrect OTP.");
+  await query("UPDATE users SET otp_hash = NULL, otp_expires_at = NULL, otp_sent_count = 0 WHERE id = $1", [user.id]);
+  res.json({ success: true, data: await issueSession(req, user) });
+}));
+
+// Secure password reset (RP-09, NFR-13): token is single use and expires in 30 minutes.
+router.post("/password/forgot", otpLimiter, asyncHandler(async (req, res) => {
+  const user = await findUser(req.body?.identifier || req.body?.email);
+  let devToken;
+  if (user && user.status === "Active") {
+    const token = crypto.randomBytes(24).toString("hex");
+    const hash = crypto.createHash("sha256").update(token).digest("hex");
+    await query("INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, NOW() + INTERVAL '30 minutes')", [user.id, hash]);
+    const link = `${env.publicAppUrl}/reset-password?token=${token}`;
+    if (user.email && !user.email.endsWith(".local")) {
+      await queueMessage({ channel: "Email", eventType: "PasswordReset", recipient: user.email, recipientType: "User", recipientId: user.id, subject: "Password reset", body: `Reset your password using this link (valid 30 minutes): ${link}` });
+    }
+    if (user.phone) {
+      await queueMessage({ channel: "SMS", eventType: "PasswordReset", recipient: user.phone, recipientType: "User", recipientId: user.id, body: `Password reset link (30 min): ${link}` });
+    }
+    processQueue().catch(() => {});
+    if (env.nodeEnv === "development" && !env.sms.apiUrl && !env.email.host) devToken = token;
+  }
+  res.json({ success: true, message: "If the account exists, reset instructions have been sent.", data: { devToken } });
+}));
+
+router.post("/password/reset", asyncHandler(async (req, res) => {
+  const { token, password } = req.body || {};
+  if (!password || String(password).length < 8) throw httpError(422, "Password must be at least 8 characters.");
+  const hash = crypto.createHash("sha256").update(String(token || "")).digest("hex");
+  const row = (await query(
+    "SELECT * FROM password_reset_tokens WHERE token_hash = $1 AND used_at IS NULL AND expires_at > NOW()",
+    [hash],
+  )).rows[0];
+  if (!row) throw httpError(400, "Reset link is invalid or has expired.");
+  await query("UPDATE users SET password_hash = $1, token_version = token_version + 1, failed_attempts = 0, locked_until = NULL WHERE id = $2",
+    [await bcrypt.hash(String(password), 12), row.user_id]);
+  await query("UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1", [row.id]);
+  await writeAudit({ ...req, user: { id: row.user_id } }, { entity: "users", entityId: row.user_id, action: "PASSWORD_RESET" });
+  res.json({ success: true, message: "Password updated. Please sign in." });
+}));
+
+router.get("/me", authenticate, asyncHandler(async (req, res) => {
+  const user = (await query(
+    `SELECT id, name, email, phone, role, roles, status, scope, linked_type, linked_id, two_factor_enabled,
+            preferred_language, last_login_at, created_at FROM users WHERE id = $1`,
+    [req.user.id],
+  )).rows[0];
+  if (!user) throw httpError(404, "User not found.");
+  res.json({
+    success: true,
+    data: keysToCamel({
+      ...user,
+      roles: req.user.roles,
+      isAdmin: req.user.isAdmin,
+      matrix: req.user.matrix,
+      canViewSensitive: req.user.canViewSensitive,
+      permissions: req.user.isAdmin ? ["All Modules"] : [],
+    }),
+  });
+}));
+
+router.post("/change-password", authenticate, asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  if (!newPassword || String(newPassword).length < 8) throw httpError(422, "New password must be at least 8 characters.");
+  const user = (await query("SELECT * FROM users WHERE id = $1", [req.user.id])).rows[0];
+  if (!(await bcrypt.compare(String(currentPassword || ""), user.password_hash))) throw httpError(401, "Current password is incorrect.");
+  await query("UPDATE users SET password_hash = $1, token_version = token_version + 1 WHERE id = $2", [await bcrypt.hash(String(newPassword), 12), user.id]);
+  await writeAudit(req, { entity: "users", entityId: user.id, action: "PASSWORD_CHANGE" });
+  res.json({ success: true, message: "Password changed. Please sign in again." });
+}));
+
+// Ends every active session of the current user.
+router.post("/logout-all", authenticate, asyncHandler(async (req, res) => {
+  await query("UPDATE users SET token_version = token_version + 1 WHERE id = $1", [req.user.id]);
+  await writeAudit(req, { entity: "users", entityId: req.user.id, action: "LOGOUT_ALL" });
+  res.json({ success: true });
+}));
+
+router.patch("/preferences", authenticate, asyncHandler(async (req, res) => {
+  const lang = req.body?.preferredLanguage;
+  if (lang && !["bn", "en"].includes(lang)) throw httpError(422, "Language must be bn or en.");
+  if (lang) await query("UPDATE users SET preferred_language = $1 WHERE id = $2", [lang, req.user.id]);
+  if (typeof req.body?.twoFactorEnabled === "boolean") {
+    await query("UPDATE users SET two_factor_enabled = $1 WHERE id = $2", [req.body.twoFactorEnabled, req.user.id]);
+  }
+  res.json({ success: true });
+}));
+
+router.get("/permission-catalog", authenticate, (req, res) => {
+  res.json({ success: true, data: { modules: MODULES, actions: ACTIONS } });
+});
+
+module.exports = router;
