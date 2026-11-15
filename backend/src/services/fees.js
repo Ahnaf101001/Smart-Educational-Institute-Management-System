@@ -150,13 +150,20 @@ async function applyDiscounts(client, studentId) {
      WHERE i.student_id = $1 AND i.status NOT IN ('Paid', 'Cancelled') AND i.fee_head IS DISTINCT FROM 'Advance Credit' FOR UPDATE OF i`,
     [studentId],
   )).rows;
+  // Stacking policy and maximum discount (FE-09, FIN-05): when stacking is off only the
+  // single largest applicable discount counts; the total never exceeds max_discount_percent.
+  const policy = (await client.query("SELECT allow_discount_stacking, max_discount_percent FROM system_settings WHERE id = 1")).rows[0] || {};
+  const stacking = policy.allow_discount_stacking !== false;
+  const capPercent = Number(policy.max_discount_percent ?? 100);
   let updated = 0;
   for (const inv of invoices) {
-    let discount = 0;
+    const amounts = [];
     for (const d of discounts) {
       if (d.fee_head_id && d.fee_head_id !== inv.fee_head_id) continue;
-      discount += d.mode === "Percent" ? (Number(inv.amount) * Number(d.value)) / 100 : Number(d.value);
+      amounts.push(d.mode === "Percent" ? (Number(inv.amount) * Number(d.value)) / 100 : Number(d.value));
     }
+    let discount = stacking ? amounts.reduce((sum, v) => sum + v, 0) : Math.max(0, ...amounts);
+    discount = Math.min(discount, (Number(inv.amount) * capPercent) / 100);
     discount = Math.min(Number(inv.amount), Math.round(discount * 100) / 100);
     if (Math.abs(discount - Number(inv.discount)) > 0.001) {
       await client.query("UPDATE fee_invoices SET discount = $1, status = $2 WHERE id = $3",

@@ -33,9 +33,9 @@ async function writeAudit(req, { entity, entityId, action, oldValue, newValue, r
   const run = executor ? executor.query.bind(executor) : query;
   const meta = requestMeta(req);
   try {
-    await run(
+    const inserted = await run(
       `INSERT INTO audit_logs (user_id, user_name, entity, entity_id, action, old_value, new_value, reason, ip, user_agent)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
       [
         req?.user?.id || null,
         req?.user?.name || null,
@@ -49,6 +49,13 @@ async function writeAudit(req, { entity, entityId, action, oldValue, newValue, r
         meta.userAgent,
       ],
     );
+    // Publish to webhook subscribers (NF-22). Login/auth events are not published.
+    if (!["LOGIN", "LOGIN_FAILED", "PIN_SET", "PASSWORD_CHANGE", "LOGOUT_ALL", "DEVICE_LOGOUT"].includes(action)) {
+      require("./webhooks").emit(entity, action, inserted.rows[0]?.id, {
+        entityId: entityId ? String(entityId) : null, by: req?.user?.name || null, reason: reason || null,
+        newValue: newValue === undefined ? null : scrub(newValue),
+      });
+    }
   } catch (error) {
     // Auditing must not silently hide failures inside transactions.
     if (executor) throw error;

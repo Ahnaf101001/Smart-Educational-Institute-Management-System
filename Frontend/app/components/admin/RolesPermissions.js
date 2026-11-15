@@ -50,7 +50,7 @@ function RoleMatrix() {
   async function save() {
     setSaving(true);
     try {
-      await rolesApi.update(draft.id, { matrix: draft.matrix, displayName: draft.displayName, description: draft.description, canViewSensitive: draft.canViewSensitive, status: draft.status });
+      await rolesApi.update(draft.id, { matrix: draft.matrix, displayName: draft.displayName, description: draft.description, canViewSensitive: draft.canViewSensitive, status: draft.status, allowedIps: draft.allowedIps || [] });
       toast.success("Permissions saved (recorded in the audit log)");
       load();
     } catch (e) { toast.error(e); } finally { setSaving(false); }
@@ -91,6 +91,9 @@ function RoleMatrix() {
           <Field label="Display name (e.g. Muhtamim, Head Teacher)"><Input disabled={!editable} value={draft.displayName || ""} onChange={(e) => setDraft({ ...draft, displayName: e.target.value })} /></Field>
           <Field label="Description" className="md:col-span-2"><Input disabled={!editable} value={draft.description || ""} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></Field>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="accent-blue-600" disabled={!editable} checked={Boolean(draft.canViewSensitive)} onChange={(e) => setDraft({ ...draft, canViewSensitive: e.target.checked })} /> Can see sensitive fields (guardian phone, NID, salary) unmasked (RP-06)</label>
+          <Field label="Allowed networks / IPs (optional)" hint="Comma separated, e.g. 192.168.1.*, 103.20.10.5 or 10.0.0.0/24. Users whose every role is restricted can sign in only from these addresses (v1 RP-11)." className="md:col-span-2">
+            <Input disabled={!editable} value={(draft.allowedIps || []).join(", ")} onChange={(e) => setDraft({ ...draft, allowedIps: e.target.value.split(",").map((v) => v.trim()).filter(Boolean) })} placeholder="Leave empty for no restriction" />
+          </Field>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="accent-blue-600" disabled={!editable} checked={draft.status !== "Inactive"} onChange={(e) => setDraft({ ...draft, status: e.target.checked ? "Active" : "Inactive" })} /> Role active</label>
         </div>
         <div className="overflow-x-auto rounded-xl border border-slate-100">
@@ -137,6 +140,9 @@ function usersConfig(roleNames) {
       { key: "linkedId", label: "Linked profile ID", hint: "e.g. TCH-1001 – enables teacher portal, own payslip and own leave" },
       { key: "scope", label: "Data scope (JSON)", type: "json", default: {}, wide: true, hint: '{"classIds":["CLS-001"],"classNames":["Class 9"]} – leave {} for full access' },
       { key: "twoFactorEnabled", label: "Require OTP (2FA) at login", type: "checkbox" },
+      { key: "genderScope", label: "Campus / gender data scope", type: "select", options: ["All", "Male", "Female"], default: "All", hint: "Female-campus staff see only female students and staff (v1 RP-10)" },
+      { key: "isSupport", label: "Support / vendor account (every request is logged)", type: "checkbox" },
+      { key: "accessExpiresAt", label: "Access expires at", type: "datetime", hint: "Time-limited access for support or temporary staff (v1 RP-13)" },
       { key: "status", label: "Status", type: "select", options: ["Active", "Inactive"], default: "Active" },
     ],
     transform: (p, editing) => {

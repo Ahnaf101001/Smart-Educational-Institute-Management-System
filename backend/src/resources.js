@@ -14,8 +14,10 @@ module.exports = {
       "group_name", "version", "parent_contact", "date_of_birth", "admission_date", "address", "email",
       "phone", "guardian_name", "source_applicant_id", "status", "details", "photo_url", "blood_group",
       "birth_cert_no", "religion", "nationality", "branch_id", "academic_year_id", "previous_school",
-      "fourth_subject_id", "rfid_uid",
+      "fourth_subject_id", "rfid_uid", "division", "district", "upazila", "post_office", "allergies", "special_needs",
+      "medical_notes",
     ],
+    genderColumn: "gender",
     required: ["name"],
     sensitive: ["parent_contact", "birth_cert_no"],
     scopeColumn: { id: "class_id", name: "class_name" },
@@ -98,9 +100,10 @@ module.exports = {
   },
   guardians: {
     table: "guardians", module: "guardians", label: "Guardian",
-    search: ["id", "name", "name_bn", "mobile", "email", "nid"], filters: ["status", "relation_default", "portal_access"],
+    search: ["id", "name", "name_bn", "mobile", "email"], filters: ["status", "relation_default", "portal_access"],
+    encrypted: ["nid"],
     writable: ["name", "name_bn", "relation_default", "mobile", "alt_mobile", "email", "nid", "occupation",
-      "income_range", "address", "emergency_contact", "photo_url", "portal_access", "status"],
+      "income_range", "address", "emergency_contact", "photo_url", "portal_access", "status", "notification_prefs"],
     required: ["name", "mobile"],
     sensitive: ["mobile", "alt_mobile", "nid", "email"],
   },
@@ -144,6 +147,7 @@ module.exports = {
     required: ["first_name", "name"],
     sensitive: ["salary", "nid", "phone"],
     softDelete: { column: "status", value: "Archived" },
+    encrypted: ["nid"], genderColumn: "gender",
   },
   staff: {
     table: "staff", module: "staff", label: "Staff",
@@ -155,6 +159,7 @@ module.exports = {
     required: ["first_name", "name"],
     sensitive: ["salary", "nid", "phone"],
     softDelete: { column: "status", value: "Archived" },
+    encrypted: ["nid"], genderColumn: "gender",
   },
   branches: {
     table: "branches", module: "branches", label: "Branch",
@@ -624,18 +629,132 @@ module.exports = {
     table: "users", module: "users", label: "User",
     search: ["id", "name", "email", "role", "phone"], filters: ["status", "role", "linked_type"],
     writable: ["name", "email", "phone", "password_hash", "role", "roles", "status", "scope", "linked_type",
-      "linked_id", "two_factor_enabled", "preferred_language", "permissions"],
+      "linked_id", "two_factor_enabled", "preferred_language", "permissions", "gender_scope", "is_support", "access_expires_at"],
     required: ["name", "email", "role"],
   },
   roles: {
     table: "roles", module: "users", label: "Role",
     search: ["id", "name", "display_name"], filters: ["status"],
-    writable: ["name", "display_name", "description", "color", "permissions", "matrix", "scope_type", "can_view_sensitive", "status"],
+    writable: ["name", "display_name", "description", "color", "permissions", "matrix", "scope_type", "can_view_sensitive", "status", "allowed_ips"],
+    arrayColumns: ["allowed_ips"],
     required: ["name"],
     beforeUpdate: async (payload, old) => {
       if (["super admin", "school admin"].includes(String(old.name).toLowerCase()) && payload.status === "Inactive") {
         const e = new Error("The administrator role cannot be deactivated."); e.status = 403; throw e;
       }
     },
+  },
+
+  // ---- SRS gap closure (migration 007) ----
+  approvalRules: {
+    table: "approval_rules", module: "approvals", label: "Approval rule",
+    search: ["request_type"], filters: ["request_type", "status"],
+    writable: ["request_type", "min_amount", "levels", "status"], required: ["request_type", "levels"], orderBy: "request_type, min_amount",
+  },
+  studentGroupHistory: {
+    table: "student_group_history", module: "students", label: "Group change",
+    search: ["student_id", "to_group"], filters: ["student_id"], writable: [], required: [], noDelete: true, orderBy: "changed_at DESC",
+  },
+  branchTransfers: {
+    table: "branch_transfers", module: "branches", label: "Branch transfer",
+    search: ["person_id", "reason"], filters: ["person_type", "person_id", "to_branch_id"], dateColumn: "effective_date",
+    writable: [], required: [], noDelete: true,
+  },
+  specialSchedules: {
+    table: "special_schedules", module: "routine", label: "Special schedule",
+    search: ["name"], filters: ["status", "shift"],
+    writable: ["name", "from_date", "to_date", "shift", "periods", "note", "status"], required: ["name", "from_date", "to_date"], orderBy: "from_date DESC",
+  },
+  homeworkSubmissions: {
+    table: "homework_submissions", module: "homework", label: "Homework submission",
+    search: ["student_id", "remarks"], filters: ["homework_id", "student_id", "status"],
+    writable: ["homework_id", "student_id", "status", "marks", "remarks", "submitted_at", "marked_by"], required: ["homework_id", "student_id"],
+  },
+  onlineClassAttendance: {
+    table: "online_class_attendance", module: "online_classes", label: "Live class attendance",
+    search: ["student_id"], filters: ["online_class_id", "student_id"], writable: [], required: [], noDelete: true, orderBy: "joined_at DESC",
+  },
+  quizzes: {
+    table: "quizzes", module: "online_classes", label: "Quiz",
+    search: ["title"], filters: ["class_id", "subject_id", "teacher_id", "status"],
+    writable: ["title", "class_id", "section", "subject_id", "teacher_id", "questions", "duration_minutes", "opens_at", "closes_at", "status"],
+    required: ["title"],
+  },
+  quizAttempts: {
+    table: "quiz_attempts", module: "online_classes", label: "Quiz attempt",
+    search: ["student_id"], filters: ["quiz_id", "student_id"], writable: [], required: [], noDelete: true, orderBy: "submitted_at DESC",
+  },
+  coursework: {
+    table: "coursework", module: "homework", label: "Coursework",
+    search: ["title", "description"], filters: ["class_id", "subject_id", "teacher_id", "status", "kind"], dateColumn: "deadline",
+    writable: ["title", "kind", "class_id", "subject_id", "teacher_id", "description", "deadline", "max_marks", "status"], required: ["title"],
+  },
+  courseworkSubmissions: {
+    table: "coursework_submissions", module: "homework", label: "Coursework submission",
+    search: ["student_id", "feedback"], filters: ["coursework_id", "student_id", "status"],
+    writable: ["coursework_id", "student_id", "submitted_on", "marks", "grade", "feedback", "status"], required: ["coursework_id", "student_id"],
+  },
+  examSeatPlans: {
+    table: "exam_seat_plans", module: "exams", label: "Seat",
+    search: ["student_id", "student_name", "room"], filters: ["exam_id", "room", "class_name"],
+    writable: ["exam_id", "room", "seat_no", "student_id", "student_name", "class_name", "roll"], required: ["exam_id", "room", "seat_no", "student_id"],
+    orderBy: "room, seat_no",
+  },
+  boardRegistrations: {
+    table: "board_registrations", module: "students", label: "Board registration",
+    search: ["student_id", "registration_no", "candidate_no", "board"], filters: ["board", "exam_level", "exam_year", "form_fillup_status", "status"],
+    writable: ["student_id", "board", "exam_level", "exam_year", "exam_session", "registration_no", "candidate_no", "centre", "subjects",
+      "entry_fee", "predicted_grades", "form_fillup_status", "block_reason", "status"],
+    required: ["student_id", "board", "exam_level"],
+  },
+  boardResults: {
+    table: "board_results", module: "results", label: "Board result",
+    search: ["student_id", "roll_no", "registration_no"], filters: ["exam_level", "passing_year", "board", "student_id"],
+    writable: ["student_id", "board", "exam_level", "passing_year", "roll_no", "registration_no", "gpa", "grade", "subjects"],
+    required: ["student_id", "exam_level", "passing_year"],
+  },
+  stipendBeneficiaries: {
+    table: "stipend_beneficiaries", module: "students", label: "Stipend beneficiary",
+    search: ["student_id", "mobile_banking_number", "account_holder"], filters: ["program", "academic_year_id", "status", "mobile_banking_provider"],
+    writable: ["student_id", "program", "academic_year_id", "mobile_banking_provider", "mobile_banking_number", "account_holder", "amount", "status"],
+    required: ["student_id"], sensitive: ["mobile_banking_number"],
+  },
+  housePoints: {
+    table: "house_points", module: "academic", label: "House points",
+    search: ["reason", "student_id"], filters: ["club_id", "student_id"], dateColumn: "awarded_on",
+    writable: ["club_id", "student_id", "points", "reason", "awarded_by", "awarded_on"], required: ["club_id", "points"], orderBy: "awarded_on DESC",
+  },
+  dailyLogs: {
+    table: "daily_logs", module: "students", label: "Daily log",
+    search: ["student_id", "activity", "note"], filters: ["student_id", "log_date", "teacher_id"], dateColumn: "log_date",
+    writable: ["student_id", "log_date", "meal", "nap", "activity", "mood", "photo_url", "note", "teacher_id"], required: ["student_id"],
+    orderBy: "log_date DESC",
+  },
+  hifzTargets: {
+    table: "hifz_targets", module: "madrasa", label: "Hifz target",
+    search: ["student_id"], filters: ["student_id", "target_month"],
+    writable: ["student_id", "target_month", "target_pages", "note"], required: ["student_id", "target_month"], orderBy: "target_month DESC",
+  },
+  reportSchedules: {
+    table: "report_schedules", module: "reports", label: "Report schedule",
+    search: ["name", "report_type"], filters: ["frequency", "status"],
+    writable: ["name", "report_type", "frequency", "send_hour", "recipients", "status"], required: ["name", "report_type"],
+    arrayColumns: ["recipients"],
+  },
+  webhooks: {
+    table: "webhooks", module: "settings", label: "Webhook",
+    search: ["name", "url"], filters: ["status"],
+    writable: ["name", "url", "events", "secret", "status"], required: ["name", "url", "secret"], sensitive: ["secret"],
+    arrayColumns: ["events"],
+    afterCreate: async () => require("./services/webhooks").invalidate(),
+    afterUpdate: async () => require("./services/webhooks").invalidate(),
+  },
+  webhookDeliveries: {
+    table: "webhook_deliveries", module: "settings", label: "Webhook delivery",
+    search: ["event"], filters: ["webhook_id", "event", "status_code"], writable: [], required: [], noDelete: true,
+  },
+  userSessions: {
+    table: "user_sessions", module: "users", label: "Session",
+    search: ["user_id", "ip", "user_agent"], filters: ["user_id"], writable: [], required: [], noDelete: true, orderBy: "last_seen_at DESC",
   },
 };

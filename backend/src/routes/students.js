@@ -41,7 +41,7 @@ router.get("/:id/profile", requirePermission("students", "view"), asyncHandler(a
     data: keysToCamel({
       student: { ...student, parent_contact: mask(student.parent_contact), birth_cert_no: mask(student.birth_cert_no) },
       enrollments: enrollments.rows,
-      guardians: guardians.rows.map((g) => ({ ...g, mobile: mask(g.mobile), nid: mask(g.nid) })),
+      guardians: guardians.rows.map((g) => ({ ...g, mobile: mask(g.mobile), nid: mask(require("../utils/crypto").decryptField(g.nid)) })),
       attendance: attendance.rows[0],
       dues: dues.rows[0],
       results: results.rows.filter((r) => r.published || req.user.isAdmin || req.user.matrix?.results?.includes("view")),

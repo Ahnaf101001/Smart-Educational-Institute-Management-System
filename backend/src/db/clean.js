@@ -22,6 +22,9 @@ const businessTables = [
   "certificates", "student_documents", "student_status_history", "enrollments", "guardian_students", "guardians",
   "admission_circulars", "admissions", "students", "subjects", "classes", "academic_settings", "academic_years",
   "staff", "teachers", "branches", "rooms",
+  "homework_submissions", "online_class_attendance", "quiz_attempts", "quizzes", "coursework_submissions", "coursework",
+  "exam_seat_plans", "board_registrations", "board_results", "stipend_beneficiaries", "house_points", "daily_logs",
+  "hifz_targets", "branch_transfers", "student_group_history", "user_sessions", "webhook_deliveries",
 ];
 
 const sequenceStarts = {

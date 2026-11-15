@@ -21,7 +21,7 @@ async function upsertGuardian(client, { name, mobile, relation = "Father", email
   const created = (await client.query(
     `INSERT INTO guardians (name, name_bn, relation_default, mobile, email, nid, occupation, address)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-    [name || "Guardian", nameBn || null, relation, m, email || null, nid || null, occupation || null, address || null],
+    [name || "Guardian", nameBn || null, relation, m, email || null, nid ? require("../utils/crypto").encryptField(nid) : null, occupation || null, address || null],
   )).rows[0];
   return { guardian: created, created: true };
 }

@@ -81,6 +81,53 @@ async function tick() {
     });
   }
 
+  // Approval escalation / reminder (v1 RP-18): pending longer than the configured hours.
+  await safe("approval-escalation", async () => {
+    const hours = Number(settings.approval_escalation_hours || 48);
+    const stale = (await query(
+      `SELECT id, title, request_type, required_role, level, total_levels, created_at FROM approval_requests
+       WHERE status IN ('Pending', 'Clarification') AND created_at < NOW() - ($1 || ' hours')::interval
+         AND (last_reminded_at IS NULL OR last_reminded_at < NOW() - ($1 || ' hours')::interval) LIMIT 50`,
+      [String(hours)],
+    )).rows;
+    if (!stale.length) return;
+    const { queueMessage } = require("./notifications");
+    for (const a of stale) {
+      await queueMessage({ channel: "Portal", eventType: "ApprovalEscalation", recipientType: "Role", recipientId: a.required_role || "approvals",
+        subject: "Approval overdue", body: `${a.title} has waited more than ${hours} hours (level ${a.level}/${a.total_levels}).`,
+        relatedType: "approval_requests", relatedId: a.id });
+      // Escalate to the general approvals module as well (Principal / Admin).
+      await queueMessage({ channel: "Portal", eventType: "ApprovalEscalation", recipientType: "Role", recipientId: "approvals",
+        subject: "Escalated approval", body: `Escalated: ${a.title} (${a.request_type}) pending since ${new Date(a.created_at).toISOString().slice(0, 10)}.`,
+        relatedType: "approval_requests", relatedId: a.id });
+      await query(
+        "UPDATE approval_requests SET last_reminded_at = NOW(), urgency = 'High', history = history || $2::jsonb WHERE id = $1",
+        [a.id, JSON.stringify([{ at: new Date().toISOString(), by: "System", action: "Escalated" }])],
+      );
+    }
+  });
+
+  // Online payment reconciliation / timeout recovery (FIN-11).
+  await safe("payment-reconcile", () => require("./payments").reconcilePending());
+
+  // Scheduled report e-mails (v1 OM-11).
+  await safe("report-schedules", () => require("./reportDigest").runDueSchedules());
+
+  // Hifz target vs actual alert (v1 QM-16): once per student per month, from the 20th.
+  if (new Date().getDate() >= 20 && dueToday("hifz-targets", 9)) {
+    await safe("hifz-targets", async () => {
+      const month = new Date().toISOString().slice(0, 7);
+      const { hifzTargetReport } = require("../routes/extensions");
+      const rows = (await hifzTargetReport(month)).filter((r) => r.behind && !r.alerted_at);
+      const { queueMessage } = require("./notifications");
+      for (const r of rows) {
+        await queueMessage({ channel: "Portal", eventType: "HifzTargetBehind", recipientType: "Role", recipientId: "madrasa",
+          subject: "Hifz target behind", body: `${r.name}: ${r.actual_pages}/${r.target_pages} pages this month.`, studentId: r.student_id });
+        await query("UPDATE hifz_targets SET alerted_at = NOW() WHERE id = $1", [r.id]);
+      }
+    });
+  }
+
   // Daily automated backup (NFR-05).
   if (dueToday("backup", 2)) {
     await safe("backup", async () => {

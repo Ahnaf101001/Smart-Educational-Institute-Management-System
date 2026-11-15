@@ -58,7 +58,7 @@ async function queueMessage(message, executor) {
 // Resolves the guardians who receive notifications for a student.
 async function guardiansForStudent(studentId, { primaryOnly = false } = {}) {
   const result = await query(
-    `SELECT g.id, g.name, g.mobile, g.email, gs.is_primary, gs.relation
+    `SELECT g.id, g.name, g.mobile, g.email, g.notification_prefs, gs.is_primary, gs.relation
      FROM guardian_students gs
      JOIN guardians g ON g.id = gs.guardian_id
      WHERE gs.student_id = $1 AND gs.receives_notifications AND gs.access_status = 'Enabled'
@@ -74,14 +74,25 @@ async function guardiansForStudent(studentId, { primaryOnly = false } = {}) {
   return [{ id: null, name: s.guardian_name, mobile: s.parent_contact, email: null, is_primary: true }];
 }
 
+// Guardian opt-out policy (CM-09, COM-07). prefs = { sms: false, email: false, push: false,
+// whatsapp: false, events: { Absent: false, ... } }. Safety-critical events are never suppressed.
+const MANDATORY_EVENTS = new Set(["OTP", "Emergency", "EmergencyAlert", "PasswordReset"]);
+function optedOut(prefs, channel, eventType) {
+  if (!prefs || MANDATORY_EVENTS.has(eventType) || channel === "Portal") return false;
+  if (prefs[String(channel).toLowerCase()] === false) return true;
+  if (prefs.events && prefs.events[eventType] === false) return true;
+  return false;
+}
+
 // Sends an event notification to a student's guardian(s) on the chosen channels.
 async function notifyStudentGuardians(studentId, { eventType, body, subject, channels = ["SMS", "Portal"], primaryOnly = true, relatedType, relatedId }) {
   const guardians = await guardiansForStudent(studentId, { primaryOnly });
   let queued = 0;
   for (const g of guardians) {
     for (const channel of channels) {
-      const recipient = channel === "SMS" ? g.mobile : channel === "Email" ? g.email : channel === "Push" ? g.id : g.id;
+      const recipient = channel === "SMS" || channel === "WhatsApp" ? g.mobile : channel === "Email" ? g.email : g.id;
       if (channel !== "Portal" && !recipient) continue;
+      if (optedOut(g.notification_prefs, channel, eventType)) continue;
       await queueMessage({
         channel,
         eventType,
@@ -157,14 +168,55 @@ async function sendPush(message) {
   return { provider: "fcm", providerMessageId: null };
 }
 
+// WhatsApp Business Cloud API (NF-20 / §34, optional channel).
+async function sendWhatsApp(message) {
+  if (!env.whatsapp.token || !env.whatsapp.phoneNumberId) {
+    throw new Error("WhatsApp Business API is not configured (set WHATSAPP_TOKEN and WHATSAPP_PHONE_NUMBER_ID).");
+  }
+  const digits = String(message.recipient || "").replace(/\D/g, "");
+  const to = digits.startsWith("0") ? `88${digits}` : digits;
+  const response = await fetch(`${env.whatsapp.apiBase}/${env.whatsapp.phoneNumberId}/messages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.whatsapp.token}` },
+    body: JSON.stringify({ messaging_product: "whatsapp", to, type: "text", text: { body: message.body } }),
+  });
+  const text = await response.text();
+  if (!response.ok) throw new Error(`WhatsApp error ${response.status}: ${text.slice(0, 200)}`);
+  let id = null;
+  try { id = JSON.parse(text)?.messages?.[0]?.id || null; } catch { /* ignore */ }
+  return { provider: "whatsapp", providerMessageId: id };
+}
+
 async function deliver(message) {
   switch (message.channel) {
     case "SMS": return sendSms(message);
     case "Email": return sendEmailMessage(message);
     case "Push": return sendPush(message);
+    case "WhatsApp": return sendWhatsApp(message);
     case "Portal": return { provider: "portal", providerMessageId: null };
     default: throw new Error(`Unknown channel ${message.channel}`);
   }
+}
+
+// Channel failure fallback (COM-07, scenario "SMS provider unavailable"): only when configured.
+async function queueFallback(message) {
+  if (message.channel !== "SMS" || message.event_type === "OTP") return;
+  const settings = await getSettings();
+  const fallback = settings.sms_fallback_channel;
+  if (!fallback || fallback === "SMS") return;
+  let recipient = message.recipient;
+  if (fallback === "Portal" || fallback === "Push") recipient = message.recipient_id;
+  if (fallback === "Email") {
+    const g = message.recipient_type === "Guardian" && message.recipient_id
+      ? (await query("SELECT email FROM guardians WHERE id = $1", [message.recipient_id])).rows[0] : null;
+    recipient = g?.email;
+  }
+  if (!recipient) return;
+  await queueMessage({
+    channel: fallback, eventType: message.event_type, recipient, recipientType: message.recipient_type,
+    recipientId: message.recipient_id, studentId: message.student_id, subject: message.subject,
+    body: message.body, relatedType: "message_logs", relatedId: message.id,
+  });
 }
 
 let processing = false;
@@ -190,12 +242,13 @@ async function processQueue(limit = 50) {
       } catch (error) {
         const attempts = Number(message.attempts) + 1;
         await query(
-          `UPDATE message_logs SET attempts = $1, error = $2,
-             status = CASE WHEN $1 >= $3 THEN 'Failed' ELSE 'Queued' END,
-             scheduled_at = NOW() + (INTERVAL '2 minutes' * $1)
+          `UPDATE message_logs SET attempts = $1::int, error = $2,
+             status = CASE WHEN $1::int >= $3::int THEN 'Failed' ELSE 'Queued' END,
+             scheduled_at = NOW() + (INTERVAL '2 minutes' * $1::int)
            WHERE id = $4`,
           [attempts, error.message.slice(0, 500), MAX_ATTEMPTS, message.id],
         );
+        if (attempts >= MAX_ATTEMPTS) await queueFallback(message).catch(() => {});
       }
       processed += 1;
     }
@@ -206,6 +259,7 @@ async function processQueue(limit = 50) {
 }
 
 module.exports = {
+  optedOut,
   smsParts,
   queueMessage,
   guardiansForStudent,

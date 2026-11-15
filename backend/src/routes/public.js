@@ -189,6 +189,19 @@ router.post("/payments/ipn/sslcommerz", express.urlencoded({ extended: false }),
   res.json({ success: true, data: { duplicate: result.duplicate } });
 }));
 
+// bKash / Nagad redirect here after payment; we confirm server-to-server before showing the result.
+router.all("/payments/return/:gateway", async (req, res, next) => {
+  if (!["bkash", "nagad"].includes(req.params.gateway)) return next();
+  const go = (status, txn) => res.redirect(`${env.publicAppUrl}/pay/result?status=${encodeURIComponent(status)}&txn=${encodeURIComponent(txn || "")}`);
+  try {
+    const r = await payments.confirmReturn(req.params.gateway, { ...req.query, ...(req.body || {}) });
+    go(r.status === "Success" ? "success" : r.status === "Pending" ? "pending" : r.status === "Cancelled" ? "cancelled" : "failed", r.txn?.txn_id);
+  } catch (error) {
+    console.error(`[payments] ${req.params.gateway} return failed:`, error.message);
+    go("failed", "");
+  }
+});
+
 router.all("/payments/return/:gateway", (req, res) => {
   const status = req.query.status || "unknown";
   res.redirect(`${env.publicAppUrl}/pay/result?status=${encodeURIComponent(status)}&txn=${encodeURIComponent(req.body?.tran_id || req.query.tran_id || "")}`);

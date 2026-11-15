@@ -13,6 +13,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { academicApi, studentsApi, attendanceApi } from "../lib/api";
+import { discardAttendance, flushAttendance, isNetworkError, pendingAttendance, queueAttendance } from "../lib/offlineQueue";
 
 const statuses = [
   { id: "Present", label: "Present", color: "bg-emerald-500", text: "text-emerald-500", icon: CheckCircle2 },
@@ -44,6 +45,24 @@ export default function Attendance() {
   const [isLoading, setIsLoading] = useState(true);
   const [chartData, setChartData] = useState([]);
   const [avgAttendance, setAvgAttendance] = useState(0);
+  const [offlineItems, setOfflineItems] = useState([]);
+  const [offlineNote, setOfflineNote] = useState("");
+
+  // Sync registers saved while offline as soon as the connection is back (ATT-06).
+  useEffect(() => {
+    const refresh = () => setOfflineItems(pendingAttendance());
+    const sync = async () => {
+      if (!pendingAttendance().length) return;
+      const r = await flushAttendance((payload) => attendanceApi.bulkUpdate(payload));
+      refresh();
+      if (r.synced) setOfflineNote(`${r.synced} offline register(s) synced.`);
+    };
+    refresh();
+    sync();
+    window.addEventListener("online", sync);
+    window.addEventListener("edumanage:offline-queue", refresh);
+    return () => { window.removeEventListener("online", sync); window.removeEventListener("edumanage:offline-queue", refresh); };
+  }, []);
 
   useEffect(() => {
     async function loadInitial() {
@@ -321,6 +340,17 @@ export default function Attendance() {
           <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 p-5">
             <div className="text-sm font-semibold text-slate-500">
               {presentCount} present · {absentCount} absent · {lateCount} late
+              {offlineNote && <p className="mt-1 text-xs font-semibold text-amber-700">{offlineNote}</p>}
+              {offlineItems.length > 0 && (
+                <div className="mt-1 space-y-1 text-xs font-medium text-amber-800">
+                  {offlineItems.map((i) => (
+                    <div key={i.id}>
+                      Waiting to sync: {i.payload.className} · {i.payload.date}{i.error ? <span className="text-rose-600"> – {i.error}</span> : null}
+                      {i.error && <button type="button" className="ml-2 underline" onClick={() => { discardAttendance(i.id); setOfflineItems(pendingAttendance()); }}>Discard</button>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <button
               className="flex h-11 items-center gap-2 rounded-xl bg-blue-600 px-6 font-bold text-white shadow-sm transition hover:bg-blue-700 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
@@ -344,8 +374,18 @@ export default function Attendance() {
                   setExistingRecords(fetchedRecords);
                   setShowSuccessModal(true);
                 } catch (err) {
-                  console.error("Failed to save attendance", err);
-                  alert("Failed to save attendance: " + err.message);
+                  if (isNetworkError(err)) {
+                    queueAttendance({
+                      className: selectedClass,
+                      date: selectedDate,
+                      records: displayStudents.map((s) => ({ studentId: s.id, status: attendance[s.id] || "Present" })),
+                    });
+                    setOfflineItems(pendingAttendance());
+                    setOfflineNote("No connection – the register is saved on this device and will sync automatically.");
+                  } else {
+                    console.error("Failed to save attendance", err);
+                    alert("Failed to save attendance: " + err.message);
+                  }
                 } finally {
                   setIsSaving(false);
                 }

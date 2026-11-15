@@ -9,7 +9,8 @@ const { notFound, errorHandler } = require("./middleware/errorHandler");
 const app = express();
 
 app.disable("x-powered-by");
-app.set("trust proxy", 1);
+// Only proxies on this machine (Next.js / nginx) may supply X-Forwarded-For; set TRUST_PROXY for other setups.
+app.set("trust proxy", process.env.TRUST_PROXY || "loopback");
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(cors({
   origin(origin, callback) {

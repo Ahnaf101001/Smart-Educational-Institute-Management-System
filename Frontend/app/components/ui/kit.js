@@ -314,6 +314,10 @@ export async function exportRows(format, { title, columns, rows }) {
     autoTable(doc, { head: [header], body, startY: 23, styles: { fontSize: 8 }, headStyles: { fillColor: [34, 63, 145] } });
     doc.save(`${safe}.pdf`);
   }
+  // Export / print / bulk download actions are audit-logged (NFX-10).
+  import("../../lib/api")
+    .then(({ request }) => request("/x/audit/export", { method: "POST", body: JSON.stringify({ resource: title || "export", format, count: rows.length }) }))
+    .catch(() => {});
 }
 
 export function formatDate(value) {

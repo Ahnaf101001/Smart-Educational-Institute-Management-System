@@ -207,6 +207,14 @@ function PoliciesTab() {
           <Field label="Edit window (days)" hint="0 = same day only"><Input type="number" min="0" value={s.attendanceEditWindowDays} onChange={num("attendanceEditWindowDays")} /></Field>
           <Field label="Late after (HH:MM)"><Input type="time" value={s.attendanceCutoffTime} onChange={(e) => set("attendanceCutoffTime", e.target.value)} /></Field>
           <Field label="Consecutive absence alert"><Input type="number" min="1" value={s.consecutiveAbsenceThreshold} onChange={num("consecutiveAbsenceThreshold")} /></Field>
+          <Field label="Staff: late days = 1 day deduction" hint="0 = no late deduction (AT-11)"><Input type="number" min="0" value={s.lateDaysPerDeduction} onChange={num("lateDaysPerDeduction")} /></Field>
+          <Field label="Staff: half day counts as (day)"><Input type="number" step="0.25" min="0" max="1" value={s.halfDayCountsAs} onChange={num("halfDayCountsAs")} /></Field>
+          <Field label="SMS failure fallback channel" hint="Used only when an SMS finally fails (COM-07)"><Select value={s.smsFallbackChannel || ""} onChange={(e) => set("smsFallbackChannel", e.target.value || null)} options={["Portal", "Push", "Email", "WhatsApp"]} placeholder="No fallback" /></Field>
+        </div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <label className="flex items-center gap-2 text-sm sm:col-span-3"><input type="checkbox" className="accent-blue-600" checked={Boolean(s.teacherQuietHours?.enabled)} onChange={(e) => set("teacherQuietHours", { ...(s.teacherQuietHours || {}), enabled: e.target.checked })} /> Mute guardian messages to teachers outside school hours (v1 CM-05)</label>
+          <Field label="Quiet from"><Input type="time" value={s.teacherQuietHours?.start || "18:00"} onChange={(e) => set("teacherQuietHours", { ...(s.teacherQuietHours || {}), start: e.target.value })} /></Field>
+          <Field label="Quiet until"><Input type="time" value={s.teacherQuietHours?.end || "08:00"} onChange={(e) => set("teacherQuietHours", { ...(s.teacherQuietHours || {}), end: e.target.value })} /></Field>
         </div>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {chk("notifyAbsent", "SMS guardian when absent")}{chk("notifyLate", "SMS guardian when late")}
@@ -224,8 +232,11 @@ function PoliciesTab() {
           <Field label="Generate monthly invoices on day"><Input type="number" min="1" max="28" value={s.invoiceGenerationDay} onChange={num("invoiceGenerationDay")} /></Field>
           <Field label="Send fee reminders on day"><Input type="number" min="1" max="28" value={s.feeReminderDay} onChange={num("feeReminderDay")} /></Field>
           <Field label="Expense approval above (৳)"><Input type="number" value={s.expenseApprovalThreshold} onChange={num("expenseApprovalThreshold")} /></Field>
-          <Field label="Committee approval above (৳)"><Input type="number" value={s.committeeApprovalThreshold} onChange={num("committeeApprovalThreshold")} /></Field>
+          <Field label="Committee approval above (৳)" hint="Edit the full chain in Approvals → Approval rules"><Input type="number" value={s.committeeApprovalThreshold} onChange={num("committeeApprovalThreshold")} /></Field>
+          <Field label="Maximum total discount (%)" hint="Cap for scholarship + sibling + waiver (FIN-05)"><Input type="number" min="0" max="100" value={s.maxDiscountPercent} onChange={num("maxDiscountPercent")} /></Field>
+          <Field label="Escalate pending approvals after (hours)" hint="Reminder + escalation (v1 RP-18)"><Input type="number" min="1" value={s.approvalEscalationHours} onChange={num("approvalEscalationHours")} /></Field>
         </div>
+        <div className="mt-3">{chk("allowDiscountStacking", "Allow several discounts on one invoice (off = only the largest applies) (FE-09)")}</div>
         <p className="mt-3 text-xs font-semibold text-slate-600">Online payment gateways (FE-10)</p>
         <div className="mt-1 flex flex-wrap gap-4">
           {["cash", "bkash", "nagad", "rocket", "sslcommerz"].map((g) => (
@@ -239,6 +250,7 @@ function PoliciesTab() {
           {chk("admitCardBlockOnDue", "Block admit card when fees are due")}{chk("resultHideOnDue", "Hide result from guardians when fees are due")}
           {chk("cardPrintRequiresApproval", "ID card printing requires approval")}{chk("requireNewCardEachSession", "New ID card required each session")}
           {chk("publicAdmissionEnabled", "Public online admission portal")}{chk("publicResultEnabled", "Public online result lookup")}
+          {chk("formFillupBlockOnTestFail", "Block board form fill-up when the student failed the test exam (BM-05)")}
         </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <Field label="Student card prefix"><Input value={s.cardNumberPrefix} onChange={(e) => set("cardNumberPrefix", e.target.value)} /></Field>

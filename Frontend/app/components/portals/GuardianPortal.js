@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Bell, BookOpen, Bus, CalendarDays, CreditCard, FileText, Globe2, Home, LogOut, Moon, Send, Users,
+  Bell, BookOpen, Bus, CalendarDays, CreditCard, FileText, Globe2, GraduationCap, Home, LogOut, Moon, Send, Settings as SettingsIcon, Users,
 } from "lucide-react";
+import { AccountSecurity, GuardianLearning } from "../extensions/Extras";
 import { http, portalApi } from "../../lib/api";
 import { useI18n } from "../../lib/i18n";
 import { Conversations } from "../operations/Hubs";
@@ -271,7 +272,8 @@ export default function GuardianPortal({ onLogout }) {
 
   const tabs = [
     ["overview", t("Overview"), Home], ["attendance", t("Attendance"), CalendarDays], ["results", "Results", FileText], ["fees", t("Fees"), CreditCard],
-    ["academics", "Routine & Homework", BookOpen], ["more", "Leave, Teachers & More", Moon],
+    ["academics", "Routine & Homework", BookOpen], ["learning", "Learning & Progress", GraduationCap], ["more", "Leave, Teachers & More", Moon],
+    ["account", "Settings", SettingsIcon],
   ];
 
   return (
@@ -337,6 +339,8 @@ export default function GuardianPortal({ onLogout }) {
             {tab === "fees" && <FeesView studentId={childId} />}
             {tab === "academics" && <AcademicsView studentId={childId} />}
             {tab === "more" && <ExtrasView studentId={childId} child={child} />}
+            {tab === "learning" && <GuardianLearning studentId={childId} />}
+            {tab === "account" && <AccountSecurity guardian />}
           </div>
         )}
       </main>

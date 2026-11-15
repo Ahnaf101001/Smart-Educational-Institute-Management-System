@@ -65,6 +65,7 @@ router.use("/portal", portalRoutes);
 router.use("/uploads", uploadRoutes);
 router.use("/backups", backupRoutes);
 router.use(workflowRoutes);
+router.use("/x", require("./extensions"));
 
 for (const [path, resource] of [
   ["students", "students"],
@@ -155,6 +156,27 @@ for (const [path, resource] of [
   ["saved-filters", "savedFilters"],
   ["users", "users"],
   ["roles", "roles"],
+  ["approval-rules", "approvalRules"],
+  ["student-group-history", "studentGroupHistory"],
+  ["branch-transfers", "branchTransfers"],
+  ["special-schedules", "specialSchedules"],
+  ["homework-submissions", "homeworkSubmissions"],
+  ["online-class-attendance", "onlineClassAttendance"],
+  ["quizzes", "quizzes"],
+  ["quiz-attempts", "quizAttempts"],
+  ["coursework", "coursework"],
+  ["coursework-submissions", "courseworkSubmissions"],
+  ["exam-seat-plans", "examSeatPlans"],
+  ["board-registrations", "boardRegistrations"],
+  ["board-results", "boardResults"],
+  ["stipend-beneficiaries", "stipendBeneficiaries"],
+  ["house-points", "housePoints"],
+  ["daily-logs", "dailyLogs"],
+  ["hifz-targets", "hifzTargets"],
+  ["report-schedules", "reportSchedules"],
+  ["webhooks", "webhooks"],
+  ["webhook-deliveries", "webhookDeliveries"],
+  ["user-sessions", "userSessions"],
 ]) {
   router.use(`/${path}`, createCrudRouter(resource));
 }

@@ -5,6 +5,7 @@ import {
   Bus, CalendarCheck2, ClipboardList, CreditCard, MapPin, MessageSquare, Moon, QrCode, Save, ScanLine, Send,
 } from "lucide-react";
 import { http, resource } from "../../lib/api";
+import { flushItems, isNetworkError, pendingItems, queueItem } from "../../lib/offlineQueue";
 import { useUser } from "../../lib/access";
 import ResourceManager from "../ui/ResourceManager";
 import { CONFIGS } from "../modules/configs";
@@ -316,18 +317,39 @@ function HifzEntry() {
   const loadSummary = useCallback(() => studentId && http.get(`/ops/madrasa/hifz/${studentId}/summary`).then(setSummary).catch((e) => toast.error(e)), [studentId, toast]);
   useEffect(() => { loadSummary(); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studentId]);
+  // Offline hifz entries (v1 QM-13 / NF-38): kept on the device and synced when online.
+  const [offlineCount, setOfflineCount] = useState(0);
+  useEffect(() => {
+    const sync = async () => {
+      if (!pendingItems("hifz").length) return;
+      const r = await flushItems("hifz", (p) => http.post("/ops/madrasa/hifz/log", p));
+      setOfflineCount(r.remaining);
+      if (r.synced) toast.success(`${r.synced} offline hifz entr${r.synced === 1 ? "y" : "ies"} synced`);
+    };
+    setOfflineCount(pendingItems("hifz").length);
+    sync();
+    window.addEventListener("online", sync);
+    return () => window.removeEventListener("online", sync);
+  }, [toast]);
   async function save() {
+    const payload = { ...form, logDate: form.logDate || new Date().toISOString().slice(0, 10), studentId, sabakPara: form.sabakPara ? Number(form.sabakPara) : null, mistakes: Number(form.mistakes), tajweedRating: Number(form.tajweedRating) };
     try {
-      await http.post("/ops/madrasa/hifz/log", { ...form, studentId, sabakPara: form.sabakPara ? Number(form.sabakPara) : null, mistakes: Number(form.mistakes), tajweedRating: Number(form.tajweedRating) });
+      await http.post("/ops/madrasa/hifz/log", payload);
       toast.success("Saved – guardian can see today's sabak in the portal");
       setForm({ ...form, sabakFrom: "", sabakTo: "", sabqi: "", amukhtaPara: "", mistakes: 0, comment: "", paraCompleted: false });
       loadSummary();
-    } catch (e) { toast.error(e); }
+    } catch (e) {
+      if (isNetworkError(e)) {
+        setOfflineCount(queueItem("hifz", payload));
+        toast.success("No connection – entry saved on this device and will sync automatically");
+        setForm({ ...form, sabakFrom: "", sabakTo: "", sabqi: "", amukhtaPara: "", mistakes: 0, comment: "", paraCompleted: false });
+      } else toast.error(e);
+    }
   }
   const colors = { "Not Started": "bg-slate-100 text-slate-400", Ongoing: "bg-amber-100 text-amber-700", Done: "bg-emerald-500 text-white", Revised: "bg-emerald-700 text-white" };
   return (
     <div className="grid gap-5 xl:grid-cols-[380px_1fr]">
-      <Card title="Daily Hifz / Nazera entry" subtitle="Sabak, Sabqi, Amukhta, mistakes, tajweed, comment (QM-13/14)">
+      <Card title="Daily Hifz / Nazera entry" subtitle={offlineCount ? `${offlineCount} entr${offlineCount === 1 ? "y" : "ies"} waiting to sync (offline)` : "Sabak, Sabqi, Amukhta, mistakes, tajweed, comment (QM-13/14)"}>
         <div className="space-y-3">
           <Field label="Halaqa"><Select value={halaqaId} onChange={(e) => setHalaqaId(e.target.value)} options={halaqas.map((h) => ({ value: h.id, label: h.name }))} placeholder="Select halaqa" /></Field>
           <Field label="Student"><Select value={studentId} onChange={(e) => setStudentId(e.target.value)} options={(halaqaId ? members.map((m) => m.studentId) : Object.keys(students)).map((id) => ({ value: id, label: students[id]?.name ? `${students[id].name} (${id})` : id }))} placeholder="Select student" /></Field>

@@ -1,7 +1,7 @@
 // Notice / bulk message dispatch (SRS CM-01..06, COM-01..03).
 const { query } = require("../db/pool");
 const httpError = require("../utils/httpError");
-const { queueMessage, smsParts, getSettings } = require("./notifications");
+const { queueMessage, smsParts, getSettings, optedOut } = require("./notifications");
 
 function channelsOf(notice) {
   const c = String(notice.channel || "Notice").toLowerCase();
@@ -9,6 +9,7 @@ function channelsOf(notice) {
   if (c.includes("sms") || c === "both" || c === "all") list.push("SMS");
   if (c.includes("email") || c === "both" || c === "all") list.push("Email");
   if (c.includes("push") || c === "all") list.push("Push");
+  if (c.includes("whatsapp")) list.push("WhatsApp");
   return list;
 }
 
@@ -72,15 +73,22 @@ async function dispatchNotice(noticeId, executor) {
   const recipients = await resolveRecipients(notice);
   const channels = channelsOf(notice);
   const prefix = notice.priority === "Emergency" ? "[EMERGENCY] " : "";
+  // Guardian opt-out preferences (CM-09); emergency notices are always delivered.
+  const guardianIds = [...new Set(recipients.filter((r) => r.type === "Guardian" && r.id).map((r) => r.id))];
+  const prefs = guardianIds.length
+    ? Object.fromEntries((await run("SELECT id, notification_prefs FROM guardians WHERE id = ANY($1::text[])", [guardianIds])).rows.map((g) => [g.id, g.notification_prefs]))
+    : {};
+  const eventType = notice.priority === "Emergency" ? "Emergency" : "Notice";
   let queued = 0;
   for (const r of recipients) {
     for (const channel of channels) {
-      const recipient = channel === "SMS" ? r.mobile : channel === "Email" ? r.email : r.id;
+      const recipient = channel === "SMS" || channel === "WhatsApp" ? r.mobile : channel === "Email" ? r.email : r.id;
       if (!recipient) continue;
+      if (r.type === "Guardian" && optedOut(prefs[r.id], channel, eventType)) continue;
       await queueMessage({
-        channel, eventType: notice.priority === "Emergency" ? "Emergency" : "Notice", recipient,
+        channel, eventType, recipient,
         recipientType: r.type, recipientId: r.id, studentId: r.studentId || null,
-        subject: notice.title, body: channel === "SMS" ? `${prefix}${notice.title}: ${notice.message}` : notice.message,
+        subject: notice.title, body: channel === "SMS" || channel === "WhatsApp" ? `${prefix}${notice.title}: ${notice.message}` : notice.message,
         relatedType: "notices", relatedId: notice.id,
       }, executor);
       queued += 1;

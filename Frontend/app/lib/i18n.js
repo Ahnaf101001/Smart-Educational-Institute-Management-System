@@ -46,3 +46,33 @@ export const I18nContext = createContext({ lang: "en", t: (k) => k, digits: (v) 
 export function useI18n() {
   return useContext(I18nContext);
 }
+
+// Bangla (Bangabda) date per the 2019 revised Bangladesh calendar (v1 PC-26):
+// 1 Boishakh = 14 April; Boishakh–Ashwin 31 days, Kartik–Magh 30, Falgun 29 (30 in a
+// Gregorian leap year), Chaitra 30.
+const BN_MONTHS = ["বৈশাখ", "জ্যৈষ্ঠ", "আষাঢ়", "শ্রাবণ", "ভাদ্র", "আশ্বিন", "কার্তিক", "অগ্রহায়ণ", "পৌষ", "মাঘ", "ফাল্গুন", "চৈত্র"];
+const BN_MONTHS_EN = ["Boishakh", "Joishtho", "Asharh", "Srabon", "Bhadro", "Ashwin", "Kartik", "Ogrohayon", "Poush", "Magh", "Falgun", "Choitro"];
+export function toBanglaDate(input = new Date(), lang = "bn") {
+  const d = new Date(input);
+  const y = d.getFullYear();
+  const startYear = d >= new Date(y, 3, 14) ? y : y - 1;
+  let days = Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(startYear, 3, 14)) / 86400000);
+  const next = startYear + 1;
+  const leap = (next % 4 === 0 && next % 100 !== 0) || next % 400 === 0;
+  const lengths = [31, 31, 31, 31, 31, 31, 30, 30, 30, 30, leap ? 30 : 29, 30];
+  let m = 0;
+  while (m < 11 && days >= lengths[m]) { days -= lengths[m]; m += 1; }
+  const day = days + 1;
+  const year = startYear - 593;
+  return lang === "bn" ? `${toBnDigits(day)} ${BN_MONTHS[m]} ${toBnDigits(year)} বঙ্গাব্দ` : `${day} ${BN_MONTHS_EN[m]} ${year} BS`;
+}
+
+export function toHijriDate(input = new Date(), lang = "bn") {
+  try {
+    const parts = new Intl.DateTimeFormat(lang === "bn" ? "bn-BD-u-ca-islamic-umalqura" : "en-u-ca-islamic-umalqura", { day: "numeric", month: "long", year: "numeric" }).formatToParts(new Date(input));
+    const get = (t) => parts.find((p) => p.type === t)?.value || "";
+    return `${get("day")} ${get("month")} ${get("year")} ${lang === "bn" ? "হিজরি" : "AH"}`;
+  } catch {
+    return "";
+  }
+}

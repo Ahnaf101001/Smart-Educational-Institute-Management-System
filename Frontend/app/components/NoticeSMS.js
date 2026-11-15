@@ -5,7 +5,7 @@ import ConfirmModal from "./ConfirmModal";
 import { Bell, MessageSquare, FileEdit, Send, Save, Trash2 } from "lucide-react";
 import { noticesApi } from "../lib/api";
 
-const messageTypes = ["Notice", "SMS", "Email", "Both"];
+const messageTypes = ["Notice", "SMS", "Email", "Both", "WhatsApp", "SMS+WhatsApp", "All"];
 
 function getTypeStyle(type) {
   if (type === "SMS") return "bg-purple-50 text-purple-600";

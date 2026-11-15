@@ -534,7 +534,8 @@ reportCategories.push(
   { title: "ID Card Report", icon: "id-card", color: "bg-indigo-600", module: "idcards", reports: ["ID Card Print Logs", "Active Cards", "Card Replacements", "Students Without Card"] },
   { title: "HR Report", icon: "briefcase", color: "bg-slate-600", module: "staff", reports: ["Staff List", "Leave Report", "Staff Attendance Summary"] },
   { title: "Library & Transport", icon: "book", color: "bg-amber-600", module: "library", reports: ["Books Issued", "Overdue Books", "Transport Route Students"] },
-  { title: "Madrasa Report", icon: "moon", color: "bg-green-700", module: "madrasa", reports: ["Hifz Progress", "Salah Summary", "Donations by Fund"] },
+  { title: "Madrasa Report", icon: "moon", color: "bg-green-700", module: "madrasa", reports: ["Hifz Progress", "Hifz by Halaqa", "Hifz by Ustad", "Hifz Target vs Actual", "Salah Summary", "Donations by Fund"] },
+  { title: "Board & Co-curricular", icon: "award", color: "bg-teal-600", module: "students", reports: ["Board Results", "Board Registrations", "Stipend Beneficiaries", "House Points Leaderboard", "Coursework Status"] },
 );
 const CATEGORY_MODULE = {
   "Student Report": "students", "Attendance Report": "attendance", "Exam Report": "results", "Fee Report": "fees",
@@ -606,6 +607,46 @@ Object.assign(handlers, {
   "Hifz Progress": async () => {
     const r = await query(`SELECT s.name, s.class_name, COUNT(hp.id) FILTER (WHERE hp.status IN ('Done','Revised'))::int AS done FROM students s JOIN hifz_progress hp ON hp.student_id = s.id GROUP BY s.id ORDER BY done DESC`);
     return { columns: ["STUDENT", "CLASS", "PARAS COMPLETED", "PROGRESS"], rows: r.rows.map((x) => row(x.name, x.class_name, `${x.done}/30`, pct((x.done / 30) * 100))), totals: [] };
+  },
+  "Hifz by Halaqa": async ({ fromDate, toDate }) => {
+    const r = await query(
+      `SELECT COALESCE(h.name, 'No halaqa') AS halaqa, COUNT(DISTINCT hl.student_id)::int AS students, COUNT(hl.id)::int AS entries,
+              COALESCE(SUM(hl.mistakes), 0)::int AS mistakes, ROUND(AVG(hl.tajweed_rating), 1) AS tajweed
+       FROM hifz_logs hl LEFT JOIN halaqa_members hm ON hm.student_id = hl.student_id LEFT JOIN halaqas h ON h.id::text = hm.halaqa_id::text
+       WHERE hl.log_date BETWEEN $1 AND $2 GROUP BY 1 ORDER BY 1`, [fromDate, toDate]);
+    return { columns: ["HALAQA", "STUDENTS", "ENTRIES", "MISTAKES", "AVG TAJWEED"], rows: r.rows.map((x) => row(x.halaqa, x.students, x.entries, x.mistakes, x.tajweed ?? dash)), totals: [] };
+  },
+  "Hifz by Ustad": async ({ fromDate, toDate }) => {
+    const r = await query(
+      `SELECT COALESCE(t.name, hl.ustad_id, 'Not set') AS ustad, COUNT(DISTINCT hl.student_id)::int AS students, COUNT(hl.id)::int AS entries,
+              ROUND(AVG(hl.mistakes), 1) AS mistakes, ROUND(AVG(hl.tajweed_rating), 1) AS tajweed
+       FROM hifz_logs hl LEFT JOIN teachers t ON t.id = hl.ustad_id WHERE hl.log_date BETWEEN $1 AND $2 GROUP BY 1 ORDER BY 1`, [fromDate, toDate]);
+    return { columns: ["USTAD", "STUDENTS", "ENTRIES", "AVG MISTAKES", "AVG TAJWEED"], rows: r.rows.map((x) => row(x.ustad, x.students, x.entries, x.mistakes ?? dash, x.tajweed ?? dash)), totals: [] };
+  },
+  "Hifz Target vs Actual": async ({ toDate }) => {
+    const { hifzTargetReport } = require("./extensions");
+    const list = await hifzTargetReport(String(toDate).slice(0, 7));
+    return { columns: ["STUDENT", "HALAQA", "TARGET PAGES", "ACTUAL PAGES", "ACHIEVED", "STATUS"], rows: list.map((x) => row(x.name, x.halaqa || dash, x.target_pages, x.actual_pages, pct(x.percent), x.behind ? "Behind" : "On track")), totals: [] };
+  },
+  "Board Results": async () => {
+    const r = await query(`SELECT br.exam_level, br.passing_year, s.name, br.board, br.gpa, br.grade FROM board_results br JOIN students s ON s.id = br.student_id ORDER BY br.passing_year DESC, br.exam_level, br.gpa DESC NULLS LAST`);
+    return { columns: ["EXAM", "YEAR", "STUDENT", "BOARD", "GPA", "GRADE"], rows: r.rows.map((x) => row(x.exam_level, x.passing_year, x.name, x.board || dash, x.gpa ?? dash, x.grade || dash)), totals: ["Students", dash, r.rowCount, dash, dash, dash] };
+  },
+  "Board Registrations": async () => {
+    const r = await query(`SELECT br.board, br.exam_level, br.exam_year, COUNT(*)::int AS n, COUNT(*) FILTER (WHERE br.form_fillup_status = 'Blocked')::int AS blocked, COALESCE(SUM(br.entry_fee), 0) AS fee FROM board_registrations br GROUP BY 1, 2, 3 ORDER BY 3 DESC, 2`);
+    return { columns: ["BOARD", "EXAM", "YEAR", "CANDIDATES", "BLOCKED", "ENTRY FEES"], rows: r.rows.map((x) => row(x.board, x.exam_level, x.exam_year || dash, x.n, x.blocked, money(x.fee))), totals: [] };
+  },
+  "Stipend Beneficiaries": async () => {
+    const r = await query(`SELECT sb.program, s.name, s.class_name, sb.mobile_banking_provider, sb.amount FROM stipend_beneficiaries sb JOIN students s ON s.id = sb.student_id WHERE sb.status = 'Active' ORDER BY sb.program, s.class_name, s.name`);
+    return { columns: ["PROGRAM", "STUDENT", "CLASS", "MFS", "AMOUNT"], rows: r.rows.map((x) => row(x.program, x.name, x.class_name, x.mobile_banking_provider || dash, money(x.amount))), totals: ["Total", r.rowCount, dash, dash, money(r.rows.reduce((t, x) => t + Number(x.amount), 0))] };
+  },
+  "House Points Leaderboard": async ({ fromDate, toDate }) => {
+    const r = await query(`SELECT c.name, c.kind, COALESCE(SUM(hp.points) FILTER (WHERE hp.awarded_on BETWEEN $1 AND $2), 0)::int AS period, c.points AS total FROM clubs c LEFT JOIN house_points hp ON hp.club_id = c.id::text GROUP BY c.id ORDER BY total DESC`, [fromDate, toDate]);
+    return { columns: ["RANK", "HOUSE / CLUB", "TYPE", "POINTS (PERIOD)", "TOTAL POINTS"], rows: r.rows.map((x, i) => row(i + 1, x.name, x.kind, x.period, x.total)), totals: [] };
+  },
+  "Coursework Status": async () => {
+    const r = await query(`SELECT c.title, c.deadline, COUNT(cs.id)::int AS total, COUNT(cs.id) FILTER (WHERE cs.status IN ('Submitted','Graded'))::int AS done, COUNT(cs.id) FILTER (WHERE cs.status IN ('Missing','Late'))::int AS late FROM coursework c LEFT JOIN coursework_submissions cs ON cs.coursework_id = c.id::text GROUP BY c.id ORDER BY c.deadline DESC NULLS LAST`);
+    return { columns: ["COURSEWORK", "DEADLINE", "TRACKED", "SUBMITTED", "LATE / MISSING"], rows: r.rows.map((x) => row(x.title, x.deadline ? String(x.deadline).slice(0, 10) : dash, x.total, x.done, x.late)), totals: [] };
   },
   "Salah Summary": async ({ fromDate, toDate }) => {
     const r = await query(`SELECT s.name, s.class_name, COUNT(*) FILTER (WHERE sa.status='Jamaat')::int AS j, COUNT(*) FILTER (WHERE sa.status='Missed')::int AS m, COUNT(*)::int AS t FROM salah_attendance sa JOIN students s ON s.id = sa.student_id WHERE sa.attendance_date BETWEEN $1 AND $2 GROUP BY s.id ORDER BY s.class_name, s.name`, [fromDate, toDate]);

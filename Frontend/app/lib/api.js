@@ -392,6 +392,7 @@ export const authExtraApi = {
   verify2fa: (challenge, code) => post("/auth/verify-otp", { challenge, code }),
   otpRequest: (mobile) => post("/auth/otp/request", { mobile }),
   otpVerify: (challenge, code) => post("/auth/otp/verify", { challenge, code }),
+  pinLogin: (identifier, pin) => post("/auth/pin/login", { identifier, pin }),
   forgot: (identifier) => request("/auth/password/forgot", { method: "POST", body: JSON.stringify({ identifier }) }),
   reset: (token, password) => post("/auth/password/reset", { token, password }),
   changePassword: (currentPassword, newPassword) => post("/auth/change-password", { currentPassword, newPassword }),

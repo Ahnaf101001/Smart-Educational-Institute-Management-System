@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ArrowUpCircle, FileUp, IdCard, ListOrdered, Search, Star, Upload, UserCircle2, Users } from "lucide-react";
 import { http, resource, uploadsApi } from "../../lib/api";
 import { can, useUser } from "../../lib/access";
+import { TranscriptCard } from "../extensions/Extras";
 import { Badge, Button, Card, Field, Input, Modal, PageHeader, Select, StatCard, Table, Tabs, formatDate, money, useToast, usePrompt } from "../ui/kit";
 
 const CERTS = ["Transfer Certificate", "Testimonial", "Character Certificate", "Study Certificate", "Sanad", "Hifz Sanad"];
@@ -137,6 +138,7 @@ export function Student360() {
             <Card title="Results">
               <Table dense rows={profile.results} columns={[{ key: "examName", label: "Exam" }, { key: "totalMarks", label: "Total" }, { key: "gpa", label: "GPA" }, { key: "grade", label: "Grade" }, { key: "classPosition", label: "Pos" }, { key: "published", label: "Published", render: (r) => (r.published ? "Yes" : "No") }]} />
             </Card>
+            {can(user, "results", "view") && <TranscriptCard key={studentId} studentId={studentId} />}
             <Card title="Documents" actions={can(user, "students", "edit") && (
               <label className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-xl bg-blue-600 px-3 text-xs font-semibold text-white">
                 <FileUp size={14} /> Upload

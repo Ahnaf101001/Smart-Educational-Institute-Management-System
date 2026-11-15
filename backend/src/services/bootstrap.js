@@ -147,7 +147,22 @@ async function ensureSystemData() {
     await ensureGradeScales(client);
     await ensureCardTemplates(client);
     await ensureLookups(client);
+    await ensureApprovalRules(client);
   });
+}
+
+// Default amount-based expense chain (v1 RP-16 / 4.3): below the committee threshold the
+// Principal approves; above it a second, committee-level approval is required.
+async function ensureApprovalRules(client) {
+  const exists = await client.query("SELECT 1 FROM approval_rules LIMIT 1");
+  if (exists.rowCount) return;
+  const s = (await client.query("SELECT committee_approval_threshold FROM system_settings WHERE id = 1")).rows[0] || {};
+  const threshold = Number(s.committee_approval_threshold || 10000);
+  await client.query(
+    "INSERT INTO approval_rules (request_type, min_amount, levels) VALUES ($1, 0, $2), ($1, $3, $4)",
+    ["expense", JSON.stringify([{ label: "Principal", module: "accounts" }]), threshold,
+      JSON.stringify([{ label: "Principal", module: "accounts" }, { label: "Committee President", module: "approvals" }])],
+  );
 }
 
 // Applies an institution-type preset (SRS v1 PC-14 / PC-05 / RP-05).

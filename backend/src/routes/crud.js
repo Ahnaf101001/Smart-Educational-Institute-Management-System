@@ -7,9 +7,10 @@ const httpError = require("../utils/httpError");
 const { keysToCamel, objectToSnake } = require("../utils/case");
 const { hasPermission } = require("../middleware/auth");
 const { writeAudit } = require("../services/audit");
+const { encryptField, decryptField } = require("../utils/crypto");
 
 const METHOD_ACTION = { GET: "view", POST: "create", PATCH: "edit", PUT: "edit", DELETE: "delete" };
-const HIDDEN_FIELDS = ["password_hash", "otp_hash", "api_key_hash"];
+const HIDDEN_FIELDS = ["password_hash", "otp_hash", "api_key_hash", "pin_hash"];
 
 function sanitizePayload(body, config, partial = false) {
   const snakeBody = objectToSnake(body || {});
@@ -32,7 +33,12 @@ function sanitizePayload(body, config, partial = false) {
   return payload;
 }
 
-function databaseValue(value) {
+// JSON/JSONB columns get serialised; native Postgres array columns (config.arrayColumns) do not.
+function databaseValue(value, field, config) {
+  if (config?.arrayColumns?.includes(field)) {
+    if (value === null || value === undefined) return value;
+    return (Array.isArray(value) ? value : String(value).split(",")).map((v) => String(v).trim()).filter(Boolean);
+  }
   if (value && typeof value === "object" && !(value instanceof Date)) return JSON.stringify(value);
   return value;
 }
@@ -49,6 +55,7 @@ function present(rows, config, user) {
   return rows.map((row) => {
     const out = { ...row };
     for (const f of HIDDEN_FIELDS) delete out[f];
+    for (const f of config.encrypted || []) if (out[f]) out[f] = decryptField(out[f]);
     if (!canSee) for (const f of config.sensitive || []) if (out[f]) out[f] = maskValue(out[f]);
     return out;
   });
@@ -56,10 +63,12 @@ function present(rows, config, user) {
 
 // Restricts teachers etc. to their class / section scope (RP-04, GDX-08).
 function scopeCondition(config, user, values) {
-  if (!config.scopeColumn || !user || user.isAdmin) return null;
+  if (!user || user.isAdmin) return null;
+  const genderPart = genderCondition(config, user, values);
+  if (!config.scopeColumn) return genderPart;
   const classes = Array.isArray(user.scope?.classIds) ? user.scope.classIds : [];
   const classNames = Array.isArray(user.scope?.classNames) ? user.scope.classNames : [];
-  if (!classes.length && !classNames.length) return null;
+  if (!classes.length && !classNames.length) return genderPart;
   const parts = [];
   if (classes.length && config.scopeColumn.id) {
     values.push(classes);
@@ -69,7 +78,30 @@ function scopeCondition(config, user, values) {
     values.push(classNames.map((c) => `${c}%`));
     parts.push(`${config.scopeColumn.name} ILIKE ANY($${values.length})`);
   }
-  return parts.length ? `(${parts.join(" OR ")})` : null;
+  const classPart = parts.length ? `(${parts.join(" OR ")})` : null;
+  return [classPart, genderPart].filter(Boolean).join(" AND ") || null;
+}
+
+// Female / male campus data restriction (RP-10, QM-12).
+function genderCondition(config, user, values) {
+  const g = user?.genderScope;
+  if (!config.genderColumn || !g || g === "All") return null;
+  values.push(g);
+  return `${config.genderColumn} = $${values.length}`;
+}
+
+function outOfScope(config, user, row) {
+  if (!user || user.isAdmin) return false;
+  const g = user.genderScope;
+  if (config.genderColumn && g && g !== "All" && row[config.genderColumn] && row[config.genderColumn] !== g) return true;
+  const ids = Array.isArray(user.scope?.classIds) ? user.scope.classIds : [];
+  const names = Array.isArray(user.scope?.classNames) ? user.scope.classNames : [];
+  if (config.scopeColumn && (ids.length || names.length)) {
+    const okId = config.scopeColumn.id && ids.includes(row[config.scopeColumn.id]);
+    const okName = config.scopeColumn.name && names.some((n) => String(row[config.scopeColumn.name] || "").startsWith(n));
+    if (!okId && !okName) return true;
+  }
+  return false;
 }
 
 function createCrudRouter(resourceName) {
@@ -136,7 +168,7 @@ function createCrudRouter(resourceName) {
 
   router.get("/:id", asyncHandler(async (req, res) => {
     const result = await query(`SELECT * FROM ${config.table} WHERE id::text = $1`, [req.params.id]);
-    if (!result.rowCount) throw httpError(404, `${config.label || resourceName} record not found.`);
+    if (!result.rowCount || outOfScope(config, req.user, result.rows[0])) throw httpError(404, `${config.label || resourceName} record not found.`);
     res.json({ success: true, data: keysToCamel(present(result.rows, config, req.user)[0]) });
   }));
 
@@ -148,11 +180,12 @@ function createCrudRouter(resourceName) {
       payload.password_hash = await bcrypt.hash(String(payload.password_hash), 12);
     }
     if (config.beforeCreate) await config.beforeCreate(payload, req);
+    for (const f of config.encrypted || []) if (payload[f] !== undefined) payload[f] = encryptField(payload[f]);
     const fields = Object.keys(payload);
     const result = await query(
       `INSERT INTO ${config.table} (${fields.join(", ")})
        VALUES (${fields.map((_, i) => `$${i + 1}`).join(", ")}) RETURNING *`,
-      Object.values(payload).map(databaseValue),
+      Object.entries(payload).map(([f, v]) => databaseValue(v, f, config)),
     );
     const row = result.rows[0];
     await writeAudit(req, { entity: config.table, entityId: row.id, action: "CREATE", newValue: row });
@@ -179,10 +212,12 @@ function createCrudRouter(resourceName) {
       if (payload.status === "Inactive") payload.token_version = Number(old.token_version || 0) + 1;
       if (old.id === "USR-1" && payload.status === "Inactive") throw httpError(403, "The primary admin cannot be deactivated.");
     }
+    if (outOfScope(config, req.user, old)) throw httpError(404, `${config.label || resourceName} record not found.`);
     if (config.beforeUpdate) await config.beforeUpdate(payload, old, req);
+    for (const f of config.encrypted || []) if (payload[f] !== undefined) payload[f] = encryptField(payload[f]);
 
     const fields = Object.keys(payload);
-    const values = Object.values(payload).map(databaseValue);
+    const values = Object.entries(payload).map(([f, v]) => databaseValue(v, f, config));
     values.push(req.params.id);
     const result = await query(
       `UPDATE ${config.table} SET ${fields.map((f, i) => `${f} = $${i + 1}`).join(", ")}

@@ -46,17 +46,27 @@ async function settings() {
   return (await query("SELECT max_login_attempts, session_timeout_minutes FROM system_settings WHERE id = 1")).rows[0] || {};
 }
 
-async function issueSession(req, user) {
+async function issueSession(req, user, method = "password") {
+  if (user.access_expires_at && new Date(user.access_expires_at) < new Date()) {
+    throw httpError(401, "Your access period has ended.");
+  }
   const access = await resolveAccess(user);
+  // One row per signed-in device so users can review and sign out devices (GA-05).
+  const { clientIp } = require("../middleware/auth");
+  const session = (await query(
+    "INSERT INTO user_sessions (user_id, user_agent, ip, method) VALUES ($1,$2,$3,$4) RETURNING id",
+    [user.id, String(req.headers["user-agent"] || "").slice(0, 300), clientIp(req), method],
+  )).rows[0];
   const token = jwt.sign(
-    { sub: user.id, role: user.role, tv: Number(user.token_version || 0) },
+    { sub: user.id, role: user.role, tv: Number(user.token_version || 0), sid: session.id },
     env.jwtSecret,
     { expiresIn: env.jwtExpiresIn },
   );
   await query("UPDATE users SET last_login_at = NOW(), failed_attempts = 0, locked_until = NULL WHERE id = $1", [user.id]);
   await writeAudit({ ...req, user: { id: user.id, name: user.name } }, { entity: "users", entityId: user.id, action: "LOGIN" });
   const safe = { ...user };
-  delete safe.password_hash; delete safe.otp_hash;
+  delete safe.password_hash; delete safe.otp_hash; delete safe.pin_hash;
+  safe.has_pin = Boolean(user.pin_hash);
   return {
     token,
     user: keysToCamel({
@@ -101,8 +111,8 @@ router.post("/login", loginLimiter, validate(loginSchema), asyncHandler(async (r
       const attempts = Number(user.failed_attempts || 0) + 1;
       const max = Number(policy.max_login_attempts || 5);
       await query(
-        `UPDATE users SET failed_attempts = $1,
-           locked_until = CASE WHEN $1 >= $2 THEN NOW() + INTERVAL '15 minutes' ELSE locked_until END WHERE id = $3`,
+        `UPDATE users SET failed_attempts = $1::int,
+           locked_until = CASE WHEN $1::int >= $2::int THEN NOW() + INTERVAL '15 minutes' ELSE locked_until END WHERE id = $3`,
         [attempts >= max ? 0 : attempts, max, user.id],
       );
       await writeAudit({ ...req, user: { id: user.id, name: user.name } }, { entity: "users", entityId: user.id, action: "LOGIN_FAILED" });
@@ -129,7 +139,7 @@ router.post("/verify-otp", otpLimiter, asyncHandler(async (req, res) => {
   }
   if (!(await bcrypt.compare(String(code || ""), user.otp_hash))) throw httpError(401, "Incorrect OTP.");
   await query("UPDATE users SET otp_hash = NULL, otp_expires_at = NULL, otp_sent_count = 0 WHERE id = $1", [user.id]);
-  res.json({ success: true, data: await issueSession(req, user) });
+  res.json({ success: true, data: await issueSession(req, user, "otp") });
 }));
 
 // Guardian / staff OTP login by mobile number (GA-01, GDX-03).
@@ -232,6 +242,7 @@ router.post("/change-password", authenticate, asyncHandler(async (req, res) => {
 // Ends every active session of the current user.
 router.post("/logout-all", authenticate, asyncHandler(async (req, res) => {
   await query("UPDATE users SET token_version = token_version + 1 WHERE id = $1", [req.user.id]);
+  await query("UPDATE user_sessions SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL", [req.user.id]);
   await writeAudit(req, { entity: "users", entityId: req.user.id, action: "LOGOUT_ALL" });
   res.json({ success: true });
 }));
@@ -244,6 +255,57 @@ router.patch("/preferences", authenticate, asyncHandler(async (req, res) => {
     await query("UPDATE users SET two_factor_enabled = $1 WHERE id = $2", [req.body.twoFactorEnabled, req.user.id]);
   }
   res.json({ success: true });
+}));
+
+// ---------------------------------------------------------------- devices & PIN (GA-01, GA-05)
+router.get("/sessions", authenticate, asyncHandler(async (req, res) => {
+  const rows = (await query(
+    "SELECT id, user_agent, ip, method, created_at, last_seen_at FROM user_sessions WHERE user_id = $1 AND revoked_at IS NULL ORDER BY last_seen_at DESC LIMIT 50",
+    [req.user.id],
+  )).rows.map((r) => ({ ...r, current: r.id === req.user.sessionId }));
+  res.json({ success: true, data: keysToCamel(rows) });
+}));
+
+router.delete("/sessions/:id", authenticate, asyncHandler(async (req, res) => {
+  const result = await query("UPDATE user_sessions SET revoked_at = NOW() WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL RETURNING id", [req.params.id, req.user.id]);
+  if (!result.rowCount) throw httpError(404, "Session not found.");
+  await writeAudit(req, { entity: "user_sessions", entityId: req.params.id, action: "DEVICE_LOGOUT" });
+  res.json({ success: true });
+}));
+
+// Quick re-login with a 4-digit PIN on a device after OTP/password sign-in (GA-01).
+router.post("/pin", authenticate, asyncHandler(async (req, res) => {
+  const pin = String(req.body?.pin || "");
+  if (!/^\d{4,6}$/.test(pin)) throw httpError(422, "PIN must be 4 to 6 digits.");
+  await query("UPDATE users SET pin_hash = $1 WHERE id = $2", [await bcrypt.hash(pin, 10), req.user.id]);
+  await writeAudit(req, { entity: "users", entityId: req.user.id, action: "PIN_SET" });
+  res.json({ success: true, message: "PIN saved." });
+}));
+
+router.delete("/pin", authenticate, asyncHandler(async (req, res) => {
+  await query("UPDATE users SET pin_hash = NULL WHERE id = $1", [req.user.id]);
+  res.json({ success: true });
+}));
+
+router.post("/pin/login", loginLimiter, asyncHandler(async (req, res) => {
+  const user = await findUser(req.body?.identifier || req.body?.mobile || "");
+  if (user?.locked_until && new Date(user.locked_until) > new Date()) {
+    throw httpError(423, "Account temporarily locked after repeated failed attempts. Try again later.");
+  }
+  if (!user || user.status !== "Active" || !user.pin_hash || !(await bcrypt.compare(String(req.body?.pin || ""), user.pin_hash))) {
+    if (user) {
+      const policy = await settings();
+      const attempts = Number(user.failed_attempts || 0) + 1;
+      const max = Number(policy.max_login_attempts || 5);
+      await query(
+        `UPDATE users SET failed_attempts = $1::int,
+           locked_until = CASE WHEN $1::int >= $2::int THEN NOW() + INTERVAL '15 minutes' ELSE locked_until END WHERE id = $3`,
+        [attempts >= max ? 0 : attempts, max, user.id],
+      );
+    }
+    throw httpError(401, "Mobile/email or PIN is incorrect.");
+  }
+  res.json({ success: true, data: await issueSession(req, user, "pin") });
 }));
 
 router.get("/permission-catalog", authenticate, (req, res) => {

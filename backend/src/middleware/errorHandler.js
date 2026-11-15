@@ -8,15 +8,23 @@ function notFound(req, res) {
 function errorHandler(error, req, res, next) {
   if (res.headersSent) return next(error);
 
+  // Database validation errors are the client's input, not server faults.
+  const INVALID_INPUT = ["23514", "23502", "22P02", "22007", "22008", "22003", "22001"];
   const status =
     error.status ||
-    (["23503", "23505"].includes(error.code) ? 409 : 500);
+    (["23503", "23505"].includes(error.code) ? 409 : INVALID_INPUT.includes(error.code) ? 422 : 500);
   const message =
     error.code === "23505"
       ? "A record with the same unique value already exists."
       : error.code === "23503"
         ? "This record is linked to other data and cannot be changed or deleted."
-      : error.message || "Internal server error";
+        : error.code === "23514"
+          ? `A value is not allowed${error.constraint ? ` (${String(error.constraint).replace(/_check$/, "").replace(/_/g, " ")})` : ""}.`
+          : error.code === "23502"
+            ? `${error.column || "A required field"} is required.`
+            : INVALID_INPUT.includes(error.code)
+              ? `Invalid value: ${error.message}`
+              : error.message || "Internal server error";
 
   if (process.env.NODE_ENV !== "test") {
     console.error(error);

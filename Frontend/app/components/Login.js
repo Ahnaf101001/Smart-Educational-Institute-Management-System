@@ -36,6 +36,15 @@ export default function Login({ onLoginSuccess }) {
     } catch (err) { setError(err.message); } finally { setLoading(false); }
   }
 
+  // Quick sign-in with mobile + PIN set after a full login (GA-01).
+  async function pinLogin(e) {
+    e.preventDefault();
+    try {
+      setLoading(true); setError(null);
+      finish(await authExtraApi.pinLogin(mobile, code));
+    } catch (err) { setError(err.message); } finally { setLoading(false); }
+  }
+
   async function verifyCode(e) {
     e.preventDefault();
     try {
@@ -234,6 +243,18 @@ export default function Login({ onLoginSuccess }) {
             </form>
           )}
 
+          {mode === "pin" && (
+            <form className="space-y-5" onSubmit={pinLogin}>
+              <input value={mobile} onChange={(e) => setMobile(e.target.value)} required placeholder="Mobile or e-mail"
+                className="block w-full rounded-full border border-white/20 bg-transparent py-3.5 pl-6 pr-6 text-base !text-white outline-none placeholder:text-white/60 focus:border-white" />
+              <input type="password" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} required inputMode="numeric" placeholder="PIN"
+                className="block w-full rounded-full border border-white/20 bg-transparent py-3.5 text-center text-2xl tracking-[0.5em] !text-white outline-none placeholder:text-base placeholder:tracking-normal placeholder:text-white/60 focus:border-white" />
+              <button type="submit" disabled={loading || code.length < 4} className="flex w-full items-center justify-center gap-2 rounded-full bg-white py-3.5 font-bold text-[#1b053c] disabled:opacity-75">
+                {loading ? <Loader2 className="animate-spin" size={20} /> : <KeyRound size={18} />} Sign in with PIN
+              </button>
+            </form>
+          )}
+
           {(mode === "verify" || mode === "verify2fa") && (
             <form className="space-y-5" onSubmit={verifyCode}>
               <input value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} required inputMode="numeric" placeholder="6-digit code"
@@ -257,6 +278,7 @@ export default function Login({ onLoginSuccess }) {
           <div className="mt-5 flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs font-semibold text-white/70">
             {mode !== "password" && <button type="button" className="hover:text-white" onClick={() => { setMode("password"); setInfo(null); setError(null); }}>Password login</button>}
             {mode !== "otp" && <button type="button" className="hover:text-white" onClick={() => { setMode("otp"); setInfo(null); setError(null); }}>Guardian / mobile OTP login</button>}
+            {mode !== "pin" && <button type="button" className="hover:text-white" onClick={() => { setMode("pin"); setCode(""); setInfo(null); setError(null); }}>PIN login</button>}
             {mode !== "forgot" && <button type="button" className="hover:text-white" onClick={() => { setMode("forgot"); setInfo(null); setError(null); }}>Forgot password?</button>}
           </div>
 

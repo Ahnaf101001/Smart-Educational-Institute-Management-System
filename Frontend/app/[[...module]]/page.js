@@ -53,12 +53,17 @@ import TeacherPortal from "../components/portals/TeacherPortal";
 import GuardianPortal from "../components/portals/GuardianPortal";
 import ResourceManager from "../components/ui/ResourceManager";
 import { CONFIGS } from "../components/modules/configs";
+import {
+  AccountSecurity, BoardCenter, BranchDashboard, EXTRA_CONFIGS, FinanceExports, HifzTargets, IntegrationsPage, LearningHub, Moderation, SeatPlan,
+  SpecialScheduleBanner,
+} from "../components/extensions/Extras";
 
 import { authApi, http, systemSettingsApi, instituteProfileApi } from "../lib/api";
 import { can, UserContext } from "../lib/access";
-import { I18nContext, toBnDigits, translate } from "../lib/i18n";
+import { I18nContext, toBanglaDate, toBnDigits, toHijriDate, translate } from "../lib/i18n";
 
 const RM = (key) => () => <ResourceManager config={CONFIGS[key]} />;
+const RMX = (key) => () => <ResourceManager config={EXTRA_CONFIGS[key]} />;
 const OPTIONAL = ["madrasa", "transport", "library", "inventory", "online_classes", "hostel", "donations"];
 const OPT_IN_ONLY = ["madrasa", "hostel", "donations"];
 
@@ -70,6 +75,7 @@ const NAVIGATION = [
       { label: "Overview", render: (ctx) => <Overview onNavigate={ctx.navigateTo} /> },
       { label: "Charts", render: () => <DashboardContent /> },
       { label: "My Day", show: (u) => u?.linkedType === "Teacher", render: (ctx) => <TeacherPortal onNavigate={ctx.navigateTo} /> },
+      { label: "Branches", render: () => <BranchDashboard /> },
     ],
   },
   {
@@ -89,7 +95,8 @@ const NAVIGATION = [
       { label: "Student 360", render: () => <Student360 /> },
       { label: "Promotion & Import", perm: [["students", "edit"], ["students", "create"]], render: () => <StudentTools /> },
       { label: "Certificates", perm: [["certificates"]], render: RM("certificates") },
-      { label: "Textbooks & Clubs", render: () => <SimpleTabsPage title="Textbooks, Houses & Clubs" icon={BookOpen} tabs={[{ key: "tb", label: "Textbook distribution", render: () => <ResourceManager embedded config={CONFIGS.textbookDistributions} /> }, { key: "clubs", label: "House / Club / ECA", render: () => <ResourceManager embedded config={CONFIGS.clubs} /> }]} /> },
+      { label: "Board & Stipend", render: () => <BoardCenter /> },
+      { label: "Textbooks & Clubs", render: () => <SimpleTabsPage title="Textbooks, Houses & Clubs" icon={BookOpen} tabs={[{ key: "tb", label: "Textbook distribution", render: () => <ResourceManager embedded config={CONFIGS.textbookDistributions} /> }, { key: "clubs", label: "House / Club / ECA", render: () => <ResourceManager embedded config={CONFIGS.clubs} /> }, { key: "points", label: "House points", render: () => <ResourceManager embedded config={EXTRA_CONFIGS.housePoints} /> }, { key: "daily", label: "Pre-school daily log", render: () => <ResourceManager embedded config={EXTRA_CONFIGS.dailyLogs} /> }, { key: "groups", label: "Group changes", render: () => <ResourceManager embedded config={EXTRA_CONFIGS.studentGroupHistory} /> }]} /> },
     ],
   },
   { label: "Guardians", icon: UsersRound, perm: [["guardians"]], render: RM("guardians") },
@@ -120,12 +127,14 @@ const NAVIGATION = [
       { label: "Homework", perm: [["homework"]], render: RM("homework") },
       { label: "Resources & Syllabus", perm: [["homework"]], render: () => <SimpleTabsPage title="Class notes, resources & syllabus" icon={BookOpen} tabs={[{ key: "r", label: "Resources", render: () => <ResourceManager embedded config={CONFIGS.learningResources} /> }, { key: "s", label: "Syllabus & lesson plan", render: () => <ResourceManager embedded config={CONFIGS.syllabus} /> }]} /> },
       { label: "Online Classes", perm: [["online_classes"]], optional: "online_classes", render: RM("onlineClasses") },
+      { label: "Quizzes & Coursework", perm: [["homework"], ["online_classes"]], render: () => <LearningHub /> },
     ],
   },
   {
     label: "Routine", icon: CalendarDays, perm: [["routine"]],
     children: [
-      { label: "Class Routine", render: () => <Routine /> },
+      { label: "Class Routine", render: () => <><SpecialScheduleBanner /><Routine /></> },
+      { label: "Special Schedules", render: RMX("specialSchedules") },
       { label: "Substitutes", render: RM("substitutes") },
     ],
   },
@@ -144,6 +153,7 @@ const NAVIGATION = [
     children: [
       { label: "Overview", perm: [["exams"]], render: () => <ExamsOverview /> },
       { label: "Exam Setup", perm: [["exams"]], render: RM("exams") },
+      { label: "Seat Plan", perm: [["exams"]], render: () => <SeatPlan /> },
       { label: "Marks Entry", perm: [["marks"]], render: () => <MarksEntryPro /> },
       { label: "Result Workflow", perm: [["results"], ["exams"]], render: () => <ResultWorkflow /> },
       { label: "Result Processing", perm: [["results"]], render: () => <ResultProcessing /> },
@@ -168,6 +178,7 @@ const NAVIGATION = [
       { label: "Expense Entry", render: () => <ExpenseEntry /> },
       { label: "Ledger", render: () => <Ledger /> },
       { label: "Books & Reports", render: () => <AccountBooks /> },
+      { label: "Exports", perm: [["accounts", "export"], ["payroll", "export"]], render: () => <FinanceExports /> },
     ],
   },
   {
@@ -177,6 +188,7 @@ const NAVIGATION = [
       { label: "Message Log", render: () => <CommunicationHub initialTab="logs" /> },
       { label: "Messages", render: () => <CommunicationHub initialTab="messages" /> },
       { label: "Complaints & PTM", render: () => <CommunicationHub initialTab="complaints" /> },
+      { label: "Moderation", perm: [["communication", "approve"]], render: () => <Moderation /> },
     ],
   },
   { label: "Library", icon: Library, perm: [["library"]], optional: "library", render: () => <SimpleTabsPage title="Library" icon={Library} subtitle="Catalog, issue/return, due dates and fines (OM-01/02)" tabs={[{ key: "issues", label: "Issue & return", render: () => <ResourceManager embedded config={CONFIGS.libraryIssues} /> }, { key: "books", label: "Book catalog", render: () => <ResourceManager embedded config={CONFIGS.libraryBooks} /> }]} /> },
@@ -189,6 +201,7 @@ const NAVIGATION = [
       { label: "Salah", perm: [["madrasa"]], render: () => <MadrasaHub initialTab="salah" /> },
       { label: "Hostel & Meals", perm: [["hostel"]], render: () => <MadrasaHub initialTab="hostel" /> },
       { label: "Donations", perm: [["donations"]], render: () => <MadrasaHub initialTab="donations" /> },
+      { label: "Hifz Targets", perm: [["madrasa"]], render: () => <HifzTargets /> },
     ],
   },
   { label: "Approvals", icon: ClipboardCheck, perm: [["approvals"], ["fees", "approve"], ["results", "approve"], ["attendance", "approve"], ["leave", "approve"], ["accounts", "approve"], ["admission", "approve"], ["communication", "approve"], ["idcards", "approve"], ["marks", "approve"], ["students", "edit"], ["fees", "edit"], ["marks", "create"], ["attendance", "create"]], render: () => <Approvals /> },
@@ -204,6 +217,9 @@ const NAVIGATION = [
     children: [
       { label: "Institution Setup", perm: [["settings"]], render: () => <InstitutionSetup /> },
       { label: "Roles & Permissions", render: () => <RolesPermissions /> },
+      { label: "Approval Rules", perm: [["approvals"]], render: RMX("approvalRules") },
+      { label: "Integrations & API", perm: [["settings"]], render: () => <IntegrationsPage /> },
+      { label: "My Account & Devices", render: () => <AccountSecurity /> },
       { label: "Audit Log", perm: [["audit"]], render: () => <AuditLog /> },
       { label: "General", perm: [["settings"]], render: () => <Settings /> },
     ],
@@ -351,7 +367,7 @@ function Topbar({ openMenu, pageTitle, dark, setDark, onLogout, user, navigateTo
       <button aria-label="Open navigation" className="mr-3 rounded-xl border border-slate-200 p-2.5 text-slate-600 lg:hidden" onClick={openMenu}><Menu size={22} /></button>
       <div className="min-w-0 lg:w-[300px]">
         <h2 className="truncate text-lg font-bold text-slate-900 lg:text-xl">{t(pageTitle)}</h2>
-        <p className="mt-0.5 hidden text-sm text-slate-500 sm:block">{digits(formattedDate)}</p>
+        <p className="mt-0.5 hidden text-sm text-slate-500 sm:block" suppressHydrationWarning>{digits(formattedDate)} · {toBanglaDate(new Date(), lang)} · {toHijriDate(new Date(), lang)}</p>
       </div>
       <label className="ml-4 hidden h-12 w-[320px] items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-4 xl:flex">
         <Search size={20} className="shrink-0 text-slate-500" />

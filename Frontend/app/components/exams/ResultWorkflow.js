@@ -6,6 +6,7 @@ import { http, instituteProfileApi, resource } from "../../lib/api";
 import { can, useUser } from "../../lib/access";
 import ResourceManager from "../ui/ResourceManager";
 import { CONFIGS } from "../modules/configs";
+import { NarrativeModal } from "../extensions/Extras";
 import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Select, Spinner, StatCard, Table, Tabs, Textarea, exportRows, formatDate, useToast } from "../ui/kit";
 
 const STEPS = ["Draft", "Marks Entry", "Processed", "Reviewed", "Pending Approval", "Published"];
@@ -71,6 +72,7 @@ export default function ResultWorkflow({ initialTab = "progress" }) {
   const [tab, setTab] = useState(initialTab);
   const [progress, setProgress] = useState(null);
   const [results, setResults] = useState([]);
+  const [narrative, setNarrative] = useState(null);
   const [classId, setClassId] = useState("");
   const [tab2, setTab2] = useState(null);
   const [analytics, setAnalytics] = useState(null);
@@ -120,6 +122,9 @@ export default function ResultWorkflow({ initialTab = "progress" }) {
     { key: "totalMarks", label: "Total", render: (r) => `${Number(r.totalMarks)}/${Number(r.maxMarks)}` }, { key: "percentage", label: "%" },
     { key: "gpa", label: "GPA" }, { key: "grade", label: "Grade", render: (r) => <Badge tone={r.status === "Pass" ? "green" : "red"}>{r.grade}</Badge>, exportValue: (r) => r.grade },
     { key: "status", label: "Result", render: (r) => <Badge>{r.status}</Badge>, exportValue: (r) => r.status }, { key: "version", label: "Ver." },
+    { key: "narrative", label: "Comment", exportValue: (r) => r.teacherComment || "", render: (r) => (can(user, "results", "edit") && !r.published
+      ? <Button size="sm" variant="ghost" onClick={() => setNarrative(r)}>{r.teacherComment ? "Edit comment" : "Add comment"}</Button>
+      : <span className="text-xs text-slate-500">{r.teacherComment || "—"}</span>) },
   ];
 
   return (
@@ -178,6 +183,7 @@ export default function ResultWorkflow({ initialTab = "progress" }) {
                 </>
               )}>
                 <Table dense rows={results} columns={resultColumns} />
+                {narrative && <NarrativeModal result={narrative} onClose={() => setNarrative(null)} onSaved={loadTab} />}
               </Card>
             )}
             {tab === "tabulation" && (

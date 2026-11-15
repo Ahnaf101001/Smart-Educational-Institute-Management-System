@@ -80,6 +80,7 @@ export default function Approvals() {
                       <Badge tone="indigo">{r.typeLabel}</Badge>
                       <Badge>{r.status}</Badge>
                       {r.urgency === "High" && <Badge tone="red">Urgent</Badge>}
+                      {Number(r.totalLevels) > 1 && <Badge tone="blue">Level {r.level}/{r.totalLevels}{r.levelChain?.[r.level - 1]?.label ? ` · ${r.levelChain[r.level - 1].label}` : ""}</Badge>}
                       <span className="text-xs text-slate-500">{r.id}</span>
                     </div>
                     <p className="mt-1 font-semibold text-slate-900">{r.title}</p>

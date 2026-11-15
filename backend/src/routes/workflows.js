@@ -9,6 +9,7 @@ const { createApproval } = require("../services/approvals");
 const { previewNotice, dispatchNotice } = require("../services/notices");
 const { processQueue } = require("../services/notifications");
 
+const { queueMessage } = require("../services/notifications");
 const router = express.Router();
 
 function monthLabel(value) {
@@ -30,6 +31,7 @@ router.post("/payroll/generate", requirePermission("payroll", "create"), asyncHa
   const month = req.body?.month || new Date().toISOString().slice(0, 7);
   const payrollMonth = `${month}-01`;
   const result = await transaction(async (client) => {
+    const policy = (await client.query("SELECT late_days_per_deduction, half_day_counts_as FROM system_settings WHERE id = 1")).rows[0] || {};
     const people = (await client.query(
       `SELECT 'Teacher' AS type, id, name, designation AS role, department, salary FROM teachers WHERE status = 'Active'
        UNION ALL SELECT 'Staff', id, name, designation, department, salary FROM staff WHERE status = 'Active'`,
@@ -43,6 +45,8 @@ router.post("/payroll/generate", requirePermission("payroll", "create"), asyncHa
       const allowances = s ? Number(s.house_rent) + Number(s.medical) + Number(s.transport) + Number(s.other_allowance) + Number(s.bonus) : 0;
       const att = (await client.query(
         `SELECT COUNT(*) FILTER (WHERE sa.status = 'Absent')::int AS absent,
+                COUNT(*) FILTER (WHERE sa.status = 'Late')::int AS late,
+                COUNT(*) FILTER (WHERE sa.status IN ('Half Day', 'Half-day', 'HalfDay'))::int AS half_day,
                 COUNT(*) FILTER (WHERE sa.status = 'Leave' AND NOT COALESCE(lt.is_paid, TRUE))::int AS unpaid_leave
          FROM staff_attendance sa
          LEFT JOIN leave_requests lr ON lr.applicant_type = sa.employee_type AND lr.applicant_id = sa.employee_id
@@ -51,7 +55,10 @@ router.post("/payroll/generate", requirePermission("payroll", "create"), asyncHa
          WHERE sa.employee_type = $1 AND sa.employee_id = $2 AND to_char(sa.attendance_date, 'YYYY-MM') = $3`,
         [p.type, p.id, month],
       )).rows[0];
-      const absenceDeduction = (Number(att.absent) + Number(att.unpaid_leave)) * Number(s?.per_day_absence_deduction || 0);
+      // Late / half-day policy (AT-11, ATT-07): every N late days count as one absent day; a half day counts as a fraction.
+      const lateDays = policy.late_days_per_deduction > 0 ? Math.floor(Number(att.late) / Number(policy.late_days_per_deduction)) : 0;
+      const halfDays = Number(att.half_day) * Number(policy.half_day_counts_as ?? 0.5);
+      const absenceDeduction = (Number(att.absent) + Number(att.unpaid_leave) + lateDays + halfDays) * Number(s?.per_day_absence_deduction || 0);
       const advance = (await client.query(
         "SELECT id, amount, installment, recovered FROM salary_advances WHERE employee_type = $1 AND employee_id = $2 AND status = 'Active'",
         [p.type, p.id],
@@ -185,6 +192,23 @@ router.get("/messages/stats", requirePermission("communication", "view"), asyncH
   res.json({ success: true, data: keysToCamel(rows) });
 }));
 
+// Returns the end of the quiet period if "now" falls inside it, else null.
+function quietUntil(qh) {
+  if (!qh || !qh.enabled || !qh.start || !qh.end) return null;
+  const now = new Date();
+  const mins = now.getHours() * 60 + now.getMinutes();
+  const [sh, sm] = String(qh.start).split(":").map(Number);
+  const [eh, em] = String(qh.end).split(":").map(Number);
+  const start = sh * 60 + sm;
+  const end = eh * 60 + em;
+  const inside = start <= end ? mins >= start && mins < end : mins >= start || mins < end;
+  if (!inside) return null;
+  const until = new Date(now);
+  until.setHours(eh, em, 0, 0);
+  if (until <= now) until.setDate(until.getDate() + 1);
+  return until.toISOString();
+}
+
 // Guardian–teacher controlled messaging (CM-05, COM-04).
 router.get("/conversations", asyncHandler(async (req, res) => {
   const me = req.user.linkedType && req.user.linkedId ? { type: req.user.linkedType, id: req.user.linkedId } : { type: "User", id: req.user.id };
@@ -229,7 +253,22 @@ router.post("/conversations", asyncHandler(async (req, res) => {
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
     [key, me.type, me.id, req.user.name, recipientType, recipientId, studentId || null, String(body).slice(0, 2000)],
   )).rows[0];
-  res.status(201).json({ success: true, data: keysToCamel(row) });
+  // Notify the recipient. A teacher in quiet hours gets the alert when they end (v1 CM-05).
+  let deferredUntil = null;
+  const recipientUser = (await query("SELECT id, quiet_hours FROM users WHERE linked_type = $1 AND linked_id = $2 AND status = 'Active' LIMIT 1", [recipientType, recipientId])).rows[0];
+  if (recipientUser) {
+    if (recipientType === "Teacher") {
+      const global = (await query("SELECT teacher_quiet_hours FROM system_settings WHERE id = 1")).rows[0]?.teacher_quiet_hours || {};
+      const qh = recipientUser.quiet_hours?.enabled ? recipientUser.quiet_hours : global;
+      deferredUntil = quietUntil(qh);
+    }
+    await queueMessage({
+      channel: "Portal", eventType: "Message", recipientType: "User", recipientId: recipientUser.id,
+      subject: `Message from ${req.user.name}`, body: String(body).slice(0, 140), relatedType: "messages", relatedId: String(row.id),
+      scheduledAt: deferredUntil,
+    });
+  }
+  res.status(201).json({ success: true, data: { ...keysToCamel(row), deliveredAfter: deferredUntil } });
 }));
 
 module.exports = router;

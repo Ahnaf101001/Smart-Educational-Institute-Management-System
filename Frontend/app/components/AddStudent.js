@@ -16,6 +16,16 @@ const defaultForm = {
   phone: "",
   email: "",
   presentAddress: "",
+  nameBn: "",
+  birthCertNo: "",
+  bloodGroup: "",
+  division: "",
+  district: "",
+  upazila: "",
+  postOffice: "",
+  allergies: "",
+  specialNeeds: "",
+  medicalNotes: "",
   fatherName: "",
   fatherOccupation: "",
   fatherPhone: "",
@@ -216,7 +226,26 @@ export default function AddStudent({ onCancel, onSaved }) {
         gender: form.gender,
         className: `${form.admissionClass}-${form.section}`.replace("Class ", "Class "),
         parentContact: form.fatherPhone,
+        guardianName: form.guardianName || form.fatherName || undefined,
         dateOfBirth: form.dateOfBirth,
+        nameBn: form.nameBn || undefined,
+        birthCertNo: form.birthCertNo || undefined,
+        bloodGroup: form.bloodGroup || undefined,
+        religion: form.religion || undefined,
+        nationality: form.nationality || undefined,
+        phone: form.phone || undefined,
+        email: form.email || undefined,
+        address: form.presentAddress || undefined,
+        division: form.division || undefined,
+        district: form.district || undefined,
+        upazila: form.upazila || undefined,
+        postOffice: form.postOffice || undefined,
+        allergies: form.allergies || undefined,
+        specialNeeds: form.specialNeeds || undefined,
+        medicalNotes: form.medicalNotes || undefined,
+        admissionDate: form.admissionDate || undefined,
+        previousSchool: form.previousSchool || undefined,
+        section: form.section || undefined,
         status: "Active",
         details: { ...form },
         documents,
@@ -255,7 +284,23 @@ export default function AddStudent({ onCancel, onSaved }) {
               <Field label="Nationality" name="nationality" value={form.nationality} onChange={changeField} />
               <Field label="Phone" name="phone" value={form.phone} onChange={changeField} />
               <Field label="Email" name="email" value={form.email} onChange={changeField} type="email" />
+              <Field label="Name in Bangla" name="nameBn" value={form.nameBn} onChange={changeField} />
+              <Field label="Birth Certificate No" name="birthCertNo" value={form.birthCertNo} onChange={changeField} />
+              <Field label="Blood Group (optional)" name="bloodGroup" value={form.bloodGroup} onChange={changeField}>
+                <option value="">Not known</option>
+                {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((g) => <option key={g} value={g}>{g}</option>)}
+              </Field>
               <Field label="Present Address" name="presentAddress" value={form.presentAddress} onChange={changeField} className="md:col-span-2" />
+              <Field label="Division" name="division" value={form.division} onChange={changeField}>
+                <option value="">Select division</option>
+                {["Dhaka", "Chattogram", "Rajshahi", "Khulna", "Barishal", "Sylhet", "Rangpur", "Mymensingh"].map((d) => <option key={d} value={d}>{d}</option>)}
+              </Field>
+              <Field label="District" name="district" value={form.district} onChange={changeField} />
+              <Field label="Upazila / Thana" name="upazila" value={form.upazila} onChange={changeField} />
+              <Field label="Post Office" name="postOffice" value={form.postOffice} onChange={changeField} />
+              <Field label="Allergies (optional)" name="allergies" value={form.allergies} onChange={changeField} />
+              <Field label="Special needs (optional)" name="specialNeeds" value={form.specialNeeds} onChange={changeField} />
+              <Field label="Medical notes (optional)" name="medicalNotes" value={form.medicalNotes} onChange={changeField} className="md:col-span-2" />
             </div>
           </div>
         )}

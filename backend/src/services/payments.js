@@ -6,6 +6,7 @@ const env = require("../config/env");
 const { query, transaction } = require("../db/pool");
 const httpError = require("../utils/httpError");
 const { postPayment, notifyPayment } = require("./fees");
+const { ADAPTERS } = require("./gatewayAdapters");
 
 const GATEWAYS = ["bkash", "nagad", "rocket", "sslcommerz"];
 
@@ -41,8 +42,18 @@ async function initiate(req, { invoiceIds, gateway, guardianId }) {
   // Real provider integrations require merchant credentials. Without them the
   // institution can only use the development sandbox page.
   let paymentUrl;
-  const configured = gateway === "sslcommerz" ? env.payment.sslcommerzStoreId : gateway === "bkash" ? env.payment.bkashBaseUrl : env.payment.nagadBaseUrl;
-  if (configured && gateway === "sslcommerz") {
+  const configured = gateway === "sslcommerz" ? env.payment.sslcommerzStoreId : ADAPTERS[gateway]?.configured();
+  if (configured && ADAPTERS[gateway]) {
+    // bKash Tokenized Checkout / Nagad Remote Payment Gateway.
+    try {
+      const created = await ADAPTERS[gateway].create(row, { payerReference: guardianId || undefined });
+      await query("UPDATE gateway_transactions SET provider_ref = $1 WHERE id = $2", [created.providerRef, row.id]);
+      paymentUrl = created.redirectUrl;
+    } catch (error) {
+      await query("UPDATE gateway_transactions SET status = 'Failed', last_payload = $1 WHERE id = $2", [JSON.stringify({ error: error.message }), row.id]);
+      throw httpError(502, `${gateway} session failed: ${error.message}`);
+    }
+  } else if (configured && gateway === "sslcommerz") {
     const base = env.payment.sslcommerzSandbox ? "https://sandbox.sslcommerz.com" : "https://securepay.sslcommerz.com";
     const form = new URLSearchParams({
       store_id: env.payment.sslcommerzStoreId, store_passwd: env.payment.sslcommerzStorePassword,
@@ -98,4 +109,53 @@ async function finalize({ gateway, txnId, status, payload }) {
   });
 }
 
-module.exports = { GATEWAYS, initiate, finalize, verifySignature, sign };
+// Gateway redirect back to us: confirm with the provider (server-to-server), then post once.
+async function confirmReturn(gateway, q) {
+  const adapter = ADAPTERS[gateway];
+  if (!adapter) throw httpError(404, "Unknown gateway.");
+  const result = await adapter.confirm(q);
+  const txn = (await query("SELECT * FROM gateway_transactions WHERE gateway = $1 AND provider_ref = $2", [gateway, result.providerRef])).rows[0];
+  if (!txn) throw httpError(404, "Unknown payment reference.");
+  if (result.txnId && result.txnId !== txn.txn_id) throw httpError(409, "Payment reference does not match the order.");
+  if (result.trxId) await query("UPDATE gateway_transactions SET provider_trx_id = $1 WHERE id = $2", [result.trxId, txn.id]);
+  if (result.status === "Pending") return { txn, status: "Pending" };
+  const out = await finalize({ gateway, txnId: txn.txn_id, status: result.status, payload: { amount: result.amount ?? txn.amount, trxId: result.trxId, source: "return" } });
+  return { txn, status: out.status || "Success", duplicate: out.duplicate };
+}
+
+// Timeout recovery / reconciliation (FIN-11, scenario "gateway success but browser disconnected"):
+// pending transactions older than 5 minutes are queried at the provider and finalised once.
+async function reconcilePending({ olderThanMinutes = 5, limit = 25 } = {}) {
+  const rows = (await query(
+    `SELECT * FROM gateway_transactions WHERE status = 'Pending' AND posted = FALSE AND provider_ref IS NOT NULL
+       AND gateway = ANY($1) AND created_at < NOW() - ($2 || ' minutes')::interval
+       AND (last_checked_at IS NULL OR last_checked_at < NOW() - INTERVAL '5 minutes')
+     ORDER BY created_at LIMIT $3`,
+    [Object.keys(ADAPTERS), String(olderThanMinutes), limit],
+  )).rows;
+  const summary = { checked: 0, posted: 0, failed: 0, pending: 0 };
+  for (const txn of rows) {
+    const adapter = ADAPTERS[txn.gateway];
+    if (!adapter.configured()) continue;
+    summary.checked += 1;
+    try {
+      const r = await adapter.status(txn.provider_ref);
+      await query("UPDATE gateway_transactions SET last_checked_at = NOW(), provider_trx_id = COALESCE($1, provider_trx_id) WHERE id = $2", [r.trxId, txn.id]);
+      if (r.status === "Pending") {
+        // Abandoned sessions expire after 24 hours.
+        if (Date.now() - new Date(txn.created_at).getTime() > 24 * 3600e3) {
+          await finalize({ gateway: txn.gateway, txnId: txn.txn_id, status: "Failed", payload: { reason: "expired" } });
+          summary.failed += 1;
+        } else summary.pending += 1;
+        continue;
+      }
+      const out = await finalize({ gateway: txn.gateway, txnId: txn.txn_id, status: r.status, payload: { amount: r.amount ?? txn.amount, trxId: r.trxId, source: "reconcile" } });
+      if (out.status === "Success" && !out.duplicate) summary.posted += 1; else if (r.status !== "Success") summary.failed += 1;
+    } catch (error) {
+      await query("UPDATE gateway_transactions SET last_checked_at = NOW(), last_payload = $1 WHERE id = $2", [JSON.stringify({ reconcileError: error.message }), txn.id]);
+    }
+  }
+  return summary;
+}
+
+module.exports = { GATEWAYS, initiate, finalize, verifySignature, sign, confirmReturn, reconcilePending };
