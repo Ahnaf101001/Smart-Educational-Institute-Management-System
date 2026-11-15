@@ -3,7 +3,7 @@
 // never stops the others. Daily jobs run once per day after their hour.
 const { query } = require("../db/pool");
 const { processQueue } = require("./notifications");
-const { createBackup, pruneBackups } = require("./backup");
+const { createBackup, listBackups, pruneBackups } = require("./backup");
 
 const lastRun = {};
 function dueToday(key, hour = 0) {
@@ -84,6 +84,10 @@ async function tick() {
   // Daily automated backup (NFR-05).
   if (dueToday("backup", 2)) {
     await safe("backup", async () => {
+      // Survive restarts: skip if today's daily backup already exists on disk.
+      const todayTag = `backup-${new Date().toISOString().slice(0, 10)}`;
+      const existing = await listBackups();
+      if (existing.some((b) => b.file.startsWith(todayTag) && b.file.includes("-daily"))) return;
       await createBackup("daily");
       const days = parseInt(String(settings.backup_retention || "30"), 10) || 30;
       await pruneBackups(days);
