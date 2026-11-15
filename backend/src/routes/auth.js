@@ -17,8 +17,19 @@ const { writeAudit } = require("../services/audit");
 const { queueMessage, processQueue } = require("../services/notifications");
 
 const router = express.Router();
-const loginLimiter = rateLimit({ windowMs: 15 * 60_000, max: 20, message: "Too many login attempts. Try again in 15 minutes." });
-const otpLimiter = rateLimit({ windowMs: 15 * 60_000, max: 5, message: "Too many OTP requests. Try again later." });
+// Limits are per network address + account: a school office or a mobile carrier puts many
+// users behind one IP, so an IP-only limit locked genuine staff/guardians out each morning.
+// A wider per-IP cap still stops one address from cycling through many accounts.
+const who = (req) => String(req.body?.identifier || req.body?.email || req.body?.mobile || "").trim().toLowerCase();
+const perAccount = (req) => `${req.ip}|${who(req)}`;
+const LOGIN_MSG = "Too many login attempts. Try again in 15 minutes.";
+const OTP_MSG = "Too many OTP requests. Try again later.";
+const loginAccountLimiter = rateLimit({ windowMs: 15 * 60_000, max: 10, key: perAccount, message: LOGIN_MSG, skipSuccessful: true });
+const loginIpLimiter = rateLimit({ windowMs: 15 * 60_000, max: 300, message: LOGIN_MSG });
+const loginLimiter = [loginIpLimiter, loginAccountLimiter];
+const otpAccountLimiter = rateLimit({ windowMs: 15 * 60_000, max: 5, key: perAccount, message: OTP_MSG });
+const otpIpLimiter = rateLimit({ windowMs: 15 * 60_000, max: 60, message: OTP_MSG });
+const otpLimiter = [otpIpLimiter, otpAccountLimiter];
 
 const loginSchema = z.object({
   email: z.string().min(3).optional(),
