@@ -3,6 +3,7 @@ const { query } = require("../db/pool");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
 const { keysToCamel } = require("../utils/case");
+const { localDate, localMonth, localWeekday } = require("../utils/dates");
 
 const router = express.Router();
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -32,7 +33,7 @@ async function hideResultsOnDue(studentId) {
 router.get("/guardian/home", asyncHandler(async (req, res) => {
   const gid = requireGuardian(req);
   const guardian = (await query("SELECT id, name, mobile, email, relation_default FROM guardians WHERE id = $1", [gid])).rows[0];
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate();
   const children = (await query(
     `SELECT s.id, s.name, s.name_bn, s.photo_url, s.class_name, s.section, s.roll, s.shift, s.class_id, gs.relation,
             c.teacher_id, t.name AS class_teacher, t.phone AS class_teacher_phone,
@@ -62,7 +63,7 @@ router.get("/guardian/home", asyncHandler(async (req, res) => {
 router.get("/guardian/students/:id/attendance", asyncHandler(async (req, res) => {
   const gid = requireGuardian(req);
   await assertLinked(gid, req.params.id);
-  const month = req.query.month || new Date().toISOString().slice(0, 7);
+  const month = req.query.month || localMonth();
   const rows = (await query(
     "SELECT attendance_date, status, in_time, out_time FROM attendance WHERE student_id = $1 AND to_char(attendance_date, 'YYYY-MM') = $2 ORDER BY attendance_date",
     [req.params.id, month],
@@ -202,8 +203,8 @@ router.get("/teacher/today", asyncHandler(async (req, res) => {
   if (req.user.linkedType !== "Teacher" || !req.user.linkedId) throw httpError(403, "Your login is not linked to a teacher profile.");
   const tid = req.user.linkedId;
   const today = new Date();
-  const day = DAYS[today.getDay()];
-  const date = today.toISOString().slice(0, 10);
+  const day = DAYS[localWeekday(today)];
+  const date = localDate(today);
   const [teacher, routine, assignments, classTeacherOf, marks, homework, attendanceToday, leaves] = await Promise.all([
     query("SELECT id, name, designation, department, photo_url, phone, email FROM teachers WHERE id = $1", [tid]),
     query(`SELECT r.*, c.name AS class_name, sub.name AS subject_name FROM routine_entries r JOIN classes c ON c.id = r.class_id

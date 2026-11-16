@@ -5,6 +5,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const { keysToCamel } = require("../utils/case");
 const { hasPermission } = require("../middleware/auth");
 const httpError = require("../utils/httpError");
+const { localDate } = require("../utils/dates");
 
 const router = express.Router();
 
@@ -13,7 +14,7 @@ async function one(sql, params = []) {
 }
 
 router.get("/overview", asyncHandler(async (req, res) => {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate();
   const data = {};
   data.counts = await one(`SELECT
       (SELECT COUNT(*)::int FROM students WHERE status = 'Active') AS students,

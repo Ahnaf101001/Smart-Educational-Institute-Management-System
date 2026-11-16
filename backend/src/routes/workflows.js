@@ -10,6 +10,7 @@ const { previewNotice, dispatchNotice } = require("../services/notices");
 const { processQueue } = require("../services/notifications");
 
 const { queueMessage } = require("../services/notifications");
+const { localMonth, localMinutes } = require("../utils/dates");
 const router = express.Router();
 
 function monthLabel(value) {
@@ -28,7 +29,7 @@ async function postSalaryExpense(client, record) {
 
 // Monthly payroll from salary structures with attendance/leave/advance adjustments (HR-07, HRX-06/07).
 router.post("/payroll/generate", requirePermission("payroll", "create"), asyncHandler(async (req, res) => {
-  const month = req.body?.month || new Date().toISOString().slice(0, 7);
+  const month = req.body?.month || localMonth();
   const payrollMonth = `${month}-01`;
   const result = await transaction(async (client) => {
     const policy = (await client.query("SELECT late_days_per_deduction, half_day_counts_as FROM system_settings WHERE id = 1")).rows[0] || {};
@@ -196,16 +197,17 @@ router.get("/messages/stats", requirePermission("communication", "view"), asyncH
 function quietUntil(qh) {
   if (!qh || !qh.enabled || !qh.start || !qh.end) return null;
   const now = new Date();
-  const mins = now.getHours() * 60 + now.getMinutes();
+  const mins = localMinutes(now);
   const [sh, sm] = String(qh.start).split(":").map(Number);
   const [eh, em] = String(qh.end).split(":").map(Number);
   const start = sh * 60 + sm;
   const end = eh * 60 + em;
   const inside = start <= end ? mins >= start && mins < end : mins >= start || mins < end;
   if (!inside) return null;
-  const until = new Date(now);
-  until.setHours(eh, em, 0, 0);
-  if (until <= now) until.setDate(until.getDate() + 1);
+  let delta = (end - mins + 1440) % 1440;
+  if (delta === 0) delta = 1440;
+  const until = new Date(now.getTime() + delta * 60_000);
+  until.setSeconds(0, 0);
   return until.toISOString();
 }
 

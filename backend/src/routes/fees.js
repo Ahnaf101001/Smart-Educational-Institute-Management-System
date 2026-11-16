@@ -12,6 +12,7 @@ const { postPayment, applyDiscounts, applyAdvanceCredit, notifyPayment } = requi
 const { queueMessage } = require("../services/notifications");
 const { renderTemplate, defaultLanguage } = require("../services/templates");
 const payments = require("../services/payments");
+const { localDate, localMonth, addDays } = require("../utils/dates");
 
 const router = express.Router();
 const DUE_SQL = "GREATEST(i.amount + i.late_fine - i.discount - i.paid_amount, 0)";
@@ -145,7 +146,7 @@ router.post("/payments/:id/cancel-request", requirePermission("fees", "edit"), a
 
 // Monthly / term invoice generation (FE-07, FIN-06). Safe to run repeatedly.
 router.post("/invoices/generate", requirePermission("fees", "create"), asyncHandler(async (req, res) => {
-  const month = req.body?.month || new Date().toISOString().slice(0, 7);
+  const month = req.body?.month || localMonth();
   const result = await generateInvoices(month, { classId: req.body?.classId || null, frequency: req.body?.frequency || "Monthly" });
   await writeAudit(req, { entity: "fee_invoices", entityId: month, action: "GENERATE", newValue: result });
   res.json({ success: true, data: result });
@@ -275,7 +276,7 @@ router.post("/refunds", requirePermission("fees", "create"), asyncHandler(async 
 
 // Daily cashier closing (FE-16, FIN-13).
 router.get("/cash-closing/preview", requirePermission("fees", "view"), asyncHandler(async (req, res) => {
-  const date = req.query.date || new Date().toISOString().slice(0, 10);
+  const date = req.query.date || localDate();
   const collectorId = req.query.collectorId || req.user.id;
   const rows = (await query(
     `SELECT payment_method, COUNT(*)::int AS receipts, COALESCE(SUM(amount),0) AS total FROM fee_payments
@@ -289,7 +290,7 @@ router.get("/cash-closing/preview", requirePermission("fees", "view"), asyncHand
 }));
 
 router.post("/cash-closing", requirePermission("fees", "create"), asyncHandler(async (req, res) => {
-  const { date = new Date().toISOString().slice(0, 10), cashCounted, handedOver = 0, handedOverTo, note } = req.body || {};
+  const { date = localDate(), cashCounted, handedOver = 0, handedOverTo, note } = req.body || {};
   if (cashCounted === undefined) throw httpError(422, "Counted cash is required.");
   const collectorId = req.user.id;
   const sys = (await query(
@@ -334,7 +335,7 @@ async function sendDueReminders({ classId = null, minDue = 1, dueBy } = {}) {
     [classId, minDue],
   )).rows;
   const lang = await defaultLanguage();
-  const date = dueBy || new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+  const date = dueBy || addDays(localDate(), 7);
   let queued = 0;
   for (const r of rows) {
     if (!r.mobile) continue;
@@ -348,8 +349,8 @@ async function sendDueReminders({ classId = null, minDue = 1, dueBy } = {}) {
 
 // Daily & monthly collection reports (feature list; ACC-04, FIN-17).
 router.get("/reports/collection", requireAny(["fees", "view"], ["reports", "view"]), asyncHandler(async (req, res) => {
-  const from = req.query.from || `${new Date().toISOString().slice(0, 8)}01`;
-  const to = req.query.to || new Date().toISOString().slice(0, 10);
+  const from = req.query.from || `${localMonth()}-01`;
+  const to = req.query.to || localDate();
   const groupBy = req.query.groupBy || "day";
   const expr = {
     day: "to_char(p.paid_at, 'YYYY-MM-DD')",

@@ -1,6 +1,6 @@
 const app = require("./app");
 const env = require("./config/env");
-const { pool } = require("./db/pool");
+const { pool, query, useTimezone } = require("./db/pool");
 const { ensureSystemData } = require("./services/bootstrap");
 const { startWorker } = require("./services/worker");
 
@@ -19,6 +19,12 @@ async function start() {
     await ensureSystemData();
   } catch (error) {
     console.error("System data bootstrap failed (run `npm run db:migrate` first):", error.message);
+  }
+  try {
+    const tz = (await query("SELECT timezone FROM system_settings WHERE id = 1")).rows[0]?.timezone;
+    useTimezone(tz);
+  } catch {
+    // keep the default time zone (Asia/Dhaka) when settings are not available yet
   }
   const server = app.listen(env.port, () => {
     console.log(`${env.appName} API running at http://localhost:${env.port}`);

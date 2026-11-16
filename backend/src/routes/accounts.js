@@ -6,6 +6,7 @@ const { keysToCamel } = require("../utils/case");
 const { requirePermission } = require("../middleware/auth");
 const { writeAudit } = require("../services/audit");
 const { createApproval } = require("../services/approvals");
+const { localDate } = require("../utils/dates");
 
 const router = express.Router();
 const ZAKAT_ELIGIBLE = ["Lillah Boarding", "Student Aid", "Scholarship", "Orphan Support", "Poor Student Support"];
@@ -65,8 +66,8 @@ router.post("/entries/:id/reverse", requirePermission("accounts", "edit"), async
 
 function range(req) {
   return {
-    from: req.query.from || `${new Date().getFullYear()}-01-01`,
-    to: req.query.to || new Date().toISOString().slice(0, 10),
+    from: req.query.from || `${localDate().slice(0, 4)}-01-01`,
+    to: req.query.to || localDate(),
   };
 }
 

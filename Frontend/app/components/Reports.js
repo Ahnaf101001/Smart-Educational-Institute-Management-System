@@ -6,6 +6,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { reportsApi, dashboardApi } from "../lib/api";
+import { today } from "./ui/kit";
 
 const iconMap = {
   users: Users,
@@ -21,7 +22,7 @@ const getDefaultDateRange = () => {
   const year = now.getFullYear();
   return {
     from: `${year}-01-01`,
-    to: now.toISOString().slice(0, 10),
+    to: today(now),
   };
 };
 

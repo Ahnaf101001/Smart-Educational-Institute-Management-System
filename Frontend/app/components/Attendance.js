@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { academicApi, studentsApi, attendanceApi } from "../lib/api";
 import { discardAttendance, flushAttendance, isNetworkError, pendingAttendance, queueAttendance } from "../lib/offlineQueue";
+import { today } from "./ui/kit";
 
 const statuses = [
   { id: "Present", label: "Present", color: "bg-emerald-500", text: "text-emerald-500", icon: CheckCircle2 },
@@ -35,7 +36,7 @@ export default function Attendance() {
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
+    today()
   );
   const [attendance, setAttendance] = useState({}); // studentId -> status
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -76,11 +77,11 @@ export default function Attendance() {
         setStudents(allStudents);
         setClasses(allClasses);
 
-        if (allClasses.length > 0) {
-          const class9A = allClasses.find((c) => c.name === "Class 9" && c.sections.includes("A"))
-            ? "Class 9-A"
-            : `${allClasses[0].name}-${allClasses[0].sections[0] || "A"}`;
-          setSelectedClass("Class 9-A");
+        // Default to Class 9-A when it exists, otherwise the first class/section the
+        // institution actually has (madrasa and pre-school lines have no "Class 9").
+        const options = allClasses.flatMap((c) => (c.sections || []).map((s) => `${c.name}-${s}`));
+        if (options.length > 0) {
+          setSelectedClass(options.includes("Class 9-A") ? "Class 9-A" : options[0]);
         }
       } catch (err) {
         console.error("Failed to load initial data", err);
@@ -148,7 +149,7 @@ export default function Attendance() {
       }
     }
     fetchAttendance();
-  }, [selectedClass, selectedDate, displayStudents.length]);
+  }, [selectedClass, selectedDate, displayStudents]);
 
   const totalStudents = displayStudents.length;
   const presentCount = Object.values(attendance).filter((s) => s === "Present").length;
@@ -169,14 +170,14 @@ export default function Attendance() {
     const d = new Date(selectedDate);
     d.setMonth(d.getMonth() - 1);
     d.setDate(1); // Set to 1st of the new month
-    setSelectedDate(d.toISOString().split("T")[0]);
+    setSelectedDate(today(d));
   }
 
   function handleNextMonth() {
     const d = new Date(selectedDate);
     d.setMonth(d.getMonth() + 1);
     d.setDate(1); // Set to 1st of the new month
-    setSelectedDate(d.toISOString().split("T")[0]);
+    setSelectedDate(today(d));
   }
 
   const displayMonthYear = new Date(selectedDate).toLocaleDateString('en-US', {
@@ -238,7 +239,7 @@ export default function Attendance() {
                 onChange={(e) => setSelectedClass(e.target.value)}
               >
                 {classes.map((c) =>
-                  c.sections.map(section => (
+                  (c.sections || []).map(section => (
                     <option key={`${c.name}-${section}`} value={`${c.name}-${section}`}>
                       {c.name}-{section}
                     </option>

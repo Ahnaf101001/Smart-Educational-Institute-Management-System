@@ -16,6 +16,7 @@ import {
 import { initialApplicants } from "./AdmissionOverview";
 import { academicApi, admissionsApi } from "../lib/api";
 import ConfirmModal from "./ConfirmModal";
+import { today } from "./ui/kit";
 
 const initialDetails = {
   "APP-4101": { parent: "Mohammad Mehmood", contact: "03XX-2859886" },
@@ -444,7 +445,7 @@ export default function Applications({ onViewStudents }) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `applications_${activeFilter.toLowerCase().replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.txt`;
+    link.download = `applications_${activeFilter.toLowerCase().replace(/\s+/g, "_")}_${today()}.txt`;
     link.click();
     URL.revokeObjectURL(url);
   }

@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { transactionsApi } from "../lib/api";
+import { today } from "./ui/kit";
 
 export default function ExpenseEntry() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -72,7 +73,7 @@ export default function ExpenseEntry() {
   function openAddModal() {
     setEditingItem(null);
     setAmount("");
-    setDate(new Date().toISOString().split("T")[0]);
+    setDate(today());
     setReferenceNo("");
     setCategory("");
     setDescription("");

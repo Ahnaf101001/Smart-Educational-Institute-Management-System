@@ -10,6 +10,7 @@ const { writeAudit } = require("../services/audit");
 const { createApproval } = require("../services/approvals");
 const { notifyStudentGuardians } = require("../services/notifications");
 const { renderTemplate, defaultLanguage } = require("../services/templates");
+const { localDate, localMonth, lastDayOfMonth } = require("../utils/dates");
 
 const router = express.Router();
 const STATUS = z.enum(["Present", "Absent", "Late", "Leave"]);
@@ -119,8 +120,8 @@ router.post("/corrections", requirePermission("attendance", "create"), asyncHand
 
 router.get("/summary", requirePermission("attendance", "view"), asyncHandler(async (req, res) => {
   const className = req.query.className || null;
-  const from = req.query.from || `${new Date().toISOString().slice(0, 8)}01`;
-  const to = req.query.to || new Date().toISOString().slice(0, 10);
+  const from = req.query.from || `${localMonth()}-01`;
+  const to = req.query.to || localDate();
   const result = await query(
     `SELECT attendance_date, COUNT(*)::int AS total,
             COUNT(*) FILTER (WHERE status = 'Present')::int AS present,
@@ -137,9 +138,9 @@ router.get("/summary", requirePermission("attendance", "view"), asyncHandler(asy
 
 // Monthly register (AT-08): student x day matrix with percentage.
 router.get("/report/monthly", requirePermission("attendance", "view"), asyncHandler(async (req, res) => {
-  const month = req.query.month || new Date().toISOString().slice(0, 7);
+  const month = req.query.month || localMonth();
   const from = `${month}-01`;
-  const to = new Date(new Date(from).getFullYear(), new Date(from).getMonth() + 1, 0).toISOString().slice(0, 10);
+  const to = lastDayOfMonth(month);
   const className = req.query.className;
   if (!className) throw httpError(422, "className is required.");
   const students = (await query(
@@ -152,7 +153,7 @@ router.get("/report/monthly", requirePermission("attendance", "view"), asyncHand
   )).rows;
   const map = new Map();
   for (const r of rows) {
-    const day = new Date(r.attendance_date).getDate();
+    const day = Number(String(r.attendance_date).slice(8, 10));
     if (!map.has(r.student_id)) map.set(r.student_id, {});
     map.get(r.student_id)[day] = r.status;
   }
@@ -167,11 +168,11 @@ router.get("/report/monthly", requirePermission("attendance", "view"), asyncHand
       percentage: values.length ? Math.round((present / values.length) * 1000) / 10 : null,
     };
   });
-  res.json({ success: true, data: keysToCamel({ month, from, to, daysInMonth: new Date(to).getDate(), students: data }) });
+  res.json({ success: true, data: keysToCamel({ month, from, to, daysInMonth: Number(to.slice(8, 10)), students: data }) });
 }));
 
 router.get("/report/classwise", requirePermission("attendance", "view"), asyncHandler(async (req, res) => {
-  const from = req.query.from || new Date().toISOString().slice(0, 10);
+  const from = req.query.from || localDate();
   const to = req.query.to || from;
   const rows = (await query(
     `SELECT class_name, COUNT(*)::int AS total,
@@ -186,8 +187,8 @@ router.get("/report/classwise", requirePermission("attendance", "view"), asyncHa
 }));
 
 router.get("/report/student/:id", requirePermission("attendance", "view"), asyncHandler(async (req, res) => {
-  const from = req.query.from || `${new Date().getFullYear()}-01-01`;
-  const to = req.query.to || new Date().toISOString().slice(0, 10);
+  const from = req.query.from || `${localDate().slice(0, 4)}-01-01`;
+  const to = req.query.to || localDate();
   const rows = (await query(
     "SELECT attendance_date, status, note, source, in_time, out_time FROM attendance WHERE student_id = $1 AND attendance_date BETWEEN $2 AND $3 ORDER BY attendance_date",
     [req.params.id, from, to],
@@ -198,7 +199,7 @@ router.get("/report/student/:id", requirePermission("attendance", "view"), async
 
 // Late arrival & absence tracking for a date (feature list).
 router.get("/report/late-absent", requirePermission("attendance", "view"), asyncHandler(async (req, res) => {
-  const date = req.query.date || new Date().toISOString().slice(0, 10);
+  const date = req.query.date || localDate();
   const rows = (await query(
     `SELECT a.*, s.name AS student_name, s.roll, s.parent_contact FROM attendance a JOIN students s ON s.id = a.student_id
      WHERE a.attendance_date = $1 AND a.status IN ('Absent','Late') ORDER BY a.class_name, a.status, s.roll`,
@@ -247,7 +248,7 @@ router.put("/staff/bulk", requirePermission("staff_attendance", "create"), async
 }));
 
 router.get("/staff", requirePermission("staff_attendance", "view"), asyncHandler(async (req, res) => {
-  const date = req.query.date || new Date().toISOString().slice(0, 10);
+  const date = req.query.date || localDate();
   const people = (await query(
     `SELECT 'Teacher' AS employee_type, id AS employee_id, name AS employee_name, designation, department FROM teachers WHERE status = 'Active'
      UNION ALL SELECT 'Staff', id, name, designation, department FROM staff WHERE status = 'Active' ORDER BY 1, 3`,
@@ -257,7 +258,7 @@ router.get("/staff", requirePermission("staff_attendance", "view"), asyncHandler
 }));
 
 router.get("/staff/report", requirePermission("staff_attendance", "view"), asyncHandler(async (req, res) => {
-  const month = req.query.month || new Date().toISOString().slice(0, 7);
+  const month = req.query.month || localMonth();
   const rows = (await query(
     `SELECT employee_type, employee_id, MAX(employee_name) AS employee_name,
             COUNT(*) FILTER (WHERE status = 'Present')::int AS present,
@@ -293,7 +294,7 @@ router.put("/period/bulk", requirePermission("attendance", "create"), asyncHandl
 router.get("/period", requirePermission("attendance", "view"), asyncHandler(async (req, res) => {
   const rows = (await query(
     "SELECT * FROM period_attendance WHERE attendance_date = $1 AND ($2::text IS NULL OR period_code = $2)",
-    [req.query.date || new Date().toISOString().slice(0, 10), req.query.periodCode || null],
+    [req.query.date || localDate(), req.query.periodCode || null],
   )).rows;
   res.json({ success: true, data: keysToCamel(rows) });
 }));

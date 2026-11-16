@@ -15,6 +15,7 @@ import ResourceManager from "../ui/ResourceManager";
 import {
   Badge, Button, Card, EmptyState, Field, Input, Modal, PageHeader, Select, Spinner, StatCard, Table, Tabs, Textarea,
   downloadBlob, formatDate, formatDateTime, money, today, useToast,
+  thisMonth,
 } from "../ui/kit";
 
 // ----------------------------------------------------------------- helpers
@@ -599,7 +600,7 @@ export const APPROVAL_RULES = {
 export function FinanceExports() {
   const toast = useToast();
   const [range, setRange] = useState({ from: `${new Date().getFullYear()}-01-01`, to: today() });
-  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [month, setMonth] = useState(thisMonth());
   const dl = (path, name) => downloadFile(path, name).catch((e) => toast.error(e));
   return (
     <div className="space-y-4">
@@ -628,10 +629,10 @@ export function FinanceExports() {
 const HIFZ_TARGETS = {
   title: "Monthly hifz targets", singular: "Target", endpoint: "/hifz-targets", module: "madrasa",
   columns: [{ key: "studentId", label: "Student" }, { key: "targetMonth", label: "Month" }, { key: "targetPages", label: "Target pages" }, { key: "note", label: "Note" }],
-  fields: [rel("student", "studentId", "Student", { required: true }), { key: "targetMonth", label: "Month (YYYY-MM)", required: true, default: new Date().toISOString().slice(0, 7) }, { key: "targetPages", label: "Target pages", type: "number", default: 20 }, { key: "note", label: "Note", wide: true }],
+  fields: [rel("student", "studentId", "Student", { required: true }), { key: "targetMonth", label: "Month (YYYY-MM)", required: true, default: thisMonth() }, { key: "targetPages", label: "Target pages", type: "number", default: 20 }, { key: "note", label: "Note", wide: true }],
 };
 export function HifzTargets() {
-  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [month, setMonth] = useState(thisMonth());
   const { data, loading, reload } = useLoad(() => http.get("/x/hifz/targets-report", { month }), [month]);
   return (
     <div className="space-y-4">

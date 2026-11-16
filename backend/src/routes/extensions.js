@@ -8,6 +8,7 @@ const { keysToCamel } = require("../utils/case");
 const { requirePermission, requireAny, hasPermission } = require("../middleware/auth");
 const { writeAudit } = require("../services/audit");
 const resources = require("../resources");
+const { localDate, localMonth, localDay, localMinutes } = require("../utils/dates");
 
 const router = express.Router();
 
@@ -42,7 +43,7 @@ async function assertStudentAccess(req, studentId, module = "students", action =
 
 // ======================================================================= branches (PC-12, PC-13)
 router.get("/branches/summary", requirePermission("dashboard", "view"), asyncHandler(async (req, res) => {
-  const month = new Date().toISOString().slice(0, 7);
+  const month = localMonth();
   const rows = (await query(
     `SELECT b.id, b.name, b.code, b.is_main,
        (SELECT COUNT(*)::int FROM students s WHERE s.branch_id = b.id AND s.status = 'Active') AS students,
@@ -320,7 +321,7 @@ router.get("/board/banbeis", requirePermission("reports", "view"), asyncHandler(
   const staff = (await query("SELECT COUNT(*)::int AS n FROM staff WHERE status = 'Active'")).rows[0].n;
   const stipend = (await query("SELECT program, COUNT(*)::int AS n, COALESCE(SUM(amount), 0) AS amount FROM stipend_beneficiaries WHERE status = 'Active' GROUP BY program")).rows;
   const profile = (await query("SELECT name, eiin, type, address, established_year FROM institute_profile WHERE id = 1")).rows[0] || {};
-  const data = { institution: profile, year: req.query.year || new Date().getFullYear(), studentsByClass: byClass, studentsByReligion: religion, teachers, staff, stipend };
+  const data = { institution: profile, year: req.query.year || Number(localDate().slice(0, 4)), studentsByClass: byClass, studentsByReligion: religion, teachers, staff, stipend };
   if (req.query.format === "csv") {
     return sendCsv(res, `banbeis-${data.year}.csv`, [{ key: "class_name", label: "Class" }, { key: "boys", label: "Boys" }, { key: "girls", label: "Girls" }, { key: "total", label: "Total" }], byClass);
   }
@@ -343,8 +344,8 @@ router.get("/board/stipend/export", requirePermission("students", "export"), asy
 
 // ======================================================================= accounting & payroll exports (FE-26/FIN-18, HR-08)
 router.get("/accounts/export/tally", requirePermission("accounts", "export"), asyncHandler(async (req, res) => {
-  const from = req.query.from || `${new Date().getFullYear()}-01-01`;
-  const to = req.query.to || new Date().toISOString().slice(0, 10);
+  const from = req.query.from || `${localDate().slice(0, 4)}-01-01`;
+  const to = req.query.to || localDate();
   const tx = (await query(
     `SELECT ft.*, ah.name AS head_name FROM financial_transactions ft LEFT JOIN account_heads ah ON ah.id = ft.account_head_id
      WHERE ft.transaction_date BETWEEN $1 AND $2 AND COALESCE(ft.reversed, FALSE) = FALSE AND COALESCE(ft.approval_status, 'Approved') IN ('Approved', 'Not Required')
@@ -362,7 +363,7 @@ router.get("/accounts/export/tally", requirePermission("accounts", "export"), as
   const cashLedger = (m) => (/bank|cheque|transfer/i.test(m || "") ? "Bank Account" : "Cash");
   const vouchers = tx.map((t) => {
     const income = String(t.type).toLowerCase() === "income";
-    const date = new Date(t.transaction_date).toISOString().slice(0, 10).replace(/-/g, "");
+    const date = String(t.transaction_date).slice(0, 10).replace(/-/g, "");
     const ledger = xmlEscape(t.head_name || t.category || (income ? "Income" : "Expense"));
     const amount = Number(t.amount).toFixed(2);
     return `<TALLYMESSAGE xmlns:UDF="TallyUDF"><VOUCHER VCHTYPE="${income ? "Receipt" : "Payment"}" ACTION="Create">
@@ -383,7 +384,7 @@ ${vouchers.join("\n")}
 }));
 
 router.get("/payroll/bank-advice", requirePermission("payroll", "export"), asyncHandler(async (req, res) => {
-  const month = req.query.month || new Date().toISOString().slice(0, 7);
+  const month = req.query.month || localMonth();
   const rows = (await query(
     `SELECT pr.employee_id, pr.employee_name, pr.employee_type, pr.role, pr.net_pay, pr.status, ss.bank_account
      FROM payroll_records pr LEFT JOIN salary_structures ss ON ss.employee_type = pr.employee_type AND ss.employee_id = pr.employee_id
@@ -620,8 +621,8 @@ async function hifzTargetReport(month) {
   )).rows;
   const actual = {};
   for (const l of logs) actual[l.student_id] = (actual[l.student_id] || 0) + pagesOf(l.sabak_from, l.sabak_to);
-  const day = new Date().getDate();
-  const isCurrent = month === new Date().toISOString().slice(0, 7);
+  const day = localDay();
+  const isCurrent = month === localMonth();
   const expectedShare = isCurrent ? Math.min(1, day / 30) : 1;
   return targets.map((t) => {
     const done = actual[t.student_id] || 0;
@@ -631,7 +632,7 @@ async function hifzTargetReport(month) {
   });
 }
 router.get("/hifz/targets-report", requirePermission("madrasa", "view"), asyncHandler(async (req, res) => {
-  const month = req.query.month || new Date().toISOString().slice(0, 7);
+  const month = req.query.month || localMonth();
   res.json({ success: true, data: keysToCamel(await hifzTargetReport(month)) });
 }));
 
@@ -644,7 +645,7 @@ router.post("/staff-attendance/check-in", asyncHandler(async (req, res) => {
   const now = new Date();
   const cutoff = String(settings.attendance_cutoff_time || "09:00").slice(0, 5);
   const [ch, cm] = cutoff.split(":").map(Number);
-  const lateMinutes = Math.max(0, now.getHours() * 60 + now.getMinutes() - (ch * 60 + cm));
+  const lateMinutes = Math.max(0, localMinutes(now) - (ch * 60 + cm));
   const existing = (await query("SELECT * FROM staff_attendance WHERE employee_type = $1 AND employee_id = $2 AND attendance_date = CURRENT_DATE", [req.user.linkedType, req.user.linkedId])).rows[0];
   let row;
   if (type === "out") {
@@ -665,7 +666,7 @@ router.post("/staff-attendance/check-in", asyncHandler(async (req, res) => {
 
 // ======================================================================= special schedules (v1 AC-10)
 router.get("/special-schedules/active", asyncHandler(async (req, res) => {
-  const date = req.query.date || new Date().toISOString().slice(0, 10);
+  const date = req.query.date || localDate();
   const rows = (await query("SELECT * FROM special_schedules WHERE status = 'Active' AND $1::date BETWEEN from_date AND to_date ORDER BY from_date DESC", [date])).rows;
   res.json({ success: true, data: keysToCamel(rows) });
 }));

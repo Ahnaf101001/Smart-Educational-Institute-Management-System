@@ -9,6 +9,7 @@ const { requirePermission, hasPermission } = require("../middleware/auth");
 const { writeAudit } = require("../services/audit");
 const { createApproval } = require("../services/approvals");
 const { gradeSubject, combineSubjects, resolveScale } = require("../services/grading");
+const { localDate } = require("../utils/dates");
 
 const router = express.Router();
 
@@ -52,7 +53,7 @@ async function entryStatus(client, exam, classId, subjectId) {
     )).rows[0];
   }
   // EX-10: auto-lock after deadline.
-  if (exam.marks_entry_end && new Date(exam.marks_entry_end) < new Date(new Date().toISOString().slice(0, 10)) && row.status === "Open") {
+  if (exam.marks_entry_end && String(exam.marks_entry_end).slice(0, 10) < localDate() && row.status === "Open") {
     row = (await client.query("UPDATE marks_entry_status SET status = 'Locked', locked_at = NOW() WHERE id = $1 RETURNING *", [row.id])).rows[0];
   }
   return row;

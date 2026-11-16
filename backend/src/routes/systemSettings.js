@@ -1,10 +1,11 @@
 const express = require("express");
-const { query } = require("../db/pool");
+const { query, useTimezone } = require("../db/pool");
 const asyncHandler = require("../utils/asyncHandler");
 const { keysToCamel, objectToSnake } = require("../utils/case");
 const httpError = require("../utils/httpError");
 const { requirePermission } = require("../middleware/auth");
 const { writeAudit } = require("../services/audit");
+const { isValidTimezone } = require("../utils/dates");
 
 const router = express.Router();
 // System-wide configuration (SYS-04, attendance/fee/notification/ID card policies).
@@ -32,6 +33,9 @@ router.patch("/", requirePermission("settings", "edit"), asyncHandler(async (req
   const payload = objectToSnake(req.body);
   const fields = allowed.filter((field) => payload[field] !== undefined);
   if (!fields.length) throw httpError(422, "No valid settings were provided.");
+  if (payload.timezone !== undefined && !isValidTimezone(payload.timezone)) {
+    throw httpError(422, "Time zone must be a valid IANA name, e.g. Asia/Dhaka.");
+  }
   await query("INSERT INTO system_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING");
   const before = (await query("SELECT * FROM system_settings WHERE id = 1")).rows[0];
   const values = fields.map((f) => (JSON_FIELDS.includes(f) ? JSON.stringify(payload[f]) : payload[f]));
@@ -39,6 +43,7 @@ router.patch("/", requirePermission("settings", "edit"), asyncHandler(async (req
     `UPDATE system_settings SET ${fields.map((f, i) => `${f} = $${i + 1}`).join(", ")}, updated_at = NOW() WHERE id = 1 RETURNING *`,
     values,
   );
+  if (payload.timezone !== undefined) useTimezone(result.rows[0].timezone);
   await writeAudit(req, { entity: "system_settings", entityId: "1", action: "UPDATE", oldValue: Object.fromEntries(fields.map((f) => [f, before?.[f]])), newValue: Object.fromEntries(fields.map((f) => [f, result.rows[0][f]])) });
   res.json({ success: true, data: keysToCamel(result.rows[0]) });
 }));

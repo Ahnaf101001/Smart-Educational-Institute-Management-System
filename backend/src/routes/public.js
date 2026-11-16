@@ -14,6 +14,7 @@ const { normalizeMobile } = require("../services/students");
 const { queueMessage } = require("../services/notifications");
 const { deviceByKey, processEvent } = require("../services/deviceIngest");
 const payments = require("../services/payments");
+const { localDate } = require("../utils/dates");
 
 const router = express.Router();
 const publicLimiter = rateLimit({ windowMs: 60_000, max: 60 });
@@ -52,7 +53,7 @@ router.post("/admissions/apply", applyLimiter, asyncHandler(async (req, res) => 
   if (!b.circularId && !b.classApplied) throw httpError(422, "Select the class / circular you are applying for.");
   const circular = b.circularId ? (await query("SELECT * FROM admission_circulars WHERE id = $1 AND status = 'Published'", [b.circularId])).rows[0] : null;
   if (b.circularId && !circular) throw httpError(404, "Admission circular not found or closed.");
-  if (circular?.deadline && new Date(circular.deadline) < new Date(new Date().toISOString().slice(0, 10))) throw httpError(409, "The application deadline has passed.");
+  if (circular?.deadline && String(circular.deadline).slice(0, 10) < localDate()) throw httpError(409, "The application deadline has passed.");
 
   const allowedKeys = ["nameBn", "dateOfBirth", "gender", "bloodGroup", "religion", "birthCertificateNo", "classApplied", "section", "shift", "group",
     "previousSchool", "previousClass", "previousResult", "fatherName", "fatherPhone", "fatherOccupation", "fatherNid", "motherName", "motherPhone",
@@ -124,7 +125,7 @@ router.get("/cards/verify/:token", asyncHandler(async (req, res) => {
   const institute = (await query("SELECT name, logo_url, address, phone FROM institute_profile WHERE id = 1")).rows[0];
   if (!card) return res.status(404).json({ success: false, message: "Card not recognised.", data: { valid: false, institute: keysToCamel(institute) } });
   const snap = card.snapshot || {};
-  const expired = card.valid_until && new Date(card.valid_until) < new Date();
+  const expired = Boolean(card.valid_until) && String(card.valid_until).slice(0, 10) < localDate();
   res.json({
     success: true,
     data: keysToCamel({

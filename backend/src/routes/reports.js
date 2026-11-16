@@ -1,6 +1,7 @@
 const express = require("express");
 const { query } = require("../db/pool");
 const asyncHandler = require("../utils/asyncHandler");
+const { localDate } = require("../utils/dates");
 
 const router = express.Router();
 
@@ -676,7 +677,7 @@ router.get("/catalog", asyncHandler(async (req, res) => {
 }));
 
 router.get("/", asyncHandler(async (req, res) => {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate();
   const year = today.slice(0, 4);
   const type = req.query.type || reportCategories[0].reports[0];
   const fromDate = req.query.from || `${year}-01-01`;

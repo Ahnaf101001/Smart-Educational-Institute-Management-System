@@ -1,6 +1,7 @@
 // Scheduled report e-mails (v1 OM-11): e.g. daily collection summary to the owner.
 const { query } = require("../db/pool");
 const { queueMessage } = require("./notifications");
+const { localDate, localDay, localHour, localWeekday } = require("../utils/dates");
 
 const money = (v) => `BDT ${Number(v || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 
@@ -72,7 +73,7 @@ async function runSchedule(schedule) {
   const report = REPORTS[schedule.report_type];
   if (!report) throw new Error(`Unknown report type ${schedule.report_type}`);
   const profile = (await query("SELECT name FROM institute_profile WHERE id = 1")).rows[0] || {};
-  const body = `${profile.name || "Institution"} – ${report.label} (${new Date().toISOString().slice(0, 10)})\n\n${await report.build()}`;
+  const body = `${profile.name || "Institution"} – ${report.label} (${localDate()})\n\n${await report.build()}`;
   let queued = 0;
   for (const to of schedule.recipients || []) {
     if (!String(to).trim()) continue;
@@ -91,12 +92,12 @@ async function runDueSchedules() {
   const now = new Date();
   const rows = (await query("SELECT * FROM report_schedules WHERE status = 'Active'")).rows;
   for (const s of rows) {
-    if (now.getHours() < Number(s.send_hour ?? 20)) continue;
+    if (localHour(now) < Number(s.send_hour ?? 20)) continue;
     const last = s.last_run_at ? new Date(s.last_run_at) : null;
     const sameDay = last && last.toDateString() === now.toDateString();
     if (s.frequency === "Daily" && sameDay) continue;
-    if (s.frequency === "Weekly" && (now.getDay() !== 0 || sameDay)) continue;
-    if (s.frequency === "Monthly" && (now.getDate() !== 1 || sameDay)) continue;
+    if (s.frequency === "Weekly" && (localWeekday(now) !== 0 || sameDay)) continue;
+    if (s.frequency === "Monthly" && (localDay(now) !== 1 || sameDay)) continue;
     await runSchedule(s).catch((e) => console.error("[worker] report schedule failed:", e.message));
   }
 }

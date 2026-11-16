@@ -1,272 +1,191 @@
 "use client";
 
-import { CheckCircle2, CircleDollarSign, Clock, AlertCircle, ArrowUpRight, Check, ArrowRight } from "lucide-react";
+// Fees overview built from live data: student dues (/fees/dues), monthly and per-method
+// collection (/fees/reports/collection) and the latest receipts (/fees/payments).
+// It previously showed fixed sample figures that did not come from the database.
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AlertCircle, CheckCircle2, CircleDollarSign, Clock, RefreshCw } from "lucide-react";
+import { http } from "../lib/api";
+import { Badge, Button, Card, EmptyState, Spinner, StatCard, formatDate, money, thisMonth, today, useToast } from "./ui/kit";
+
+const MONTHS = 6;
+
+function monthStart(offset) {
+  const [y, m] = thisMonth().split("-").map(Number);
+  const d = new Date(y, m - 1 - offset, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+function monthLabel(ym) {
+  const [y, m] = ym.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleString("en-US", { month: "short" });
+}
 
 export default function FeesOverview() {
-  const classCollection = [
-    { class: "Class 6", collected: "৳43K", due: "৳11K", progress: 80 },
-    { class: "Class 7", collected: "৳41K", due: "৳13K", progress: 77 },
-    { class: "Class 8", collected: "৳45K", due: "৳8K", progress: 85 },
-    { class: "Class 9", collected: "৳66K", due: "৳17K", progress: 80 },
-    { class: "Class 10", collected: "৳70K", due: "৳24K", progress: 74 },
-    { class: "Class 11", collected: "৳86K", due: "৳10K", progress: 90 },
-    { class: "Class 12", collected: "৳104K", due: "৳6K", progress: 95 },
-  ];
+  const toast = useToast();
+  const [state, setState] = useState({ loading: true, dues: [], monthly: [], methods: [], payments: [] });
 
-  const recentTransactions = [
-    { name: "Zainab Noor", details: "RCP-0547 • Class 9-A • Cash", amount: "৳12,500", date: "2024-12-28", status: "success" },
-    { name: "Ali Hassan", details: "RCP-0546 • Class 10-B • Bank Transfer", amount: "৳15,000", date: "2024-12-27", status: "success" },
-    { name: "Ahmed Khan", details: "RCP-0545 • Class 8-A • Mobile Banking", amount: "৳11,000", date: "2024-12-26", status: "success" },
-    { name: "Sara Ijaz", details: "RCP-0544 • Class 11-C • Cash", amount: "৳18,500", date: "2024-12-25", status: "success" },
-    { name: "Omar Farooq", details: "RCP-0543 • Class 7-B • Cheque", amount: "৳9,500", date: "2024-12-24", status: "pending" },
-    { name: "Fatima Malik", details: "RCP-0542 • Class 10-B • Mobile Banking", amount: "৳12,500", date: "2024-12-23", status: "success" },
-  ];
+  const load = useCallback(async () => {
+    setState((s) => ({ ...s, loading: true }));
+    try {
+      const from = `${monthStart(MONTHS - 1)}-01`;
+      const [dues, monthly, methods, payments] = await Promise.all([
+        http.get("/fees/dues"),
+        http.get(`/fees/reports/collection?groupBy=month&from=${from}&to=${today()}`),
+        http.get(`/fees/reports/collection?groupBy=method&from=${thisMonth()}-01&to=${today()}`),
+        http.get(`/fees/payments?from=${from}`),
+      ]);
+      setState({ loading: false, dues: dues || [], monthly: monthly?.rows || [], methods: methods?.rows || [], payments: payments || [] });
+    } catch (e) {
+      toast.error(e);
+      setState((s) => ({ ...s, loading: false }));
+    }
+  }, [toast]);
 
-  const monthlyData = [
-    { month: "Jul", value: 85 },
-    { month: "Aug", value: 88 },
-    { month: "Sep", value: 85 },
-    { month: "Oct", value: 86 },
-    { month: "Nov", value: 85 },
-    { month: "Dec", value: 84 },
-  ];
+  useEffect(() => { load(); }, [load]);
+
+  const totals = useMemo(() => {
+    const t = { billed: 0, paid: 0, due: 0, overdue: 0, dueStudents: 0, overdueStudents: 0 };
+    for (const r of state.dues) {
+      t.billed += Number(r.totalFee || 0);
+      t.paid += Number(r.paid || 0);
+      t.due += Number(r.due || 0);
+      if (Number(r.due) > 0) t.dueStudents += 1;
+      if (r.status === "Overdue") { t.overdue += Number(r.due || 0); t.overdueStudents += 1; }
+    }
+    return t;
+  }, [state.dues]);
+
+  const byClass = useMemo(() => {
+    const map = new Map();
+    for (const r of state.dues) {
+      const key = r.className || "No class";
+      const row = map.get(key) || { className: key, billed: 0, paid: 0, due: 0, students: 0 };
+      row.billed += Number(r.totalFee || 0);
+      row.paid += Number(r.paid || 0);
+      row.due += Number(r.due || 0);
+      row.students += 1;
+      map.set(key, row);
+    }
+    return [...map.values()].sort((a, b) => a.className.localeCompare(b.className, undefined, { numeric: true }));
+  }, [state.dues]);
+
+  const months = useMemo(() => {
+    const totalsByMonth = Object.fromEntries(state.monthly.map((r) => [r.label, Number(r.total || 0)]));
+    return Array.from({ length: MONTHS }, (_, i) => {
+      const ym = monthStart(MONTHS - 1 - i);
+      return { ym, label: monthLabel(ym), total: totalsByMonth[ym] || 0 };
+    });
+  }, [state.monthly]);
+  const maxMonth = Math.max(1, ...months.map((m) => m.total));
+  const methodTotal = state.methods.reduce((s, r) => s + Number(r.total || 0), 0);
+  const recent = state.payments.slice(0, 8);
+  const rate = totals.billed > 0 ? Math.round((totals.paid / totals.billed) * 100) : 0;
+
+  if (state.loading) return <Spinner />;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-10">
-      
-      {/* Top Summary Cards */}
-      <div className="grid grid-cols-4 gap-6">
-        {/* Total Fee Card */}
-        <div className="relative overflow-hidden rounded-2xl bg-blue-600 p-6 text-white shadow-sm">
-          <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-white/10 blur-xl"></div>
-          <div className="absolute right-4 top-4 rounded-full bg-white/20 p-2 backdrop-blur-sm">
-            <CircleDollarSign size={20} className="text-white" />
-          </div>
-          <div className="mt-8">
-            <div className="text-[28px] font-black tracking-tight">৳5,84,400</div>
-            <div className="mt-1 text-sm font-bold text-blue-100">Total Fee (Dec)</div>
-            <div className="mt-1 text-[11px] font-medium text-blue-200">All classes combined</div>
-          </div>
+    <div className="mx-auto max-w-7xl space-y-6 pb-10">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-extrabold text-slate-900">Fees overview</h2>
+          <p className="text-sm text-slate-500">Active students only · amounts include late fines and discounts</p>
         </div>
-
-        {/* Collected Card */}
-        <div className="relative overflow-hidden rounded-2xl bg-[#00c853] p-6 text-white shadow-sm">
-          <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-white/10 blur-xl"></div>
-          <div className="absolute right-4 top-4 rounded-full bg-white/20 p-2 backdrop-blur-sm">
-            <CheckCircle2 size={20} className="text-white" />
-          </div>
-          <div className="mt-8">
-            <div className="text-[28px] font-black tracking-tight">৳4,56,000</div>
-            <div className="mt-1 text-sm font-bold text-emerald-100">Collected</div>
-            <div className="mt-1 text-[11px] font-medium text-emerald-200">78% collection rate</div>
-          </div>
-        </div>
-
-        {/* Pending Card */}
-        <div className="relative overflow-hidden rounded-2xl bg-[#ff8f00] p-6 text-white shadow-sm">
-          <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-white/10 blur-xl"></div>
-          <div className="absolute right-4 top-4 rounded-full bg-white/20 p-2 backdrop-blur-sm">
-            <Clock size={20} className="text-white" />
-          </div>
-          <div className="mt-8">
-            <div className="text-[28px] font-black tracking-tight">৳87,500</div>
-            <div className="mt-1 text-sm font-bold text-orange-100">Pending / Due</div>
-            <div className="mt-1 text-[11px] font-medium text-orange-200">15% • 23 students</div>
-          </div>
-        </div>
-
-        {/* Overdue Card */}
-        <div className="relative overflow-hidden rounded-2xl bg-[#ff1744] p-6 text-white shadow-sm">
-          <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-white/10 blur-xl"></div>
-          <div className="absolute right-4 top-4 rounded-full bg-white/20 p-2 backdrop-blur-sm">
-            <AlertCircle size={20} className="text-white" />
-          </div>
-          <div className="mt-8">
-            <div className="text-[28px] font-black tracking-tight">৳40,900</div>
-            <div className="mt-1 text-sm font-bold text-rose-100">Overdue (&gt;1 mo)</div>
-            <div className="mt-1 text-[11px] font-medium text-rose-200">7% • needs attention</div>
-          </div>
-        </div>
+        <Button variant="secondary" icon={RefreshCw} onClick={load}>Refresh</Button>
       </div>
 
-      {/* Middle Section: Charts */}
-      <div className="grid grid-cols-[2fr_1fr] gap-6">
-        {/* Monthly Collection Bar Chart */}
-        <div className="rounded-[20px] border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h3 className="text-lg font-bold text-slate-800">Monthly Collection vs Target</h3>
-              <p className="text-sm font-medium text-slate-400">Jul – Dec 2024</p>
-            </div>
-            <div className="flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-600">
-              <ArrowUpRight size={14} />
-              +12.4% vs last year
-            </div>
-          </div>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Total billed" value={money(totals.billed)} hint={`${plural(state.dues.length, "active student")}`} icon={CircleDollarSign} tone="blue" />
+        <StatCard label="Collected" value={money(totals.paid)} hint={`${rate}% of billed`} icon={CheckCircle2} tone="green" />
+        <StatCard label="Due" value={money(totals.due)} hint={plural(totals.dueStudents, "student")} icon={Clock} tone="amber" />
+        <StatCard label="Overdue" value={money(totals.overdue)} hint={`${plural(totals.overdueStudents, "student")} past due date`} icon={AlertCircle} tone="red" />
+      </div>
 
-          <div className="relative h-[220px] w-full flex items-end justify-between px-4 pb-8">
-            {/* Y-axis Labels */}
-            <div className="absolute left-0 top-0 h-full w-full flex flex-col justify-between pb-8">
-              <div className="flex items-center gap-4 text-xs font-semibold text-slate-400">
-                <span className="w-8 text-right">600k</span>
-                <div className="flex-1 border-t border-dashed border-slate-200"></div>
-              </div>
-              <div className="flex items-center gap-4 text-xs font-semibold text-slate-400">
-                <span className="w-8 text-right">450k</span>
-                <div className="flex-1 border-t border-dashed border-slate-200"></div>
-              </div>
-              <div className="flex items-center gap-4 text-xs font-semibold text-slate-400">
-                <span className="w-8 text-right">300k</span>
-                <div className="flex-1 border-t border-dashed border-slate-200"></div>
-              </div>
-              <div className="flex items-center gap-4 text-xs font-semibold text-slate-400">
-                <span className="w-8 text-right">150k</span>
-                <div className="flex-1 border-t border-dashed border-slate-200"></div>
-              </div>
-              <div className="flex items-center gap-4 text-xs font-semibold text-slate-400">
-                <span className="w-8 text-right">0k</span>
-                <div className="flex-1 border-t border-dashed border-slate-200"></div>
-              </div>
+      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+        <Card title="Monthly collection" subtitle={`Last ${MONTHS} months · valid receipts`}>
+          {months.every((m) => m.total === 0) ? <EmptyState title="No fees collected in this period yet." /> : (
+            <div className="flex h-56 items-end gap-3">
+              {months.map((m) => (
+                <div key={m.ym} className="flex h-full flex-1 flex-col items-center justify-end gap-1" title={`${m.label}: ${money(m.total)}`}>
+                  <span className="text-[11px] font-semibold text-slate-500">{m.total ? money(m.total) : ""}</span>
+                  <div className="w-full max-w-12 rounded-t bg-blue-600" style={{ height: `${Math.max(2, (m.total / maxMonth) * 85)}%` }} />
+                  <span className="text-xs font-semibold text-slate-500">{m.label}</span>
+                </div>
+              ))}
             </div>
+          )}
+        </Card>
 
-            {/* Bars */}
-            <div className="relative z-10 flex h-full w-full items-end justify-between pl-14 pr-2">
-              {monthlyData.map((d) => (
-                <div key={d.month} className="group relative flex h-full flex-col justify-end w-12 cursor-pointer">
-                  <div 
-                    className="w-full bg-[#2863eb] rounded-t-sm transition-all duration-300 group-hover:bg-blue-500" 
-                    style={{ height: `${d.value}%` }}
-                  ></div>
-                  <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-xs font-semibold text-slate-500">
-                    {d.month}
+        <Card title="This month by payment method" subtitle={money(methodTotal)}>
+          {!state.methods.length ? <EmptyState title="No payments this month yet." /> : (
+            <div className="space-y-3">
+              {state.methods.map((r) => {
+                const pct = methodTotal ? Math.round((Number(r.total) / methodTotal) * 100) : 0;
+                return (
+                  <div key={r.label}>
+                    <div className="mb-1 flex justify-between text-sm"><span className="font-semibold text-slate-700">{r.label || "Other"}</span><span className="text-slate-500">{money(r.total)} · {pct}%</span></div>
+                    <div className="h-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-blue-600" style={{ width: `${pct}%` }} /></div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+        <Card title="Class-wise collection">
+          {!byClass.length ? <EmptyState title="No active students yet." /> : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 text-xs font-bold uppercase tracking-wider text-slate-400">
+                    <th className="pb-3">Class</th><th className="pb-3 text-right">Collected</th><th className="pb-3 text-right">Due</th><th className="pb-3 pl-6">Progress</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {byClass.map((row) => {
+                    const pct = row.billed > 0 ? Math.round((row.paid / row.billed) * 100) : 0;
+                    return (
+                      <tr key={row.className}>
+                        <td className="py-3 font-bold text-slate-700">{row.className}<span className="ml-1 text-xs font-medium text-slate-400">({row.students})</span></td>
+                        <td className="py-3 text-right font-bold text-emerald-600">{money(row.paid)}</td>
+                        <td className="py-3 text-right font-bold text-orange-500">{money(row.due)}</td>
+                        <td className="py-3 pl-6">
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-blue-600" style={{ width: `${pct}%` }} /></div>
+                            <span className="w-9 text-right text-xs font-bold text-slate-600">{pct}%</span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+
+        <Card title="Recent receipts">
+          {!recent.length ? <EmptyState title="No receipts yet." /> : (
+            <div className="space-y-4">
+              {recent.map((p) => (
+                <div key={p.id} className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-slate-800">{p.studentName}</p>
+                    <p className="truncate text-xs text-slate-400">{[p.receiptNo, p.className, p.paymentMethod].filter(Boolean).join(" · ")}</p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm font-extrabold text-slate-800">{money(p.amount)}</p>
+                    <p className="text-xs text-slate-400">{formatDate(p.paidAt)} {p.status !== "Valid" && <Badge>{p.status}</Badge>}</p>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-
-        {/* Collection Split Doughnut Chart */}
-        <div className="rounded-[20px] border border-slate-200 bg-white p-6 shadow-sm flex flex-col">
-          <div>
-            <h3 className="text-lg font-bold text-slate-800">Collection Split</h3>
-            <p className="text-sm font-medium text-slate-400">December 2024</p>
-          </div>
-          
-          <div className="flex-1 flex items-center justify-center py-6">
-            <div 
-              className="relative w-[160px] h-[160px] rounded-full"
-              style={{
-                background: "conic-gradient(#2863eb 0% 76%, white 76% 78%, #f59e0b 78% 91%, white 91% 93%, #ef4444 93% 98%, white 98% 100%)"
-              }}
-            >
-              <div className="absolute inset-4 rounded-full bg-white shadow-inner"></div>
-            </div>
-          </div>
-
-          <div className="space-y-3 mt-auto">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full bg-[#2863eb]"></span>
-                <span className="text-sm font-semibold text-slate-600">Collected</span>
-              </div>
-              <div className="text-sm">
-                <span className="font-extrabold text-slate-900 mr-2">78%</span>
-                <span className="text-slate-400 font-semibold">৳456K</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full bg-[#f59e0b]"></span>
-                <span className="text-sm font-semibold text-slate-600">Pending</span>
-              </div>
-              <div className="text-sm">
-                <span className="font-extrabold text-slate-900 mr-2">15%</span>
-                <span className="text-slate-400 font-semibold">৳88K</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full bg-[#ef4444]"></span>
-                <span className="text-sm font-semibold text-slate-600">Overdue</span>
-              </div>
-              <div className="text-sm">
-                <span className="font-extrabold text-slate-900 mr-2">7%</span>
-                <span className="text-slate-400 font-semibold">৳41K</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Section: Tables */}
-      <div className="grid grid-cols-[1.5fr_1fr] gap-6">
-        
-        {/* Class-wise Collection */}
-        <div className="rounded-[20px] border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-bold text-slate-800 mb-6">Class-wise Collection</h3>
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                <th className="pb-4">Class</th>
-                <th className="pb-4 text-right">Collected</th>
-                <th className="pb-4 text-right">Due</th>
-                <th className="pb-4 pl-8">Progress</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {classCollection.map((row) => (
-                <tr key={row.class} className="hover:bg-slate-50/50 transition">
-                  <td className="py-4 font-bold text-slate-700">{row.class}</td>
-                  <td className="py-4 text-right font-extrabold text-emerald-600">{row.collected}</td>
-                  <td className="py-4 text-right font-extrabold text-orange-500">{row.due}</td>
-                  <td className="py-4 pl-8">
-                    <div className="flex items-center gap-3">
-                      <div className="h-2 flex-1 rounded-full bg-slate-100 overflow-hidden">
-                        <div 
-                          className="h-full rounded-full bg-[#2863eb]" 
-                          style={{ width: `${row.progress}%` }}
-                        ></div>
-                      </div>
-                      <span className="w-8 text-right text-xs font-bold text-slate-600">{row.progress}%</span>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Recent Transactions */}
-        <div className="rounded-[20px] border border-slate-200 bg-white p-6 shadow-sm flex flex-col">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-slate-800">Recent Transactions</h3>
-            <button className="text-sm font-bold text-blue-600 flex items-center gap-1 hover:text-blue-700">
-              View all <ArrowRight size={14} />
-            </button>
-          </div>
-          
-          <div className="flex flex-col gap-5 flex-1">
-            {recentTransactions.map((tx, i) => (
-              <div key={i} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`flex h-8 w-8 items-center justify-center rounded-full ${tx.status === 'success' ? 'bg-emerald-50 text-emerald-500' : 'bg-orange-50 text-orange-500'}`}>
-                    {tx.status === 'success' ? <Check size={16} strokeWidth={3} /> : <Clock size={16} strokeWidth={3} />}
-                  </div>
-                  <div>
-                    <div className="text-sm font-extrabold text-slate-800">{tx.name}</div>
-                    <div className="text-xs font-medium text-slate-400 mt-0.5">{tx.details}</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className={`text-sm font-black ${tx.status === 'success' ? 'text-emerald-600' : 'text-orange-500'}`}>{tx.amount}</div>
-                  <div className="text-xs font-medium text-slate-400 mt-0.5">{tx.date}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
+          )}
+        </Card>
       </div>
     </div>
   );

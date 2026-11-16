@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, Save, Send, X } from "lucide-react";
 import { academicApi, admissionsApi } from "../lib/api";
 import { db } from "../lib/localDb";
+import { today } from "./ui/kit";
 
 const emptyForm = {
   firstName: "",
@@ -148,7 +149,7 @@ export default function NewApplication({ onSubmitted }) {
         name: `${form.firstName.trim()} ${form.lastName.trim()}`,
         gender: form.gender,
         className: form.classApplied,
-        date: new Date().toISOString().slice(0, 10),
+        date: today(),
         status: "Pending",
         details: { ...form },
       });

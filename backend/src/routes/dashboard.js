@@ -1,6 +1,7 @@
 const express = require("express");
 const { query } = require("../db/pool");
 const asyncHandler = require("../utils/asyncHandler");
+const { localMonth } = require("../utils/dates");
 
 const router = express.Router();
 
@@ -75,10 +76,10 @@ router.get("/summary", asyncHandler(async (req, res) => {
   
   // Generate last 6 months list dynamically with 0s
   const monthlyRevenue = [];
-  const curr = new Date();
+  const [cy, cm] = localMonth().split("-").map(Number);
   for (let i = 5; i >= 0; i--) {
-    const d = new Date(curr.getFullYear(), curr.getMonth() - i, 1);
-    const mName = d.toLocaleString('en-US', { month: 'short' });
+    const d = new Date(Date.UTC(cy, cm - 1 - i, 1));
+    const mName = d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
     monthlyRevenue.push({ month: mName, income: 0, expense: 0 });
   }
 
@@ -105,8 +106,7 @@ router.get("/summary", asyncHandler(async (req, res) => {
     if (e.status === "Upcoming") color = "amber";
     
     // Format date nicely
-    const d = new Date(e.date);
-    const dateStr = d.toISOString().split("T")[0];
+    const dateStr = e.date ? String(e.date).slice(0, 10) : "";
 
     return {
       name: e.name,

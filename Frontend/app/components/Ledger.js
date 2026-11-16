@@ -5,15 +5,16 @@ import { Download, Calendar, Search } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { transactionsApi } from "../lib/api";
+import { today } from "./ui/kit";
 
 export default function Ledger() {
   const [fromDate, setFromDate] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 1);
-    return d.toISOString().split("T")[0];
+    return today(d);
   });
   const [toDate, setToDate] = useState(() => {
-    return new Date().toISOString().split("T")[0];
+    return today();
   });
 
   const [transactions, setTransactions] = useState([]);

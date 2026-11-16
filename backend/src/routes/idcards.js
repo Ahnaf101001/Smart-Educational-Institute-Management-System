@@ -8,6 +8,7 @@ const { requirePermission, hasPermission } = require("../middleware/auth");
 const { writeAudit } = require("../services/audit");
 const { createApproval } = require("../services/approvals");
 const { TEMPLATES } = require("../data/idCardTemplates");
+const { localDate } = require("../utils/dates");
 
 const router = express.Router();
 const HOLDER_TABLE = { Student: "students", Teacher: "teachers", Staff: "staff" };
@@ -245,7 +246,7 @@ async function nextCardNumber(client, type) {
   const s = (await client.query("SELECT card_number_prefix, staff_card_number_prefix FROM system_settings WHERE id = 1")).rows[0] || {};
   const prefix = type === "Student" ? s.card_number_prefix || "SC" : s.staff_card_number_prefix || "EC";
   const seq = (await client.query("SELECT nextval('card_number_seq') AS n")).rows[0].n;
-  return `${prefix}-${String(new Date().getFullYear()).slice(-2)}-${String(seq).padStart(6, "0")}`;
+  return `${prefix}-${localDate().slice(2, 4)}-${String(seq).padStart(6, "0")}`;
 }
 
 async function issueCard(client, req, { type, holder, template, version, settings, replacedCardId = null, placeholder = false, cardVersion = 1 }) {
@@ -256,7 +257,7 @@ async function issueCard(client, req, { type, holder, template, version, setting
        academic_year_id, valid_until, used_placeholder_photo, snapshot, issued_by, replaced_card_id)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
     [type, holder.id, holder.name, template.id, version.version, await nextCardNumber(client, type), crypto.randomBytes(16).toString("hex"),
-      cardVersion, holder.academic_year_id || null, validUntil.toISOString().slice(0, 10), placeholder,
+      cardVersion, holder.academic_year_id || null, localDate(validUntil), placeholder,
       JSON.stringify(snapshotFor(type, holder)), req.user.name, replacedCardId],
   )).rows[0];
   // Register the QR token as a credential so gate/mobile scans map to this person.

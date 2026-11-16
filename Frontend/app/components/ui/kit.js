@@ -336,6 +336,12 @@ export function formatDateTime(value) {
 export function money(value) {
   return `৳${Number(value || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 }
-export function today() {
-  return new Date().toISOString().slice(0, 10);
+// Local calendar date (YYYY-MM-DD). toISOString() would give the UTC date, which is
+// yesterday in Bangladesh between midnight and 6 am.
+export function today(date = new Date()) {
+  const d = date instanceof Date ? date : new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+export function thisMonth(date = new Date()) {
+  return today(date).slice(0, 7);
 }

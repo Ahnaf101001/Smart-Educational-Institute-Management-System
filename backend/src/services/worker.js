@@ -4,12 +4,13 @@
 const { query } = require("../db/pool");
 const { processQueue } = require("./notifications");
 const { createBackup, listBackups, pruneBackups } = require("./backup");
+const { localDate, localMonth, localDay, localHour } = require("../utils/dates");
 
 const lastRun = {};
 function dueToday(key, hour = 0) {
   const now = new Date();
-  const today = now.toISOString().slice(0, 10);
-  if (lastRun[key] === today || now.getHours() < hour) return false;
+  const today = localDate(now);
+  if (lastRun[key] === today || localHour(now) < hour) return false;
   lastRun[key] = today;
   return true;
 }
@@ -40,10 +41,10 @@ async function tick() {
   const fees = require("../routes/fees");
 
   if (dueToday("late-fines", 1)) await safe("late-fines", () => fees.applyLateFines());
-  if (new Date().getDate() === Number(settings.invoice_generation_day || 1) && dueToday("invoices", 2)) {
-    await safe("invoices", () => fees.generateInvoices(new Date().toISOString().slice(0, 7)));
+  if (localDay() === Number(settings.invoice_generation_day || 1) && dueToday("invoices", 2)) {
+    await safe("invoices", () => fees.generateInvoices(localMonth()));
   }
-  if (settings.notify_fee_reminder && new Date().getDate() === Number(settings.fee_reminder_day || 5) && dueToday("fee-reminders", 10)) {
+  if (settings.notify_fee_reminder && localDay() === Number(settings.fee_reminder_day || 5) && dueToday("fee-reminders", 10)) {
     await safe("fee-reminders", () => fees.sendDueReminders({ minDue: 1 }));
   }
 
@@ -98,7 +99,7 @@ async function tick() {
         relatedType: "approval_requests", relatedId: a.id });
       // Escalate to the general approvals module as well (Principal / Admin).
       await queueMessage({ channel: "Portal", eventType: "ApprovalEscalation", recipientType: "Role", recipientId: "approvals",
-        subject: "Escalated approval", body: `Escalated: ${a.title} (${a.request_type}) pending since ${new Date(a.created_at).toISOString().slice(0, 10)}.`,
+        subject: "Escalated approval", body: `Escalated: ${a.title} (${a.request_type}) pending since ${localDate(new Date(a.created_at))}.`,
         relatedType: "approval_requests", relatedId: a.id });
       await query(
         "UPDATE approval_requests SET last_reminded_at = NOW(), urgency = 'High', history = history || $2::jsonb WHERE id = $1",
@@ -114,9 +115,9 @@ async function tick() {
   await safe("report-schedules", () => require("./reportDigest").runDueSchedules());
 
   // Hifz target vs actual alert (v1 QM-16): once per student per month, from the 20th.
-  if (new Date().getDate() >= 20 && dueToday("hifz-targets", 9)) {
+  if (localDay() >= 20 && dueToday("hifz-targets", 9)) {
     await safe("hifz-targets", async () => {
-      const month = new Date().toISOString().slice(0, 7);
+      const month = localMonth();
       const { hifzTargetReport } = require("../routes/extensions");
       const rows = (await hifzTargetReport(month)).filter((r) => r.behind && !r.alerted_at);
       const { queueMessage } = require("./notifications");
@@ -132,7 +133,7 @@ async function tick() {
   if (dueToday("backup", 2)) {
     await safe("backup", async () => {
       // Survive restarts: skip if today's daily backup already exists on disk.
-      const todayTag = `backup-${new Date().toISOString().slice(0, 10)}`;
+      const todayTag = `backup-${localDate()}`;
       const existing = await listBackups();
       if (existing.some((b) => b.file.startsWith(todayTag) && b.file.includes("-daily"))) return;
       await createBackup("daily");

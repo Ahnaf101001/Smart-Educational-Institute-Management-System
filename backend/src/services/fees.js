@@ -4,6 +4,7 @@ const httpError = require("../utils/httpError");
 const { writeAudit } = require("./audit");
 const { queueMessage, guardiansForStudent } = require("./notifications");
 const { renderTemplate } = require("./templates");
+const { localDate } = require("../utils/dates");
 
 function invoiceDue(inv) {
   return Math.max(0, Number(inv.amount) + Number(inv.late_fine || 0) - Number(inv.discount) - Number(inv.paid_amount));
@@ -11,7 +12,7 @@ function invoiceDue(inv) {
 
 function statusFor(inv, paid) {
   const net = Number(inv.amount) + Number(inv.late_fine || 0) - Number(inv.discount);
-  if (paid <= 0) return inv.due_date && new Date(inv.due_date) < new Date() ? "Overdue" : "Due";
+  if (paid <= 0) return inv.due_date && String(inv.due_date).slice(0, 10) < localDate() ? "Overdue" : "Due";
   return paid + 0.005 >= net ? "Paid" : "Partial";
 }
 

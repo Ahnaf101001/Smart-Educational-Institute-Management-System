@@ -332,7 +332,7 @@ function HifzEntry() {
     return () => window.removeEventListener("online", sync);
   }, [toast]);
   async function save() {
-    const payload = { ...form, logDate: form.logDate || new Date().toISOString().slice(0, 10), studentId, sabakPara: form.sabakPara ? Number(form.sabakPara) : null, mistakes: Number(form.mistakes), tajweedRating: Number(form.tajweedRating) };
+    const payload = { ...form, logDate: form.logDate || today(), studentId, sabakPara: form.sabakPara ? Number(form.sabakPara) : null, mistakes: Number(form.mistakes), tajweedRating: Number(form.tajweedRating) };
     try {
       await http.post("/ops/madrasa/hifz/log", payload);
       toast.success("Saved – guardian can see today's sabak in the portal");

@@ -5,7 +5,7 @@ import {
   KeyRound, Landmark, Library, LogOut, MessageSquare, Moon, Package, RotateCcw, School, Undo2, Users, Video,
 } from "lucide-react";
 import { http } from "../../lib/api";
-import { Badge, money } from "../ui/kit";
+import { Badge, money, today } from "../ui/kit";
 
 // Relation helpers ------------------------------------------------------------
 const REL = {
@@ -158,7 +158,7 @@ export const CONFIGS = {
     filters: [{ key: "classId", label: "Class", relation: REL.class }, { key: "kind", label: "Type", options: ["Homework", "Assignment", "Project"] }],
     fields: [{ key: "title", label: "Title", required: true, wide: true }, { key: "kind", label: "Type", type: "select", options: ["Homework", "Assignment", "Project"], default: "Homework" },
       rel("class", "classId", "Class", { required: true }), { key: "section", label: "Section" }, rel("subject", "subjectId", "Subject"), rel("teacher", "teacherId", "Teacher"),
-      { key: "assignedDate", label: "Assigned", type: "date", default: () => new Date().toISOString().slice(0, 10) }, { key: "dueDate", label: "Due date", type: "date" },
+      { key: "assignedDate", label: "Assigned", type: "date", default: () => today() }, { key: "dueDate", label: "Due date", type: "date" },
       { key: "totalMarks", label: "Marks", type: "number" }, { key: "attachmentUrl", label: "Attachment URL", wide: true },
       { key: "description", label: "Description", type: "textarea", wide: true }, { key: "status", label: "Status", type: "select", options: ["Published", "Draft"], default: "Published" }],
   },
@@ -291,7 +291,7 @@ export const CONFIGS = {
     columns: [{ key: "id", label: "No." }, { key: "voucherType", label: "Type" }, { key: "voucherDate", label: "Date", type: "date" }, { key: "narration", label: "Narration" },
       { key: "total", label: "Total", type: "money" }, { key: "status", label: "Status", type: "badge" }],
     fields: [{ key: "voucherType", label: "Type", type: "select", options: ["Receipt", "Payment", "Journal", "Contra"], required: true, default: "Journal" },
-      { key: "voucherDate", label: "Date", type: "date", default: () => new Date().toISOString().slice(0, 10) },
+      { key: "voucherDate", label: "Date", type: "date", default: () => today() },
       { key: "fund", label: "Fund", type: "select", options: ["General", "Development", "Donation", "Lillah", "Zakat"], default: "General" },
       { key: "narration", label: "Narration", type: "textarea", wide: true },
       { key: "entries", label: "Entries (JSON)", type: "json", wide: true, default: [{ headName: "Cash in Hand", debit: 0, credit: 0 }, { headName: "Other Income", debit: 0, credit: 0 }], hint: "Total debit must equal total credit." }],
@@ -315,7 +315,7 @@ export const CONFIGS = {
       { key: "reference", label: "Reference" }, { key: "reconciled", label: "Reconciled", type: "boolean" }],
     filters: [{ key: "bankAccountId", label: "Account", relation: REL.bankAccount }],
     fields: [rel("bankAccount", "bankAccountId", "Bank account", { required: true }), { key: "txnType", label: "Type", type: "select", options: ["Deposit", "Withdrawal"], required: true },
-      { key: "amount", label: "Amount", type: "money", required: true }, { key: "txnDate", label: "Date", type: "date", default: () => new Date().toISOString().slice(0, 10) },
+      { key: "amount", label: "Amount", type: "money", required: true }, { key: "txnDate", label: "Date", type: "date", default: () => today() },
       { key: "reference", label: "Reference" }, { key: "description", label: "Description", wide: true }, { key: "reconciled", label: "Reconciled", type: "checkbox" }],
   },
   salaryStructures: {
