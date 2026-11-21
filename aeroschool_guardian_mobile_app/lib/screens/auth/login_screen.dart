@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
+import '../../config/app_config.dart';
 import '../../core/theme.dart';
 import '../../models/school.dart';
 import '../../providers/auth_provider.dart';
@@ -197,6 +198,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(color: AppColors.muted, fontSize: 12),
                   ),
+                  const SizedBox(height: 8),
+                  const Text(AppConfig.versionLabel, textAlign: TextAlign.center, style: TextStyle(color: AppColors.muted, fontSize: 11)),
                 ]),
               ),
             ),

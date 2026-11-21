@@ -179,6 +179,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 16),
               const Center(child: Text(AppConfig.appName, style: TextStyle(color: AppColors.muted, fontSize: 12))),
+              const Center(child: Text(AppConfig.versionLabel, style: TextStyle(color: AppColors.muted, fontSize: 12))),
             ]),
           );
         },

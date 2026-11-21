@@ -10,6 +10,11 @@ class AppConfig {
   static const String appName = 'AeroSchool Guardian Mobile App';
   static const String brandName = 'AeroSchool';
 
+  /// Shown in the app; keep in sync with `version:` in pubspec.yaml (name+build).
+  static const String appVersion = '1.0.0';
+  static const int buildNumber = 1;
+  static const String versionLabel = 'Version $appVersion (build $buildNumber)';
+
   static const String _apiBaseUrl = String.fromEnvironment('API_BASE_URL');
   static const String _webAppUrl = String.fromEnvironment('WEB_APP_URL');
 
