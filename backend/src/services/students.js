@@ -68,8 +68,8 @@ async function ensureGuardianAccount(client, guardian) {
   }
   const tempPassword = crypto.randomBytes(5).toString("base64url");
   const user = (await client.query(
-    `INSERT INTO users (name, email, phone, password_hash, role, roles, status, linked_type, linked_id)
-     VALUES ($1, $2, $3, $4, 'Guardian', '["Guardian"]'::jsonb, 'Active', 'Guardian', $5) RETURNING id`,
+    `INSERT INTO users (name, email, phone, password_hash, role, roles, status, linked_type, linked_id, must_change_password)
+     VALUES ($1, $2, $3, $4, 'Guardian', '["Guardian"]'::jsonb, 'Active', 'Guardian', $5, TRUE) RETURNING id`,
     [guardian.name, `${guardian.mobile}@guardian.local`, guardian.mobile, await bcrypt.hash(tempPassword, 12), guardian.id],
   )).rows[0];
   await client.query("UPDATE guardians SET user_id = $1 WHERE id = $2", [user.id, guardian.id]);

@@ -117,6 +117,13 @@ router.post("/login", loginLimiter, validate(loginSchema), asyncHandler(async (r
   if (user?.locked_until && new Date(user.locked_until) > new Date()) {
     throw httpError(423, "Account temporarily locked after repeated failed attempts. Try again later.");
   }
+  // Correct password on a deactivated account: tell the user to contact the school
+  // (Guardian App login workflow). Wrong passwords still get the generic message below.
+  if (user && user.status !== "Active" && (await bcrypt.compare(req.body.password, user.password_hash))) {
+    const e = httpError(403, "Your account is inactive. Please contact the school office.");
+    e.code = "ACCOUNT_INACTIVE";
+    throw e;
+  }
   if (!user || user.status !== "Active" || !(await bcrypt.compare(req.body.password, user.password_hash))) {
     if (user) {
       const attempts = Number(user.failed_attempts || 0) + 1;
@@ -213,7 +220,7 @@ router.post("/password/reset", asyncHandler(async (req, res) => {
     [hash],
   )).rows[0];
   if (!row) throw httpError(400, "Reset link is invalid or has expired.");
-  await query("UPDATE users SET password_hash = $1, token_version = token_version + 1, failed_attempts = 0, locked_until = NULL WHERE id = $2",
+  await query("UPDATE users SET password_hash = $1, token_version = token_version + 1, failed_attempts = 0, locked_until = NULL, must_change_password = FALSE, password_changed_at = NOW() WHERE id = $2",
     [await bcrypt.hash(String(password), 12), row.user_id]);
   await query("UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1", [row.id]);
   await writeAudit({ ...req, user: { id: row.user_id } }, { entity: "users", entityId: row.user_id, action: "PASSWORD_RESET" });
@@ -223,7 +230,7 @@ router.post("/password/reset", asyncHandler(async (req, res) => {
 router.get("/me", authenticate, asyncHandler(async (req, res) => {
   const user = (await query(
     `SELECT id, name, email, phone, role, roles, status, scope, linked_type, linked_id, two_factor_enabled,
-            preferred_language, last_login_at, created_at FROM users WHERE id = $1`,
+            preferred_language, last_login_at, created_at, must_change_password FROM users WHERE id = $1`,
     [req.user.id],
   )).rows[0];
   if (!user) throw httpError(404, "User not found.");
@@ -245,7 +252,11 @@ router.post("/change-password", authenticate, asyncHandler(async (req, res) => {
   if (!newPassword || String(newPassword).length < 8) throw httpError(422, "New password must be at least 8 characters.");
   const user = (await query("SELECT * FROM users WHERE id = $1", [req.user.id])).rows[0];
   if (!(await bcrypt.compare(String(currentPassword || ""), user.password_hash))) throw httpError(401, "Current password is incorrect.");
-  await query("UPDATE users SET password_hash = $1, token_version = token_version + 1 WHERE id = $2", [await bcrypt.hash(String(newPassword), 12), user.id]);
+  if (await bcrypt.compare(String(newPassword), user.password_hash)) throw httpError(422, "New password must be different from the current password.");
+  await query(
+    "UPDATE users SET password_hash = $1, token_version = token_version + 1, must_change_password = FALSE, password_changed_at = NOW() WHERE id = $2",
+    [await bcrypt.hash(String(newPassword), 12), user.id],
+  );
   await writeAudit(req, { entity: "users", entityId: user.id, action: "PASSWORD_CHANGE" });
   res.json({ success: true, message: "Password changed. Please sign in again." });
 }));

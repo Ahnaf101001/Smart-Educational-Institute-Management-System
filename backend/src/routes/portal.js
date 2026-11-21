@@ -14,13 +14,31 @@ function requireGuardian(req) {
 }
 
 // Data isolation: a guardian only sees linked, enabled students (GD-05, GA-02, GDX-01).
+// Returns the link so callers can honour its per-guardian view permissions.
 async function assertLinked(guardianId, studentId) {
   const r = await query(
-    "SELECT 1 FROM guardian_students gs JOIN guardians g ON g.id = gs.guardian_id WHERE gs.guardian_id = $1 AND gs.student_id = $2 AND gs.access_status = 'Enabled' AND g.portal_access",
+    `SELECT gs.* FROM guardian_students gs JOIN guardians g ON g.id = gs.guardian_id JOIN students s ON s.id = gs.student_id
+     WHERE gs.guardian_id = $1 AND gs.student_id = $2 AND gs.access_status = 'Enabled' AND g.portal_access AND s.status <> 'Archived'`,
     [guardianId, studentId],
   );
   if (!r.rowCount) throw httpError(403, "This student is not linked to your account.");
+  return r.rows[0];
 }
+
+// Guardian accounts created by the admin carry a temporary password that must be changed
+// on first sign-in before any student data is shown (Guardian App workflow §2, §8).
+router.use("/guardian", asyncHandler(async (req, res, next) => {
+  requireGuardian(req);
+  const u = (await query("SELECT must_change_password FROM users WHERE id = $1", [req.user.id])).rows[0];
+  if (u?.must_change_password) {
+    return res.status(403).json({ success: false, code: "PASSWORD_CHANGE_REQUIRED", message: "Please change your temporary password to continue." });
+  }
+  const g = (await query("SELECT status, portal_access FROM guardians WHERE id = $1", [req.user.linkedId])).rows[0];
+  if (!g || !g.portal_access || g.status !== "Active") {
+    return res.status(403).json({ success: false, code: "ACCOUNT_INACTIVE", message: "Your guardian account is inactive. Please contact the school." });
+  }
+  return next();
+}));
 
 async function hideResultsOnDue(studentId) {
   const s = (await query("SELECT result_hide_on_due FROM system_settings WHERE id = 1")).rows[0];
@@ -34,19 +52,55 @@ router.get("/guardian/home", asyncHandler(async (req, res) => {
   const gid = requireGuardian(req);
   const guardian = (await query("SELECT id, name, mobile, email, relation_default FROM guardians WHERE id = $1", [gid])).rows[0];
   const today = localDate();
+  const dayName = DAYS[localWeekday(new Date())];
   const children = (await query(
-    `SELECT s.id, s.name, s.name_bn, s.photo_url, s.class_name, s.section, s.roll, s.shift, s.class_id, gs.relation,
+    `SELECT s.id, s.name, s.name_bn, s.photo_url, s.class_name, s.section, s.roll, s.shift, s.class_id, s.status, gs.relation,
+            gs.is_primary, gs.can_view_results, gs.can_view_fees,
             c.teacher_id, t.name AS class_teacher, t.phone AS class_teacher_phone,
             (SELECT status FROM attendance a WHERE a.student_id = s.id AND a.attendance_date = $2) AS today_attendance,
-            (SELECT COALESCE(SUM(amount + late_fine - discount - paid_amount),0) FROM fee_invoices i WHERE i.student_id = s.id AND i.status NOT IN ('Paid','Cancelled')) AS fee_due,
-            (SELECT COUNT(*)::int FROM homework h WHERE h.class_id = s.class_id AND (h.section IS NULL OR h.section = s.section) AND h.due_date >= $2) AS homework_count,
-            (SELECT json_build_object('name', e.name, 'date', es.exam_date, 'subject', sub.name) FROM exam_schedules es
+            (SELECT in_time FROM attendance a WHERE a.student_id = s.id AND a.attendance_date = $2) AS today_in_time,
+            (SELECT out_time FROM attendance a WHERE a.student_id = s.id AND a.attendance_date = $2) AS today_out_time,
+            (SELECT json_build_object('total', COUNT(*), 'present', COUNT(*) FILTER (WHERE a.status IN ('Present','Late')),
+                                      'absent', COUNT(*) FILTER (WHERE a.status = 'Absent'), 'late', COUNT(*) FILTER (WHERE a.status = 'Late'))
+               FROM attendance a WHERE a.student_id = s.id AND to_char(a.attendance_date, 'YYYY-MM') = $3) AS month_attendance,
+            CASE WHEN gs.can_view_fees THEN (SELECT COALESCE(SUM(amount + late_fine - discount - paid_amount),0) FROM fee_invoices i
+               WHERE i.student_id = s.id AND i.status NOT IN ('Paid','Cancelled') AND i.fee_head IS DISTINCT FROM 'Advance Credit') ELSE 0 END AS fee_due,
+            CASE WHEN gs.can_view_fees THEN (SELECT COALESCE(SUM(amount + late_fine - discount),0) FROM fee_invoices i
+               WHERE i.student_id = s.id AND i.status <> 'Cancelled' AND to_char(i.billing_month, 'YYYY-MM') = $3) ELSE 0 END AS month_fee,
+            (SELECT COUNT(*)::int FROM homework h WHERE h.class_id = s.class_id AND (h.section IS NULL OR h.section = s.section)
+               AND h.status = 'Published' AND (h.due_date IS NULL OR h.due_date >= $2)
+               AND NOT EXISTS (SELECT 1 FROM homework_submissions hs WHERE hs.homework_id = h.id AND hs.student_id = s.id)) AS homework_count,
+            (SELECT json_build_object('name', e.name, 'date', es.exam_date, 'subject', sub.name, 'startTime', es.start_time) FROM exam_schedules es
                JOIN exams e ON e.id = es.exam_id JOIN subjects sub ON sub.id = es.subject_id
-               WHERE es.class_id = s.class_id AND es.exam_date >= $2 ORDER BY es.exam_date LIMIT 1) AS next_exam
+               WHERE es.class_id = s.class_id AND es.exam_date >= $2 ORDER BY es.exam_date, es.start_time LIMIT 1) AS next_exam,
+            (SELECT COALESCE(json_agg(json_build_object('period', r.period_code, 'start', r.start_time, 'end', r.end_time, 'subject', COALESCE(sub.name, r.label),
+                                      'teacher', tt.name, 'room', r.room_no, 'isBreak', r.is_break) ORDER BY r.start_time NULLS LAST, r.period_code), '[]'::json)
+               FROM routine_entries r LEFT JOIN subjects sub ON sub.id = r.subject_id LEFT JOIN teachers tt ON tt.id = r.teacher_id
+               WHERE r.class_id = s.class_id AND (r.section IS NULL OR r.section = s.section) AND r.day_of_week = $4) AS today_routine,
+            (SELECT json_build_object('exam', e.name, 'grade', r.grade, 'gpa', r.gpa, 'publishedAt', r.published_at) FROM results r JOIN exams e ON e.id = r.exam_id
+               WHERE r.student_id = s.id AND r.published AND gs.can_view_results ORDER BY r.published_at DESC NULLS LAST LIMIT 1) AS latest_result
      FROM guardian_students gs JOIN students s ON s.id = gs.student_id
      LEFT JOIN classes c ON c.id = s.class_id LEFT JOIN teachers t ON t.id = c.teacher_id
      WHERE gs.guardian_id = $1 AND gs.access_status = 'Enabled' AND s.status <> 'Archived' ORDER BY s.name`,
+    [gid, today, localMonth(), dayName],
+  )).rows;
+  for (const c of children) {
+    const m = c.month_attendance || {};
+    c.month_attendance_percentage = Number(m.total) ? Math.round((Number(m.present) / Number(m.total)) * 1000) / 10 : null;
+  }
+  const upcomingExams = (await query(
+    `SELECT es.exam_date, es.start_time, es.end_time, es.room, e.name AS exam_name, sub.name AS subject_name, s.id AS student_id, s.name AS student_name
+     FROM guardian_students gs JOIN students s ON s.id = gs.student_id JOIN exam_schedules es ON es.class_id = s.class_id
+     JOIN exams e ON e.id = es.exam_id JOIN subjects sub ON sub.id = es.subject_id
+     WHERE gs.guardian_id = $1 AND gs.access_status = 'Enabled' AND s.status <> 'Archived' AND es.exam_date >= $2
+     ORDER BY es.exam_date, es.start_time NULLS LAST LIMIT 10`,
     [gid, today],
+  )).rows;
+  const recentNotifications = (await query(
+    `SELECT m.id, m.event_type, m.subject, m.body, m.student_id, s.name AS student_name, m.created_at, m.read_at FROM message_logs m
+     LEFT JOIN students s ON s.id = m.student_id
+     WHERE m.recipient_type = 'Guardian' AND m.recipient_id = $1 AND m.channel = 'Portal' ORDER BY m.created_at DESC LIMIT 5`,
+    [gid],
   )).rows;
   const notices = (await query(
     `SELECT id, title, message, priority, category, created_at, attachment_url, target_class FROM notices
@@ -57,7 +111,13 @@ router.get("/guardian/home", asyncHandler(async (req, res) => {
     [gid],
   )).rows;
   const unread = (await query("SELECT COUNT(*)::int AS n FROM message_logs WHERE recipient_type = 'Guardian' AND recipient_id = $1 AND channel = 'Portal' AND read_at IS NULL", [gid])).rows[0].n;
-  res.json({ success: true, data: keysToCamel({ guardian, children, notices, unreadNotifications: unread, totalDue: children.reduce((s, c) => s + Number(c.fee_due), 0) }) });
+  res.json({
+    success: true,
+    data: keysToCamel({
+      guardian, children, notices, upcomingExams, recentNotifications, unreadNotifications: unread,
+      totalDue: children.reduce((s, c) => s + Number(c.fee_due), 0),
+    }),
+  });
 }));
 
 router.get("/guardian/students/:id/attendance", asyncHandler(async (req, res) => {
@@ -69,12 +129,29 @@ router.get("/guardian/students/:id/attendance", asyncHandler(async (req, res) =>
     [req.params.id, month],
   )).rows;
   const present = rows.filter((r) => ["Present", "Late"].includes(r.status)).length;
-  res.json({ success: true, data: keysToCamel({ month, records: rows, percentage: rows.length ? Math.round((present / rows.length) * 1000) / 10 : null }) });
+  const count = (st) => rows.filter((r) => r.status === st).length;
+  const summary = {
+    total: rows.length, present, absent: count("Absent"), late: count("Late"), leave: count("Leave"),
+    earlyLeave: rows.filter((r) => r.status === "Early Leave" || /early/i.test(r.note || "")).length,
+  };
+  // Six-month history for the attendance-history view.
+  const history = (await query(
+    `SELECT to_char(attendance_date, 'YYYY-MM') AS month, COUNT(*)::int AS total,
+            COUNT(*) FILTER (WHERE status IN ('Present','Late'))::int AS present, COUNT(*) FILTER (WHERE status = 'Absent')::int AS absent,
+            COUNT(*) FILTER (WHERE status = 'Late')::int AS late
+     FROM attendance WHERE student_id = $1 AND attendance_date >= (date_trunc('month', CURRENT_DATE) - INTERVAL '5 months')
+     GROUP BY 1 ORDER BY 1 DESC`,
+    [req.params.id],
+  )).rows.map((h) => ({ ...h, percentage: h.total ? Math.round((h.present / h.total) * 1000) / 10 : null }));
+  res.json({ success: true, data: keysToCamel({ month, records: rows, summary, history, percentage: rows.length ? Math.round((present / rows.length) * 1000) / 10 : null }) });
 }));
 
 router.get("/guardian/students/:id/results", asyncHandler(async (req, res) => {
   const gid = requireGuardian(req);
-  await assertLinked(gid, req.params.id);
+  const link = await assertLinked(gid, req.params.id);
+  if (!link.can_view_results) {
+    return res.json({ success: true, data: [], message: "The school has not enabled result access for your account." });
+  }
   if (await hideResultsOnDue(req.params.id)) {
     return res.json({ success: true, data: [], message: "Results are hidden until outstanding fees are cleared." });
   }
@@ -88,13 +165,53 @@ router.get("/guardian/students/:id/results", asyncHandler(async (req, res) => {
 
 router.get("/guardian/students/:id/fees", asyncHandler(async (req, res) => {
   const gid = requireGuardian(req);
-  await assertLinked(gid, req.params.id);
-  const [invoices, payments] = await Promise.all([
+  const link = await assertLinked(gid, req.params.id);
+  if (!link.can_view_fees) {
+    return res.json({ success: true, data: { invoices: [], payments: [], discounts: [], gateways: {}, hidden: true }, message: "The school has not enabled fee access for your account." });
+  }
+  // Each student's fees stay separate: everything here is filtered by this one student.
+  const [invoices, payments, discounts] = await Promise.all([
     query("SELECT *, GREATEST(amount + late_fine - discount - paid_amount, 0) AS due FROM fee_invoices WHERE student_id = $1 AND status <> 'Cancelled' AND fee_head IS DISTINCT FROM 'Advance Credit' ORDER BY billing_month DESC NULLS LAST", [req.params.id]),
-    query("SELECT id, receipt_no, amount, payment_method, paid_at, status FROM fee_payments WHERE student_id = $1 ORDER BY paid_at DESC", [req.params.id]),
+    query(`SELECT p.id, p.receipt_no, p.amount, p.payment_method, p.paid_at, p.status, i.fee_head, i.billing_month
+           FROM fee_payments p LEFT JOIN fee_invoices i ON i.id = p.invoice_id WHERE p.student_id = $1 ORDER BY p.paid_at DESC`, [req.params.id]),
+    query(`SELECT d.id, d.discount_type, d.mode, d.value, d.reason, d.valid_from, d.valid_to, d.status, fh.name AS fee_head
+           FROM fee_discounts d LEFT JOIN fee_heads fh ON fh.id = d.fee_head_id WHERE d.student_id = $1 AND d.status = 'Approved'
+           ORDER BY d.created_at DESC`, [req.params.id]).catch(() => ({ rows: [] })),
   ]);
   const settings = (await query("SELECT payment_gateways FROM system_settings WHERE id = 1")).rows[0];
-  res.json({ success: true, data: keysToCamel({ invoices: invoices.rows, payments: payments.rows, gateways: settings?.payment_gateways || {} }) });
+  const open = invoices.rows.filter((i) => Number(i.due) > 0);
+  const thisMonth = localMonth();
+  const summary = {
+    totalPayable: open.reduce((s, i) => s + Number(i.due), 0),
+    previousDue: open.filter((i) => i.billing_month && String(i.billing_month).slice(0, 7) < thisMonth).reduce((s, i) => s + Number(i.due), 0),
+    currentMonthDue: open.filter((i) => String(i.billing_month || "").slice(0, 7) === thisMonth).reduce((s, i) => s + Number(i.due), 0),
+    totalPaid: payments.rows.filter((p) => p.status === "Valid").reduce((s, p) => s + Number(p.amount), 0),
+  };
+  res.json({ success: true, data: keysToCamel({ invoices: invoices.rows, payments: payments.rows, discounts: discounts.rows, summary, gateways: settings?.payment_gateways || {} }) });
+}));
+
+// Digital receipt – only for payments of the guardian's own linked students.
+router.get("/guardian/receipts/:receiptNo", asyncHandler(async (req, res) => {
+  const gid = requireGuardian(req);
+  const first = (await query("SELECT * FROM fee_payments WHERE receipt_no = $1", [req.params.receiptNo])).rows[0];
+  if (!first) throw httpError(404, "Receipt not found.");
+  const link = await assertLinked(gid, first.student_id);
+  if (!link.can_view_fees) throw httpError(403, "Fee access is not enabled for your account.");
+  // A grouped receipt may span siblings; show only the lines of students this guardian may see.
+  const lines = (first.group_ref
+    ? (await query("SELECT p.*, i.fee_head, i.billing_month FROM fee_payments p LEFT JOIN fee_invoices i ON i.id = p.invoice_id WHERE p.group_ref = $1 ORDER BY p.receipt_no", [first.group_ref])).rows
+    : (await query("SELECT p.*, i.fee_head, i.billing_month FROM fee_payments p LEFT JOIN fee_invoices i ON i.id = p.invoice_id WHERE p.id = $1", [first.id])).rows
+  ).filter((l) => l.student_id === first.student_id);
+  const student = (await query("SELECT id, name, class_name, section, roll FROM students WHERE id = $1", [first.student_id])).rows[0];
+  const profile = (await query("SELECT name, address, phone, email, logo_url FROM institute_profile WHERE id = 1")).rows[0];
+  res.json({
+    success: true,
+    data: keysToCamel({
+      receiptNo: first.receipt_no, paidAt: first.paid_at, method: first.payment_method, reference: first.reference_no, status: first.status,
+      lines: lines.map((l) => ({ receiptNo: l.receipt_no, feeHead: l.fee_head, billingMonth: l.billing_month, amount: l.amount, status: l.status })),
+      student, institute: profile, total: lines.filter((l) => l.status === "Valid").reduce((s, l) => s + Number(l.amount), 0),
+    }),
+  });
 }));
 
 router.get("/guardian/students/:id/academics", asyncHandler(async (req, res) => {
@@ -113,7 +230,18 @@ router.get("/guardian/students/:id/academics", asyncHandler(async (req, res) => 
     query("SELECT lr.*, sub.name AS subject_name FROM learning_resources lr LEFT JOIN subjects sub ON sub.id = lr.subject_id WHERE lr.class_id = $1 ORDER BY lr.created_at DESC LIMIT 30", [s?.class_id]),
   ]);
   const online = (await query("SELECT * FROM online_classes WHERE class_id = $1 AND (section IS NULL OR section = $2) ORDER BY scheduled_at DESC NULLS LAST LIMIT 20", [s?.class_id, s?.section])).rows;
-  res.json({ success: true, data: keysToCamel({ routine: routine.rows, homework: homework.rows, examRoutine: examRoutine.rows, events: events.rows, resources: resources.rows, onlineClasses: online }) });
+  // Assignment submission status for this student.
+  const subs = homework.rows.length
+    ? (await query("SELECT homework_id, status, marks, remarks, submitted_at FROM homework_submissions WHERE student_id = $1 AND homework_id = ANY($2)",
+      [req.params.id, homework.rows.map((h) => h.id)])).rows
+    : [];
+  const subMap = new Map(subs.map((x) => [x.homework_id, x]));
+  const homeworkRows = homework.rows.map((h) => {
+    const sub = subMap.get(h.id);
+    delete h.submissions;
+    return { ...h, submission_status: sub ? sub.status : "Not Submitted", submission_marks: sub?.marks ?? null, submission_remarks: sub?.remarks ?? null, submitted_at: sub?.submitted_at ?? null };
+  });
+  res.json({ success: true, data: keysToCamel({ routine: routine.rows, homework: homeworkRows, examRoutine: examRoutine.rows, events: events.rows, resources: resources.rows, onlineClasses: online }) });
 }));
 
 router.get("/guardian/students/:id/extras", asyncHandler(async (req, res) => {
@@ -150,11 +278,188 @@ router.get("/guardian/students/:id/extras", asyncHandler(async (req, res) => {
 
 router.get("/guardian/notifications", asyncHandler(async (req, res) => {
   const gid = requireGuardian(req);
+  const studentId = req.query.studentId ? String(req.query.studentId) : null;
+  if (studentId) await assertLinked(gid, studentId);
   const rows = (await query(
-    "SELECT id, event_type, subject, body, student_id, created_at, read_at FROM message_logs WHERE recipient_type = 'Guardian' AND recipient_id = $1 AND channel = 'Portal' ORDER BY created_at DESC LIMIT 100",
+    `SELECT m.id, m.event_type, m.subject, m.body, m.student_id, s.name AS student_name, m.created_at, m.read_at
+     FROM message_logs m LEFT JOIN students s ON s.id = m.student_id
+     WHERE m.recipient_type = 'Guardian' AND m.recipient_id = $1 AND m.channel = 'Portal' AND ($2::text IS NULL OR m.student_id = $2)
+     ORDER BY m.created_at DESC LIMIT 100`,
+    [gid, studentId],
+  )).rows;
+  // The web portal marks everything read on open; the mobile app passes markRead=false and
+  // marks read explicitly so unread badges stay accurate.
+  if (req.query.markRead !== "false") {
+    await query("UPDATE message_logs SET read_at = NOW(), status = 'Read' WHERE recipient_type = 'Guardian' AND recipient_id = $1 AND channel = 'Portal' AND read_at IS NULL", [gid]);
+  }
+  res.json({ success: true, data: keysToCamel(rows) });
+}));
+
+router.get("/guardian/notifications/unread-count", asyncHandler(async (req, res) => {
+  const gid = requireGuardian(req);
+  const n = (await query("SELECT COUNT(*)::int AS n FROM message_logs WHERE recipient_type = 'Guardian' AND recipient_id = $1 AND channel = 'Portal' AND read_at IS NULL", [gid])).rows[0].n;
+  res.json({ success: true, data: { unread: n } });
+}));
+
+router.post("/guardian/notifications/read", asyncHandler(async (req, res) => {
+  const gid = requireGuardian(req);
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(String) : null;
+  await query(
+    `UPDATE message_logs SET read_at = NOW(), status = 'Read' WHERE recipient_type = 'Guardian' AND recipient_id = $1 AND channel = 'Portal'
+       AND read_at IS NULL AND ($2::text[] IS NULL OR id::text = ANY($2))`,
+    [gid, ids],
+  );
+  res.json({ success: true });
+}));
+
+// ---------------------------------------------------------------- Guardian profile & support
+async function schoolContact() {
+  const p = (await query(
+    "SELECT name, name_bn, address, phone, email, website, logo_url, brand_color, accent_color, principal_name, principal_title, emergency_contact, motto FROM institute_profile WHERE id = 1",
+  )).rows[0];
+  return p || {};
+}
+
+router.get("/guardian/profile", asyncHandler(async (req, res) => {
+  const gid = requireGuardian(req);
+  const guardian = (await query(
+    `SELECT g.id, g.name, g.name_bn, g.relation_default, g.mobile, g.alt_mobile, g.email, g.occupation, g.address, g.emergency_contact,
+            g.photo_url, g.status, g.notification_prefs, u.email AS login_email, u.last_login_at
+     FROM guardians g LEFT JOIN users u ON u.id = g.user_id WHERE g.id = $1`,
+    [gid],
+  )).rows[0];
+  if (!guardian) throw httpError(404, "Guardian profile not found.");
+  const children = (await query(
+    `SELECT s.id, s.name, s.class_name, s.section, s.roll, s.photo_url, gs.relation, gs.is_primary
+     FROM guardian_students gs JOIN students s ON s.id = gs.student_id
+     WHERE gs.guardian_id = $1 AND gs.access_status = 'Enabled' AND s.status <> 'Archived' ORDER BY s.name`,
     [gid],
   )).rows;
-  await query("UPDATE message_logs SET read_at = NOW(), status = 'Read' WHERE recipient_type = 'Guardian' AND recipient_id = $1 AND channel = 'Portal' AND read_at IS NULL", [gid]);
+  // Multiple guardian contacts: the other guardians (e.g. mother/father) of the same children.
+  const otherGuardians = (await query(
+    `SELECT DISTINCT ON (g.id) g.id, g.name, g.relation_default AS relation, g.mobile, g.alt_mobile,
+            (SELECT string_agg(s2.name, ', ') FROM guardian_students x JOIN students s2 ON s2.id = x.student_id
+              WHERE x.guardian_id = g.id AND x.student_id IN (SELECT student_id FROM guardian_students WHERE guardian_id = $1)) AS children
+     FROM guardian_students mine JOIN guardian_students other ON other.student_id = mine.student_id AND other.guardian_id <> mine.guardian_id
+     JOIN guardians g ON g.id = other.guardian_id
+     WHERE mine.guardian_id = $1 AND g.status = 'Active'`,
+    [gid],
+  )).rows;
+  res.json({ success: true, data: keysToCamel({ guardian, children, otherGuardians, school: await schoolContact() }) });
+}));
+
+// Guardians may update their own contact and address details. Login email and the registered
+// mobile number are identity fields: only the school changes them (with verification).
+router.patch("/guardian/profile", asyncHandler(async (req, res) => {
+  const gid = requireGuardian(req);
+  const b = req.body || {};
+  const fields = { alt_mobile: b.altMobile, occupation: b.occupation, address: b.address, emergency_contact: b.emergencyContact, name_bn: b.nameBn };
+  if (b.altMobile && !/^01[3-9]\d{8}$/.test(String(b.altMobile).replace(/\D/g, ""))) throw httpError(422, "Enter a valid alternate mobile number.");
+  if (b.notificationPrefs !== undefined && (typeof b.notificationPrefs !== "object" || Array.isArray(b.notificationPrefs))) {
+    throw httpError(422, "Notification preferences must be an object.");
+  }
+  const sets = [];
+  const values = [];
+  for (const [col, val] of Object.entries(fields)) {
+    if (val === undefined) continue;
+    values.push(val === "" ? null : String(val).slice(0, 500));
+    sets.push(`${col} = $${values.length}`);
+  }
+  if (b.notificationPrefs !== undefined) {
+    const allowed = ["sms", "email", "push", "attendance", "exam", "result", "fee", "homework", "transport", "notice"];
+    const prefs = Object.fromEntries(Object.entries(b.notificationPrefs).filter(([k, v]) => allowed.includes(k) && typeof v === "boolean"));
+    values.push(JSON.stringify(prefs));
+    sets.push(`notification_prefs = notification_prefs || $${values.length}::jsonb`);
+  }
+  if (!sets.length) throw httpError(422, "Nothing to update.");
+  values.push(gid);
+  const row = (await query(
+    `UPDATE guardians SET ${sets.join(", ")} WHERE id = $${values.length}
+     RETURNING id, name, name_bn, relation_default, mobile, alt_mobile, email, occupation, address, emergency_contact, notification_prefs`,
+    values,
+  )).rows[0];
+  res.json({ success: true, data: keysToCamel(row) });
+}));
+
+router.get("/guardian/school", asyncHandler(async (req, res) => {
+  requireGuardian(req);
+  res.json({ success: true, data: keysToCamel(await schoolContact()) });
+}));
+
+router.get("/guardian/students/:id/profile", asyncHandler(async (req, res) => {
+  const gid = requireGuardian(req);
+  const link = await assertLinked(gid, req.params.id);
+  const s = (await query(
+    `SELECT s.id, s.name, s.name_bn, s.roll, s.gender, s.class_name, s.class_id, s.section, s.shift, s.group_name, s.version, s.photo_url,
+            s.date_of_birth, s.admission_date, s.blood_group, s.religion, s.nationality, s.address, s.status, s.previous_school,
+            s.allergies, s.special_needs, s.medical_notes, ay.name AS session_name,
+            t.id AS class_teacher_id, t.name AS class_teacher, t.phone AS class_teacher_phone, t.email AS class_teacher_email, t.photo_url AS class_teacher_photo
+     FROM students s LEFT JOIN classes c ON c.id = s.class_id LEFT JOIN teachers t ON t.id = c.teacher_id
+     LEFT JOIN academic_years ay ON ay.id = s.academic_year_id WHERE s.id = $1`,
+    [req.params.id],
+  )).rows[0];
+  if (!s) throw httpError(404, "Student not found.");
+  const guardians = (await query(
+    `SELECT g.id, g.name, g.mobile, g.alt_mobile, g.emergency_contact, gs.relation, gs.is_primary FROM guardian_students gs
+     JOIN guardians g ON g.id = gs.guardian_id WHERE gs.student_id = $1 ORDER BY gs.is_primary DESC, g.name`,
+    [req.params.id],
+  )).rows;
+  const primary = guardians.find((g) => g.is_primary) || guardians[0];
+  res.json({
+    success: true,
+    data: keysToCamel({
+      ...s,
+      relation: link.relation,
+      canViewResults: link.can_view_results,
+      canViewFees: link.can_view_fees,
+      guardians,
+      emergencyContact: primary ? { name: primary.name, relation: primary.relation, mobile: primary.emergency_contact || primary.mobile } : null,
+    }),
+  });
+}));
+
+router.get("/guardian/students/:id/documents", asyncHandler(async (req, res) => {
+  const gid = requireGuardian(req);
+  await assertLinked(gid, req.params.id);
+  const [docs, certs] = await Promise.all([
+    query(
+      "SELECT id, document_type, file_name, file_url, mime_type, size_bytes, created_at FROM student_documents WHERE owner_type = 'Student' AND owner_id = $1 ORDER BY created_at DESC",
+      [req.params.id],
+    ),
+    query(
+      "SELECT id, certificate_type, status, created_at, issued_at FROM certificates WHERE holder_type = 'Student' AND holder_id = $1 AND status = 'Issued' ORDER BY created_at DESC",
+      [req.params.id],
+    ).catch(() => ({ rows: [] })),
+  ]);
+  res.json({ success: true, data: keysToCamel({ documents: docs.rows, certificates: certs.rows }) });
+}));
+
+// Streams one of the student's documents. Private uploads normally need staff permissions;
+// here access is granted only through the guardian–student link.
+router.get("/guardian/students/:id/documents/:docId/file", asyncHandler(async (req, res) => {
+  const gid = requireGuardian(req);
+  await assertLinked(gid, req.params.id);
+  const doc = (await query(
+    "SELECT file_url, file_name, mime_type FROM student_documents WHERE id::text = $1 AND owner_type = 'Student' AND owner_id = $2",
+    [req.params.docId, req.params.id],
+  )).rows[0];
+  if (!doc) throw httpError(404, "Document not found.");
+  const path = require("node:path");
+  const fs = require("node:fs/promises");
+  const env = require("../config/env");
+  const name = path.basename(String(doc.file_url || "").split("?")[0]);
+  const isPrivate = String(doc.file_url || "").includes("/private/");
+  const file = path.resolve(env.uploadDir, isPrivate ? "private" : "public", name);
+  try { await fs.access(file); } catch { throw httpError(404, "File not found on the server."); }
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Cache-Control", "private, no-store");
+  if (doc.file_name) res.attachment(doc.file_name);
+  res.sendFile(file);
+}));
+
+router.get("/guardian/leave-types", asyncHandler(async (req, res) => {
+  requireGuardian(req);
+  const rows = (await query("SELECT id, name, days_per_year FROM leave_types WHERE status = 'Active' AND applies_to IN ('Student','All') ORDER BY name")).rows;
   res.json({ success: true, data: keysToCamel(rows) });
 }));
 

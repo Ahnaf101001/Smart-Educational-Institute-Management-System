@@ -1,0 +1,13 @@
+.dart_tool/
+.idea/
+.vscode/
+build/
+**/.gradle/
+android/
+ios/
+*.iml
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+docker-compose.yml
+README.md

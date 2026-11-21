@@ -390,6 +390,12 @@ router.post("/online/initiate", asyncHandler(async (req, res) => {
 router.get("/online/:id", asyncHandler(async (req, res) => {
   const row = (await query("SELECT * FROM gateway_transactions WHERE id::text = $1", [req.params.id])).rows[0];
   if (!row) throw httpError(404, "Transaction not found.");
+  // Guardians may only check their own payments; staff need fee access.
+  if (req.user.linkedType === "Guardian") {
+    if (row.guardian_id !== req.user.linkedId) throw httpError(404, "Transaction not found.");
+  } else if (!req.user.isAdmin && !req.user.matrix?.fees?.includes("view")) {
+    throw httpError(403, "You do not have permission to view this transaction.");
+  }
   res.json({ success: true, data: keysToCamel(row) });
 }));
 

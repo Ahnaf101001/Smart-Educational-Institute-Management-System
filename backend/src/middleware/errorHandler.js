@@ -41,6 +41,8 @@ function errorHandler(error, req, res, next) {
   res.status(status).json({
     success: false,
     message,
+    // Application error codes (e.g. ACCOUNT_INACTIVE) let clients react; Postgres codes are not exposed.
+    ...(typeof error.code === "string" && /^[A-Z][A-Z_]+$/.test(error.code) ? { code: error.code } : {}),
     ...(error.details ? { details: error.details } : {}),
     ...(process.env.NODE_ENV === "development" && status === 500
       ? { stack: error.stack }

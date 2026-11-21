@@ -1,0 +1,35 @@
+# AeroSchool Guardian Mobile App
+# Docker Compose project names must be lowercase, so the stack appears in
+# Docker Desktop as "aeroschool-guardian-mobile-app".
+#
+#   docker compose up -d --build      → http://localhost:8088
+#
+# The app talks to the Smart Educational Institute Management System backend
+# through nginx (/api/ → BACKEND_URL). By default that is the API running on the
+# host at port 4001 (backend/.env PORT=4001).
+name: aeroschool-guardian-mobile-app
+
+services:
+  guardian-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        FLUTTER_VERSION: "3.50.1"
+        # Leave empty to call the API on the same origin through nginx.
+        API_BASE_URL: ""
+        # School web app (payment sandbox and reset-password pages).
+        WEB_APP_URL: "${WEB_APP_URL:-http://localhost:3001}"
+    image: aeroschool-guardian-mobile-app:latest
+    container_name: AeroSchool_Guardian_Mobile_App
+    restart: unless-stopped
+    labels:
+      com.aeroschool.app: "AeroSchool Guardian Mobile App"
+      com.aeroschool.backend: "Smart Educational Institute Management System"
+    environment:
+      BACKEND_URL: "${BACKEND_URL:-http://host.docker.internal:4001}"
+    ports:
+      - "${GUARDIAN_APP_PORT:-8088}:80"
+    extra_hosts:
+      # Lets the container reach an API running on the Docker host (Linux needs this mapping).
+      - "host.docker.internal:host-gateway"

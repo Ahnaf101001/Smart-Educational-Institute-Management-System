@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  BookOpen, Building2, Bus, CalendarDays, CheckCircle2, ClipboardList, CreditCard, FileText, Fingerprint, HandCoins,
-  KeyRound, Landmark, Library, LogOut, MessageSquare, Moon, Package, RotateCcw, School, Undo2, Users, Video,
+  Ban, BookOpen, Building2, Bus, CalendarDays, CheckCircle2, ClipboardList, CreditCard, FileText, Fingerprint, HandCoins,
+  History, KeyRound, Landmark, Library, LogOut, MessageSquare, Moon, Package, RotateCcw, School, Smartphone, Undo2, Users, Video,
 } from "lucide-react";
 import { http } from "../../lib/api";
 import { Badge, money, today } from "../ui/kit";
@@ -75,6 +75,36 @@ export const CONFIGS = {
       { key: "portalAccess", label: "Portal access", type: "checkbox", default: true }, { key: "status", label: "Status", type: "select", options: STATUS, default: "Active" },
     ],
     rowActions: (r, { toast, ask, reload }) => [
+      { label: "App account", icon: Smartphone, onClick: async () => {
+        // AeroSchool Guardian Mobile App: admin-created email login with a temporary password.
+        const email = await ask({ title: "Guardian app login email", message: `Login email for ${r.name}. Guardians cannot sign up themselves.`, placeholder: "guardian@example.com", defaultValue: r.email || "" });
+        if (!email) return;
+        const password = await ask({ title: "Temporary password", message: "Leave blank to generate one. The guardian must change it at first login.", placeholder: "At least 8 characters (optional)", required: false });
+        if (password === null) return;
+        try {
+          const d = await http.post(`/guardians/${r.id}/account`, { email: email.trim(), password: password.trim() || undefined, sendEmail: true });
+          await ask({
+            title: "Guardian app account ready",
+            message: `Login email: ${d.email} · Temporary password: ${d.tempPassword}. ${d.emailQueued ? "The credentials were also queued for email delivery." : ""} Share them with the guardian; the password is not shown again.`,
+            input: false, confirmLabel: "Done",
+          });
+          reload();
+        } catch (e) { toast.error(e); }
+      } },
+      { label: "Login history", compact: true, icon: History, onClick: async () => {
+        try {
+          const [acc, rows] = await Promise.all([http.get(`/guardians/${r.id}/account`), http.get(`/guardians/${r.id}/login-history`)]);
+          const a = acc.account;
+          const head = a ? `Login: ${a.email} · ${a.status}${a.mustChangePassword ? " · temporary password not yet changed" : ""}.` : "No app account yet.";
+          const list = (rows || []).slice(0, 15).map((x) => `${new Date(x.createdAt).toLocaleString()} – ${x.action.replace("_", " ").toLowerCase()}${x.ip ? ` (${x.ip})` : ""}`).join(" | ");
+          await ask({ title: `Login history – ${r.name}`, message: `${head} ${list || "No sign-ins recorded."}`, input: false, confirmLabel: "Close" });
+        } catch (e) { toast.error(e); }
+      } },
+      { label: "Disable app access", compact: true, icon: Ban, show: r.portalAccess !== false, onClick: async () => {
+        const ok = await ask({ title: "Deactivate guardian account?", message: "The guardian is signed out and loses access to all linked students. Student records stay unchanged.", input: false, danger: true, confirmLabel: "Deactivate" });
+        if (!ok) return;
+        try { await http.post(`/guardians/${r.id}/portal`, { enabled: false }); toast.success("Guardian account deactivated"); reload(); } catch (e) { toast.error(e); }
+      } },
       { label: "Portal login", icon: KeyRound, onClick: async () => {
         const ok = await ask({ title: "Send portal credentials?", message: `A new password will be sent by SMS to ${r.mobile}.`, input: false });
         if (!ok) return;

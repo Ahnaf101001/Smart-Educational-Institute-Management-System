@@ -77,10 +77,25 @@ async function guardiansForStudent(studentId, { primaryOnly = false } = {}) {
 // Guardian opt-out policy (CM-09, COM-07). prefs = { sms: false, email: false, push: false,
 // whatsapp: false, events: { Absent: false, ... } }. Safety-critical events are never suppressed.
 const MANDATORY_EVENTS = new Set(["OTP", "Emergency", "EmergencyAlert", "PasswordReset"]);
+// Category switches set from the Guardian Mobile App ({ attendance: false, fee: false, … }).
+function eventCategory(eventType) {
+  const e = String(eventType || "").toLowerCase();
+  if (/absent|late|present|attendance|entry|exit|leave/.test(e)) return "attendance";
+  if (e.includes("result")) return "result";
+  if (e.includes("exam")) return "exam";
+  if (/fee|payment|due|invoice/.test(e)) return "fee";
+  if (/homework|assignment/.test(e)) return "homework";
+  if (/transport|bus/.test(e)) return "transport";
+  if (/notice|event/.test(e)) return "notice";
+  return null;
+}
+
 function optedOut(prefs, channel, eventType) {
   if (!prefs || MANDATORY_EVENTS.has(eventType) || channel === "Portal") return false;
   if (prefs[String(channel).toLowerCase()] === false) return true;
   if (prefs.events && prefs.events[eventType] === false) return true;
+  const category = eventCategory(eventType);
+  if (category && prefs[category] === false) return true;
   return false;
 }
 

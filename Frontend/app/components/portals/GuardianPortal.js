@@ -252,6 +252,35 @@ function SupportView({ students: children }) {
   );
 }
 
+// Admin-created guardian accounts start with a temporary password that must be changed first.
+function ForcedPasswordChange({ onDone, onLogout }) {
+  const [form, setForm] = useState({ current: "", next: "", confirm: "" });
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function submit(e) {
+    e.preventDefault();
+    if (form.next.length < 8) return setMsg("New password must be at least 8 characters.");
+    if (form.next !== form.confirm) return setMsg("The new passwords do not match.");
+    setBusy(true);
+    try { await http.post("/auth/change-password", { currentPassword: form.current, newPassword: form.next }); onDone(); } catch (err) { setMsg(err.message); } finally { setBusy(false); }
+  }
+  return (
+    <div className="grid min-h-screen place-items-center bg-[#f7f8fb] p-6">
+      <Card className="w-full max-w-md p-6">
+        <h1 className="text-lg font-extrabold text-slate-900">Change your temporary password</h1>
+        <p className="mt-1 text-sm text-slate-500">For your security, set a new password before opening the guardian dashboard.</p>
+        <form className="mt-4 space-y-3" onSubmit={submit}>
+          <Field label="Temporary password"><Input type="password" value={form.current} onChange={(e) => setForm({ ...form, current: e.target.value })} required /></Field>
+          <Field label="New password"><Input type="password" value={form.next} onChange={(e) => setForm({ ...form, next: e.target.value })} required /></Field>
+          <Field label="Confirm new password"><Input type="password" value={form.confirm} onChange={(e) => setForm({ ...form, confirm: e.target.value })} required /></Field>
+          {msg && <p className="text-sm text-rose-600">{msg}</p>}
+          <div className="flex gap-2"><Button type="submit" disabled={busy}>Change password</Button><Button type="button" variant="secondary" onClick={onLogout}>Sign out</Button></div>
+        </form>
+      </Card>
+    </div>
+  );
+}
+
 export default function GuardianPortal({ onLogout }) {
   const { lang, setLang, t } = useI18n();
   const [home, setHome] = useState(null);
@@ -260,13 +289,16 @@ export default function GuardianPortal({ onLogout }) {
   const [notifications, setNotifications] = useState(null);
   const [institute, setInstitute] = useState({});
   const [error, setError] = useState(null);
+  const [mustChange, setMustChange] = useState(false);
 
   useEffect(() => {
-    portalApi.guardianHome().then(setHome).catch((e) => setError(e.message));
+    portalApi.guardianHome().then(setHome).catch((e) => (e.code === "PASSWORD_CHANGE_REQUIRED" ? setMustChange(true) : setError(e.message)));
     http.get("/institute-profile").then(setInstitute).catch(() => {});
   }, []);
   const child = useMemo(() => home?.children.find((c) => c.id === childId), [home, childId]);
 
+  // Changing the password ends every session, so the guardian signs in again with the new one.
+  if (mustChange) return <ForcedPasswordChange onDone={onLogout} onLogout={onLogout} />;
   if (error) return <div className="grid min-h-screen place-items-center p-6"><EmptyState title="Guardian portal unavailable" hint={error} /></div>;
   if (!home) return <div className="grid min-h-screen place-items-center"><Spinner /></div>;
 
