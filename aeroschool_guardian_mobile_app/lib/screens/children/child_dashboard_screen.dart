@@ -123,20 +123,22 @@ class _TodayCard extends StatelessWidget {
         icon: Icons.today_outlined,
         child: Column(children: [
           Row(children: [
-            const Text('Attendance', style: TextStyle(color: AppColors.muted)),
-            const Spacer(),
-            StatusChip(child.todayAttendance ?? 'Not marked yet', color: child.todayAttendance == null ? AppColors.muted : null),
+            const Expanded(child: Text('Attendance', style: TextStyle(color: AppColors.muted))),
+            Flexible(child: StatusChip(child.todayAttendance ?? 'Not marked yet', color: child.todayAttendance == null ? AppColors.muted : null)),
           ]),
           if (child.todayInTime != null || child.todayOutTime != null) ...[
             const SizedBox(height: 8),
-            Row(children: [
-              const Icon(Icons.login_rounded, size: 16, color: AppColors.success),
-              const SizedBox(width: 4),
-              Text('Entry ${Fmt.time(child.todayInTime)}'),
-              const SizedBox(width: 16),
-              const Icon(Icons.logout_rounded, size: 16, color: AppColors.warning),
-              const SizedBox(width: 4),
-              Text('Exit ${child.todayOutTime == null ? '—' : Fmt.time(child.todayOutTime)}'),
+            Wrap(spacing: 16, runSpacing: 6, children: [
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.login_rounded, size: 16, color: AppColors.success),
+                const SizedBox(width: 4),
+                Text('Entry ${Fmt.time(child.todayInTime)}'),
+              ]),
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.logout_rounded, size: 16, color: AppColors.warning),
+                const SizedBox(width: 4),
+                Text('Exit ${child.todayOutTime == null ? '—' : Fmt.time(child.todayOutTime)}'),
+              ]),
             ]),
           ],
           if (child.nextExamName != null) ...[

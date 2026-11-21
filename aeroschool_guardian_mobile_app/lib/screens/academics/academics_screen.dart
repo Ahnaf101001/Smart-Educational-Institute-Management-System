@@ -72,9 +72,10 @@ class _RoutineTabState extends State<_RoutineTab> {
       child: ListView(padding: const EdgeInsets.all(16), children: [
         SegmentedButton<bool>(
           segments: const [
-            ButtonSegment(value: false, label: Text('Daily routine'), icon: Icon(Icons.view_day_outlined)),
-            ButtonSegment(value: true, label: Text('Subject-wise'), icon: Icon(Icons.subject)),
+            ButtonSegment(value: false, label: Text('Daily')),
+            ButtonSegment(value: true, label: Text('By subject')),
           ],
+          showSelectedIcon: false,
           selected: {_bySubject},
           onSelectionChanged: (s) => setState(() => _bySubject = s.first),
         ),
@@ -201,8 +202,8 @@ class _HomeworkCard extends StatelessWidget {
                 Row(children: [
                   const Icon(Icons.event, size: 15, color: AppColors.muted),
                   const SizedBox(width: 4),
-                  Text('Due ${Fmt.date(hw.dueDate)}', style: const TextStyle(fontSize: 13)),
-                  if (hw.totalMarks != null) ...[const Spacer(), Text('Marks: ${hw.submissionMarks ?? '—'}/${hw.totalMarks}', style: const TextStyle(fontSize: 13))],
+                  Expanded(child: Text('Due ${Fmt.date(hw.dueDate)}', style: const TextStyle(fontSize: 13))),
+                  if (hw.totalMarks != null) Flexible(child: Text('Marks: ${hw.submissionMarks ?? '—'}/${hw.totalMarks}', style: const TextStyle(fontSize: 13))),
                 ]),
               ]),
             ),

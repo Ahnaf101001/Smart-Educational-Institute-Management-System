@@ -147,14 +147,16 @@ class _ComplaintFormState extends State<_ComplaintForm> {
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             SegmentedButton<String>(
               segments: const [
-                ButtonSegment(value: 'Complaint', label: Text('Complaint'), icon: Icon(Icons.report_problem_outlined)),
-                ButtonSegment(value: 'Feedback', label: Text('Feedback'), icon: Icon(Icons.thumb_up_alt_outlined)),
+                ButtonSegment(value: 'Complaint', label: Text('Complaint')),
+                ButtonSegment(value: 'Feedback', label: Text('Feedback')),
               ],
+              showSelectedIcon: false,
               selected: {_kind},
               onSelectionChanged: (s) => setState(() => _kind = s.first),
             ),
             const SizedBox(height: 14),
             DropdownButtonFormField<String?>(
+              isExpanded: true,
               initialValue: _studentId,
               decoration: const InputDecoration(labelText: 'About'),
               items: [
@@ -166,6 +168,7 @@ class _ComplaintFormState extends State<_ComplaintForm> {
             if (_kind == 'Complaint') ...[
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: _category,
                 decoration: const InputDecoration(labelText: 'Category'),
                 items: [for (final c in _categories) DropdownMenuItem(value: c, child: Text(c))],

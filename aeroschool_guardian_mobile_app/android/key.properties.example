@@ -1,0 +1,11 @@
+# Copy to android/key.properties (git-ignored) to sign Play Store release builds.
+#
+# Create the keystore once and keep it safe – losing it means you can no longer
+# publish updates under the same app ID:
+#   keytool -genkey -v -keystore %USERPROFILE%\aeroschool-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+storePassword=CHANGE_ME
+keyPassword=CHANGE_ME
+keyAlias=upload
+# Absolute path, or relative to android/app/
+storeFile=C:/Users/YOU/aeroschool-upload.jks

@@ -148,6 +148,7 @@ class _LeaveFormState extends State<_LeaveForm> {
           const SizedBox(height: 12),
           if (widget.types.isNotEmpty)
             DropdownButtonFormField<String>(
+              isExpanded: true,
               initialValue: _typeId,
               decoration: const InputDecoration(labelText: 'Leave type'),
               items: [for (final t in widget.types) DropdownMenuItem(value: t.id, child: Text(t.name))],

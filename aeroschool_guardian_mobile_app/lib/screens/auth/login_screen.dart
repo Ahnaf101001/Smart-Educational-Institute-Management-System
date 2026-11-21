@@ -161,15 +161,21 @@ class _LoginScreenState extends State<LoginScreen> {
                     validator: (v) => (v ?? '').length < 6 ? 'Enter your password.' : null,
                   ),
                   const SizedBox(height: 6),
-                  Row(children: [
-                    Checkbox(value: _remember, onChanged: (v) => setState(() => _remember = v ?? true)),
-                    const Text('Remember me'),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => ForgotPasswordScreen(initialEmail: _email.text))),
-                      child: const Text('Forgot password?'),
-                    ),
-                  ]),
+                  // Wraps onto two lines on narrow screens / large accessibility fonts.
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Row(mainAxisSize: MainAxisSize.min, children: [
+                        Checkbox(value: _remember, onChanged: (v) => setState(() => _remember = v ?? true)),
+                        const Text('Remember me'),
+                      ]),
+                      TextButton(
+                        onPressed: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => ForgotPasswordScreen(initialEmail: _email.text))),
+                        child: const Text('Forgot password?'),
+                      ),
+                    ],
+                  ),
                   if (_error != null) ...[
                     const SizedBox(height: 6),
                     Container(

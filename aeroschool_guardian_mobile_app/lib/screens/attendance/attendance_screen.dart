@@ -111,8 +111,7 @@ class _Summary extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Column(children: [
             Row(children: [
-              const Text('Attendance percentage', style: TextStyle(color: AppColors.muted)),
-              const Spacer(),
+              const Expanded(child: Text('Attendance percentage', style: TextStyle(color: AppColors.muted))),
               Text(Fmt.percent(report.percentage), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.navy)),
             ]),
             const SizedBox(height: 10),

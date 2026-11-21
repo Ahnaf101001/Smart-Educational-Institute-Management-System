@@ -41,8 +41,7 @@ class ReceiptScreen extends StatelessWidget {
                 if (r.schoolAddress != null) Text(r.schoolAddress!, style: const TextStyle(color: AppColors.muted, fontSize: 12)),
                 const Divider(height: 24),
                 Row(children: [
-                  const Text('PAYMENT RECEIPT', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)),
-                  const Spacer(),
+                  const Expanded(child: Text('PAYMENT RECEIPT', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1))),
                   StatusChip(r.status ?? 'Valid'),
                 ]),
                 const SizedBox(height: 8),
@@ -63,8 +62,7 @@ class ReceiptScreen extends StatelessWidget {
                   ),
                 const Divider(height: 24),
                 Row(children: [
-                  const Text('Total paid', style: TextStyle(fontWeight: FontWeight.w800)),
-                  const Spacer(),
+                  const Expanded(child: Text('Total paid', style: TextStyle(fontWeight: FontWeight.w800))),
                   Text(Fmt.money(r.total), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.navy)),
                 ]),
               ]),
