@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Download, Edit3, FileSpreadsheet, FileText, Plus, Printer, RefreshCw, Search, Trash2 } from "lucide-react";
-import { resource } from "../../lib/api";
+import { resource, uploadsApi } from "../../lib/api";
 import { can, useUser } from "../../lib/access";
 import {
   Badge, Button, Card, EmptyState, Field, Input, Modal, PageHeader, Select, Spinner, Textarea,
@@ -58,6 +58,31 @@ export function renderValue(type, value) {
     case "link": return <a className="font-semibold text-blue-600 hover:underline" href={value} target="_blank" rel="noreferrer">Open</a>;
     default: return String(value);
   }
+}
+
+// Optional photo upload (public file); stores the returned URL in the field.
+function ImageField({ value, onChange, category }) {
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  async function pick(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!/^image\/(png|jpe?g|webp)$/.test(file.type)) return toast.error("Choose a PNG, JPG or WebP image.");
+    if (file.size > 2 * 1024 * 1024) return toast.error("Image must be smaller than 2 MB.");
+    setBusy(true);
+    try { const up = await uploadsApi.upload(file, { category }); onChange(up.url); } catch (err) { toast.error(err); } finally { setBusy(false); }
+  }
+  return (
+    <div className="flex items-center gap-3">
+      {value ? <img src={value} alt="" className="size-12 rounded-xl border border-slate-200 object-cover" /> : <span className="grid size-12 place-items-center rounded-xl bg-slate-100 text-xs text-slate-400">None</span>}
+      <label className="cursor-pointer rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+        {busy ? "Uploading…" : value ? "Change" : "Upload"}
+        <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={pick} disabled={busy} />
+      </label>
+      {value && <button type="button" className="text-sm text-rose-600 hover:underline" onClick={() => onChange("")}>Remove</button>}
+    </div>
+  );
 }
 
 function FormField({ field, value, onChange, optionsFor, form }) {
@@ -118,6 +143,9 @@ function FormField({ field, value, onChange, optionsFor, form }) {
     case "time":
       control = <Input type="time" {...common} />;
       break;
+    case "image":
+      control = <ImageField value={value} onChange={onChange} category={field.category || "photo"} />;
+      break;
     default:
       control = <Input type={field.inputType || "text"} {...common} />;
   }
@@ -138,6 +166,7 @@ export default function ResourceManager({ config, embedded = false, fixedFilters
   const [filters, setFilters] = useState({});
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
+  const [panel, setPanel] = useState(null);
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
 
@@ -250,7 +279,8 @@ export default function ResourceManager({ config, embedded = false, fixedFilters
 
   const canExport = can(user, permModule, "export") || can(user, permModule, "view");
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const ctx = { reload: load, toast, ask, user };
+  // Row actions may open a custom panel: ctx.openPanel({ title, width, render: (close) => <Component/> }).
+  const ctx = { reload: load, toast, ask, user, openPanel: setPanel };
 
   const toolbar = (
     <div className="flex flex-wrap items-center gap-2">
@@ -369,6 +399,11 @@ export default function ResourceManager({ config, embedded = false, fixedFilters
         {config.formNote && <p className="mt-4 rounded-xl bg-blue-50 p-3 text-xs text-blue-700">{config.formNote}</p>}
       </Modal>
       {dialog}
+      {panel && (
+        <Modal open title={panel.title} width={panel.width || "max-w-3xl"} onClose={() => { setPanel(null); load(); }}>
+          {panel.render(() => { setPanel(null); load(); })}
+        </Modal>
+      )}
     </div>
   );
 }

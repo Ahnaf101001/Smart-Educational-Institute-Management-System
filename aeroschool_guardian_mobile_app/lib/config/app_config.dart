@@ -28,7 +28,9 @@ class AppConfig {
   static String get apiBaseUrl {
     if (_apiBaseUrl.isNotEmpty) return _trim(_apiBaseUrl);
     if (kIsWeb) return '${Uri.base.origin}/api/v1';
-    if (defaultTargetPlatform == TargetPlatform.android) return 'http://10.0.2.2:4001/api/v1';
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:4001/api/v1';
+    }
     return 'http://localhost:4001/api/v1';
   }
 
@@ -37,14 +39,34 @@ class AppConfig {
   static String get webAppUrl {
     if (_webAppUrl.isNotEmpty) return _trim(_webAppUrl);
     if (kIsWeb) return Uri.base.origin;
-    if (defaultTargetPlatform == TargetPlatform.android) return 'http://10.0.2.2:3001';
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:3001';
+    }
     return 'http://localhost:3001';
+  }
+
+  /// Release builds for phones must be told where the school server is, over HTTPS
+  /// (Android release builds block plain HTTP). Debug builds and the web build fall back
+  /// to the development defaults above.
+  static String? get releaseConfigError {
+    if (!kReleaseMode || kIsWeb) return null;
+    if (_apiBaseUrl.isEmpty) {
+      return 'This build has no school server address. Rebuild with '
+          '--dart-define=API_BASE_URL=https://<your-school-domain>/api/v1 '
+          '(or --dart-define-from-file=env/production.json).';
+    }
+    if (!_apiBaseUrl.startsWith('https://')) {
+      return 'The school server address must use HTTPS in release builds: $_apiBaseUrl';
+    }
+    return null;
   }
 
   /// Origin of the API server (for resolving relative file/photo URLs).
   static String get apiOrigin {
     final uri = Uri.parse(apiBaseUrl);
-    return uri.hasPort ? '${uri.scheme}://${uri.host}:${uri.port}' : '${uri.scheme}://${uri.host}';
+    return uri.hasPort
+        ? '${uri.scheme}://${uri.host}:${uri.port}'
+        : '${uri.scheme}://${uri.host}';
   }
 
   /// How often the app checks for new notifications while open.
@@ -52,5 +74,6 @@ class AppConfig {
 
   static const Duration requestTimeout = Duration(seconds: 30);
 
-  static String _trim(String v) => v.endsWith('/') ? v.substring(0, v.length - 1) : v;
+  static String _trim(String v) =>
+      v.endsWith('/') ? v.substring(0, v.length - 1) : v;
 }

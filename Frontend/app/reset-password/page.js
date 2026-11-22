@@ -29,6 +29,12 @@ function ResetInner() {
             <Field label="Confirm password"><Input type="password" value={pw.b} onChange={(e) => setPw({ ...pw, b: e.target.value })} /></Field>
             <Button icon={KeyRound} disabled={!params.get("token")} onClick={submit}>Update password</Button>
             {!params.get("token") && <p className="text-xs text-rose-600">The reset link is missing its token.</p>}
+            {params.get("token") && (
+              <p className="border-t border-slate-100 pt-3 text-xs text-slate-500">
+                Using the AeroSchool Guardian app on this phone?{" "}
+                <a className="font-semibold text-blue-600 hover:underline" href={`aeroschool://reset-password?token=${encodeURIComponent(params.get("token"))}`}>Open in the app</a>
+              </p>
+            )}
           </div>
         )}
       </Card>

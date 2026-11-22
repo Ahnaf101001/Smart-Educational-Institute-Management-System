@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Required in release builds to reach the school server. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Android 13+: needed to show push notifications (requested at runtime). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="AeroSchool Guardian Mobile App"
         android:name="${applicationName}"
@@ -25,6 +27,13 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <!-- aeroschool:// deep links: payment return and password reset. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="aeroschool"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

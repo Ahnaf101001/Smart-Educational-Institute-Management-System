@@ -20,9 +20,15 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _form = GlobalKey<FormState>();
   late final _alt = TextEditingController(text: widget.profile.altMobile ?? '');
-  late final _occupation = TextEditingController(text: widget.profile.occupation ?? '');
-  late final _emergency = TextEditingController(text: widget.profile.emergencyContact ?? '');
-  late final _address = TextEditingController(text: widget.profile.address ?? '');
+  late final _occupation = TextEditingController(
+    text: widget.profile.occupation ?? '',
+  );
+  late final _emergency = TextEditingController(
+    text: widget.profile.emergencyContact ?? '',
+  );
+  late final _address = TextEditingController(
+    text: widget.profile.address ?? '',
+  );
   late final Map<String, bool> _prefs = {
     for (final k in _prefLabels.keys) k: widget.profile.pref(k),
   };
@@ -72,54 +78,96 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Edit profile')),
-        body: Form(
-          key: _form,
-          child: ListView(padding: const EdgeInsets.all(16), children: [
-            TextFormField(
-              controller: _alt,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Alternate mobile', hintText: '01XXXXXXXXX', prefixIcon: Icon(Icons.phone_android)),
-              validator: (v) {
-                final s = (v ?? '').replaceAll(RegExp(r'\D'), '');
-                if (s.isEmpty) return null;
-                return RegExp(r'^01[3-9]\d{8}$').hasMatch(s) ? null : 'Enter a valid Bangladeshi mobile number.';
-              },
+    appBar: AppBar(title: const Text('Edit profile')),
+    body: Form(
+      key: _form,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          TextFormField(
+            controller: _alt,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(
+              labelText: 'Alternate mobile',
+              hintText: '01XXXXXXXXX',
+              prefixIcon: Icon(Icons.phone_android),
             ),
-            const SizedBox(height: 12),
-            TextFormField(controller: _occupation, decoration: const InputDecoration(labelText: 'Occupation', prefixIcon: Icon(Icons.work_outline))),
-            const SizedBox(height: 12),
-            TextFormField(controller: _emergency, decoration: const InputDecoration(labelText: 'Emergency contact', prefixIcon: Icon(Icons.emergency_outlined))),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _address,
-              maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Address', prefixIcon: Icon(Icons.home_outlined), alignLabelWithHint: true),
+            validator: (v) {
+              final s = (v ?? '').replaceAll(RegExp(r'\D'), '');
+              if (s.isEmpty) return null;
+              return RegExp(r'^01[3-9]\d{8}$').hasMatch(s)
+                  ? null
+                  : 'Enter a valid Bangladeshi mobile number.';
+            },
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _occupation,
+            decoration: const InputDecoration(
+              labelText: 'Occupation',
+              prefixIcon: Icon(Icons.work_outline),
             ),
-            const SizedBox(height: 20),
-            const Text('Notification preferences', style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.navy)),
-            const SizedBox(height: 2),
-            const Text(
-              'Turning a type off stops its SMS and email copies. Every alert still appears in the app, and emergency messages are always sent.',
-              style: TextStyle(color: AppColors.muted, fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _emergency,
+            decoration: const InputDecoration(
+              labelText: 'Emergency contact',
+              prefixIcon: Icon(Icons.emergency_outlined),
             ),
-            const SizedBox(height: 6),
-            Card(
-              child: Column(children: [
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _address,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              labelText: 'Address',
+              prefixIcon: Icon(Icons.home_outlined),
+              alignLabelWithHint: true,
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Notification preferences',
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              color: AppColors.navy,
+            ),
+          ),
+          const SizedBox(height: 2),
+          const Text(
+            'Turning a type off stops its SMS and email copies. Every alert still appears in the app, and emergency messages are always sent.',
+            style: TextStyle(color: AppColors.muted, fontSize: 12),
+          ),
+          const SizedBox(height: 6),
+          Card(
+            child: Column(
+              children: [
                 for (final e in _prefLabels.entries)
                   SwitchListTile(
                     title: Text(e.value),
                     value: _prefs[e.key] ?? true,
                     onChanged: (v) => setState(() => _prefs[e.key] = v),
                   ),
-              ]),
+              ],
             ),
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: _busy ? null : _save,
-              child: _busy ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white)) : const Text('Save changes'),
-            ),
-          ]),
-        ),
-      );
+          ),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: _busy ? null : _save,
+            child: _busy
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.4,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text('Save changes'),
+          ),
+        ],
+      ),
+    ),
+  );
 }

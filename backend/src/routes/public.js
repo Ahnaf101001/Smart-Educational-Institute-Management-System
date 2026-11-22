@@ -162,6 +162,9 @@ router.post("/gps", asyncHandler(async (req, res) => {
     await query("INSERT INTO vehicle_locations (vehicle_id, latitude, longitude, speed, heading, recorded_at) VALUES ($1,$2,$3,$4,$5,COALESCE($6::timestamptz, NOW()))",
       [v.id, p.lat, p.lng, p.speed || null, p.heading || null, p.time || null]);
     saved += 1;
+    // Bus arrival alerts when the bus reaches a stop (geofence).
+    require("../services/transport").checkArrivals(v.id, Number(p.lat), Number(p.lng), p.time ? new Date(p.time) : new Date())
+      .catch((error) => console.error("[transport] arrival check failed:", error.message));
   }
   res.json({ success: true, data: { saved } });
 }));
@@ -193,20 +196,31 @@ router.post("/payments/ipn/sslcommerz", express.urlencoded({ extended: false }),
 // bKash / Nagad redirect here after payment; we confirm server-to-server before showing the result.
 router.all("/payments/return/:gateway", async (req, res, next) => {
   if (!["bkash", "nagad"].includes(req.params.gateway)) return next();
-  const go = (status, txn) => res.redirect(`${env.publicAppUrl}/pay/result?status=${encodeURIComponent(status)}&txn=${encodeURIComponent(txn || "")}`);
+  // Sends the payer back to where the payment started (the guardian app's deep link or the website).
   try {
     const r = await payments.confirmReturn(req.params.gateway, { ...req.query, ...(req.body || {}) });
-    go(r.status === "Success" ? "success" : r.status === "Pending" ? "pending" : r.status === "Cancelled" ? "cancelled" : "failed", r.txn?.txn_id);
+    const status = r.status === "Success" ? "success" : r.status === "Pending" ? "pending" : r.status === "Cancelled" ? "cancelled" : "failed";
+    res.redirect(payments.returnRedirect(r.txn, status));
   } catch (error) {
     console.error(`[payments] ${req.params.gateway} return failed:`, error.message);
-    go("failed", "");
+    res.redirect(payments.returnRedirect(null, "failed"));
   }
 });
 
-router.all("/payments/return/:gateway", (req, res) => {
-  const status = req.query.status || "unknown";
-  res.redirect(`${env.publicAppUrl}/pay/result?status=${encodeURIComponent(status)}&txn=${encodeURIComponent(req.body?.tran_id || req.query.tran_id || "")}`);
-});
+router.all("/payments/return/:gateway", asyncHandler(async (req, res) => {
+  const status = String(req.query.status || "unknown");
+  const tranId = String(req.body?.tran_id || req.query.tran_id || "");
+  const txn = tranId ? (await query("SELECT id, txn_id, return_url FROM gateway_transactions WHERE txn_id = $1", [tranId])).rows[0] : null;
+  res.redirect(payments.returnRedirect(txn || { txn_id: tranId }, status));
+}));
+
+// Where the development sandbox should send the payer afterwards (app deep link or website).
+router.get("/payments/return-target/:id", asyncHandler(async (req, res) => {
+  const txn = (await query("SELECT id, txn_id, return_url, status FROM gateway_transactions WHERE id::text = $1", [req.params.id])).rows[0];
+  if (!txn) throw httpError(404, "Transaction not found.");
+  const status = txn.status === "Success" ? "success" : txn.status === "Pending" ? "pending" : "failed";
+  res.json({ success: true, data: { url: txn.return_url ? payments.returnRedirect(txn, status) : null } });
+}));
 
 // Development-only sandbox so the online-payment flow can be exercised without merchant credentials.
 router.get("/payments/sandbox/:id", asyncHandler(async (req, res) => {

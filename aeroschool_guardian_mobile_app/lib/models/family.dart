@@ -2,7 +2,15 @@ import '../core/format.dart';
 import 'child.dart';
 
 class Notice {
-  Notice({required this.id, required this.title, required this.message, this.priority, this.category, this.createdAt, this.attachmentUrl});
+  Notice({
+    required this.id,
+    required this.title,
+    required this.message,
+    this.priority,
+    this.category,
+    this.createdAt,
+    this.attachmentUrl,
+  });
 
   final String id;
   final String title;
@@ -19,18 +27,26 @@ class Notice {
   }
 
   factory Notice.fromJson(Map<String, dynamic> j) => Notice(
-        id: J.str(j['id']),
-        title: J.str(j['title'], 'Notice'),
-        message: J.str(j['message']),
-        priority: J.strOrNull(j['priority']),
-        category: J.strOrNull(j['category']),
-        createdAt: J.date(j['createdAt']),
-        attachmentUrl: J.strOrNull(j['attachmentUrl']),
-      );
+    id: J.str(j['id']),
+    title: J.str(j['title'], 'Notice'),
+    message: J.str(j['message']),
+    priority: J.strOrNull(j['priority']),
+    category: J.strOrNull(j['category']),
+    createdAt: J.date(j['createdAt']),
+    attachmentUrl: J.strOrNull(j['attachmentUrl']),
+  );
 }
 
 class UpcomingExam {
-  UpcomingExam({required this.examName, required this.subjectName, required this.studentName, required this.studentId, this.date, this.startTime, this.room});
+  UpcomingExam({
+    required this.examName,
+    required this.subjectName,
+    required this.studentName,
+    required this.studentId,
+    this.date,
+    this.startTime,
+    this.room,
+  });
 
   final String examName;
   final String subjectName;
@@ -41,18 +57,27 @@ class UpcomingExam {
   final String? room;
 
   factory UpcomingExam.fromJson(Map<String, dynamic> j) => UpcomingExam(
-        examName: J.str(j['examName'], 'Exam'),
-        subjectName: J.str(j['subjectName']),
-        studentName: J.str(j['studentName']),
-        studentId: J.str(j['studentId']),
-        date: J.date(j['examDate']),
-        startTime: J.strOrNull(j['startTime']),
-        room: J.strOrNull(j['room']),
-      );
+    examName: J.str(j['examName'], 'Exam'),
+    subjectName: J.str(j['subjectName']),
+    studentName: J.str(j['studentName']),
+    studentId: J.str(j['studentId']),
+    date: J.date(j['examDate']),
+    startTime: J.strOrNull(j['startTime']),
+    room: J.strOrNull(j['room']),
+  );
 }
 
 class AppNotification {
-  AppNotification({required this.id, required this.title, required this.body, required this.eventType, this.studentId, this.studentName, this.createdAt, this.readAt});
+  AppNotification({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.eventType,
+    this.studentId,
+    this.studentName,
+    this.createdAt,
+    this.readAt,
+  });
 
   final String id;
   final String title;
@@ -68,10 +93,21 @@ class AppNotification {
   /// Groups backend event types into the categories of the specification.
   String get category {
     final e = eventType.toLowerCase();
-    if (e.contains('absent') || e.contains('late') || e.contains('attendance') || e.contains('entry') || e.contains('exit')) return 'Attendance';
+    if (e.contains('absent') ||
+        e.contains('late') ||
+        e.contains('attendance') ||
+        e.contains('entry') ||
+        e.contains('exit')) {
+      return 'Attendance';
+    }
     if (e.contains('result')) return 'Result';
     if (e.contains('exam')) return 'Exam';
-    if (e.contains('fee') || e.contains('payment') || e.contains('due') || e.contains('invoice')) return 'Fee';
+    if (e.contains('fee') ||
+        e.contains('payment') ||
+        e.contains('due') ||
+        e.contains('invoice')) {
+      return 'Fee';
+    }
     if (e.contains('homework') || e.contains('assignment')) return 'Homework';
     if (e.contains('transport') || e.contains('bus')) return 'Transport';
     if (e.contains('emergency')) return 'Emergency';
@@ -81,15 +117,17 @@ class AppNotification {
   }
 
   factory AppNotification.fromJson(Map<String, dynamic> j) => AppNotification(
-        id: J.str(j['id']),
-        title: J.str(j['subject']).isNotEmpty ? J.str(j['subject']) : J.str(j['eventType'], 'Notification'),
-        body: J.str(j['body']),
-        eventType: J.str(j['eventType'], 'General'),
-        studentId: J.strOrNull(j['studentId']),
-        studentName: J.strOrNull(j['studentName']),
-        createdAt: J.date(j['createdAt']),
-        readAt: J.date(j['readAt']),
-      );
+    id: J.str(j['id']),
+    title: J.str(j['subject']).isNotEmpty
+        ? J.str(j['subject'])
+        : J.str(j['eventType'], 'Notification'),
+    body: J.str(j['body']),
+    eventType: J.str(j['eventType'], 'General'),
+    studentId: J.strOrNull(j['studentId']),
+    studentName: J.strOrNull(j['studentName']),
+    createdAt: J.date(j['createdAt']),
+    readAt: J.date(j['readAt']),
+  );
 }
 
 /// Payload of `/portal/guardian/home`: Family Overview + per-child summaries.
@@ -120,8 +158,13 @@ class FamilyOverview {
   final int unreadNotifications;
   final num totalDue;
 
-  int get presentToday => children.where((c) => c.todayAttendance == 'Present' || c.todayAttendance == 'Late').length;
-  int get absentToday => children.where((c) => c.todayAttendance == 'Absent').length;
+  int get presentToday => children
+      .where(
+        (c) => c.todayAttendance == 'Present' || c.todayAttendance == 'Late',
+      )
+      .length;
+  int get absentToday =>
+      children.where((c) => c.todayAttendance == 'Absent').length;
   int get pendingHomework => children.fold(0, (s, c) => s + c.homeworkCount);
   num get monthFeeTotal => children.fold<num>(0, (s, c) => s + c.monthFee);
 
@@ -135,8 +178,14 @@ class FamilyOverview {
       relation: J.strOrNull(g['relationDefault']),
       children: J.list(j['children']).map(ChildSummary.fromJson).toList(),
       notices: J.list(j['notices']).map(Notice.fromJson).toList(),
-      upcomingExams: J.list(j['upcomingExams']).map(UpcomingExam.fromJson).toList(),
-      recentNotifications: J.list(j['recentNotifications']).map(AppNotification.fromJson).toList(),
+      upcomingExams: J
+          .list(j['upcomingExams'])
+          .map(UpcomingExam.fromJson)
+          .toList(),
+      recentNotifications: J
+          .list(j['recentNotifications'])
+          .map(AppNotification.fromJson)
+          .toList(),
       unreadNotifications: J.intOf(j['unreadNotifications']),
       totalDue: J.numOf(j['totalDue']),
     );

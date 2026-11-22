@@ -1,6 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
+import '../../l10n/app_localizations.dart';
+
 import '../../config/app_config.dart';
 import '../../core/theme.dart';
 import '../../models/school.dart';
@@ -10,6 +12,7 @@ import '../../services/file_service.dart';
 import '../../services/token_storage.dart';
 import '../../widgets/async_view.dart';
 import '../../widgets/brand.dart';
+import '../../widgets/language_switch.dart';
 import 'forgot_password_screen.dart';
 
 /// Login screen (workflow §2): school logo, AeroSchool branding, email,
@@ -38,9 +41,12 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     _prefill();
     final auth = context.read<AuthProvider>();
-    auth.service.publicSchool().then((s) {
-      if (mounted) setState(() => _school = s);
-    }).catchError((_) {});
+    auth.service
+        .publicSchool()
+        .then((s) {
+          if (mounted) setState(() => _school = s);
+        })
+        .catchError((_) {});
     final msg = auth.takeSessionMessage();
     if (msg != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -73,7 +79,11 @@ class _LoginScreenState extends State<LoginScreen> {
       _inactive = false;
     });
     try {
-      await context.read<AuthProvider>().login(_email.text, _password.text, rememberMe: _remember);
+      await context.read<AuthProvider>().login(
+        _email.text,
+        _password.text,
+        rememberMe: _remember,
+      );
     } on ApiException catch (e) {
       if (mounted) {
         setState(() {
@@ -95,18 +105,51 @@ class _LoginScreenState extends State<LoginScreen> {
       builder: (ctx) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(s?.name ?? 'Contact School', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
-            if (s?.address != null) Padding(padding: const EdgeInsets.only(top: 4), child: Text(s!.address!, style: const TextStyle(color: AppColors.muted))),
-            const SizedBox(height: 12),
-            const Text('Guardian accounts are created by the school. Contact the office for login details or if your account is inactive.'),
-            const SizedBox(height: 8),
-            if (s?.phone != null)
-              ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.call), title: Text(s!.phone!), onTap: () => files.call(s.phone!)),
-            if (s?.email != null)
-              ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.email_outlined), title: Text(s!.email!), onTap: () => files.email(s.email!)),
-            if (s == null || (s.phone == null && s.email == null)) const Text('Please visit the school office.', style: TextStyle(color: AppColors.muted)),
-          ]),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                s?.name ?? 'Contact School',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 17,
+                ),
+              ),
+              if (s?.address != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    s!.address!,
+                    style: const TextStyle(color: AppColors.muted),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              const Text(
+                'Guardian accounts are created by the school. Contact the office for login details or if your account is inactive.',
+              ),
+              const SizedBox(height: 8),
+              if (s?.phone != null)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.call),
+                  title: Text(s!.phone!),
+                  onTap: () => files.call(s.phone!),
+                ),
+              if (s?.email != null)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.email_outlined),
+                  title: Text(s!.email!),
+                  onTap: () => files.email(s.email!),
+                ),
+              if (s == null || (s.phone == null && s.email == null))
+                const Text(
+                  'Please visit the school office.',
+                  style: TextStyle(color: AppColors.muted),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -123,90 +166,187 @@ class _LoginScreenState extends State<LoginScreen> {
               constraints: const BoxConstraints(maxWidth: 420),
               child: Form(
                 key: _form,
-                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  Center(child: SchoolLogo(logoUrl: _school?.logoUrl, size: 76)),
-                  const SizedBox(height: 14),
-                  Text(_school?.name ?? 'Your School', textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 4),
-                  const Text('AEROSCHOOL • GUARDIAN APP', textAlign: TextAlign.center, style: TextStyle(color: AppColors.muted, letterSpacing: 1.6, fontSize: 12, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 28),
-                  TextFormField(
-                    controller: _email,
-                    keyboardType: TextInputType.emailAddress,
-                    autofillHints: const [AutofillHints.email, AutofillHints.username],
-                    textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(labelText: 'Email address', prefixIcon: Icon(Icons.alternate_email)),
-                    validator: (v) {
-                      final s = (v ?? '').trim();
-                      if (s.isEmpty) return 'Enter your login email.';
-                      if (!s.contains('@') && !RegExp(r'^\+?\d{10,14}$').hasMatch(s)) return 'Enter a valid email address.';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    controller: _password,
-                    obscureText: _obscure,
-                    autofillHints: const [AutofillHints.password],
-                    onFieldSubmitted: (_) => _submit(),
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        tooltip: _obscure ? 'Show password' : 'Hide password',
-                        icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                        onPressed: () => setState(() => _obscure = !_obscure),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Align(
+                      alignment: Alignment.centerRight,
+                      child: LanguageSwitch(compact: true),
+                    ),
+                    const SizedBox(height: 8),
+                    Center(
+                      child: SchoolLogo(logoUrl: _school?.logoUrl, size: 76),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      _school?.name ??
+                          AppLocalizations.of(context).loginSchoolFallback,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                    validator: (v) => (v ?? '').length < 6 ? 'Enter your password.' : null,
-                  ),
-                  const SizedBox(height: 6),
-                  // Wraps onto two lines on narrow screens / large accessibility fonts.
-                  Wrap(
-                    alignment: WrapAlignment.spaceBetween,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Row(mainAxisSize: MainAxisSize.min, children: [
-                        Checkbox(value: _remember, onChanged: (v) => setState(() => _remember = v ?? true)),
-                        const Text('Remember me'),
-                      ]),
-                      TextButton(
-                        onPressed: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => ForgotPasswordScreen(initialEmail: _email.text))),
-                        child: const Text('Forgot password?'),
+                    const SizedBox(height: 4),
+                    Text(
+                      AppLocalizations.of(context).loginBrand,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        letterSpacing: 1.6,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
                       ),
-                    ],
-                  ),
-                  if (_error != null) ...[
+                    ),
+                    const SizedBox(height: 28),
+                    TextFormField(
+                      controller: _email,
+                      keyboardType: TextInputType.emailAddress,
+                      autofillHints: const [
+                        AutofillHints.email,
+                        AutofillHints.username,
+                      ],
+                      textInputAction: TextInputAction.next,
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context).loginEmail,
+                        prefixIcon: const Icon(Icons.alternate_email),
+                      ),
+                      validator: (v) {
+                        final s = (v ?? '').trim();
+                        if (s.isEmpty) {
+                          return AppLocalizations.of(context).loginEnterEmail;
+                        }
+                        if (!s.contains('@') &&
+                            !RegExp(r'^\+?\d{10,14}$').hasMatch(s)) {
+                          return AppLocalizations.of(context).loginInvalidEmail;
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: _password,
+                      obscureText: _obscure,
+                      autofillHints: const [AutofillHints.password],
+                      onFieldSubmitted: (_) => _submit(),
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context).loginPassword,
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          tooltip: _obscure ? 'Show password' : 'Hide password',
+                          icon: Icon(
+                            _obscure
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                          ),
+                          onPressed: () => setState(() => _obscure = !_obscure),
+                        ),
+                      ),
+                      validator: (v) => (v ?? '').length < 6
+                          ? AppLocalizations.of(context).loginEnterPassword
+                          : null,
+                    ),
                     const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: const Color(0xFFFEF2F2), borderRadius: BorderRadius.circular(10)),
-                      child: Row(children: [
-                        Icon(_inactive ? Icons.support_agent : Icons.error_outline, color: AppColors.danger),
-                        const SizedBox(width: 10),
-                        Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.danger))),
-                      ]),
+                    // Wraps onto two lines on narrow screens / large accessibility fonts.
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Checkbox(
+                              value: _remember,
+                              onChanged: (v) =>
+                                  setState(() => _remember = v ?? true),
+                            ),
+                            Text(AppLocalizations.of(context).loginRemember),
+                          ],
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute<void>(
+                              builder: (_) => ForgotPasswordScreen(
+                                initialEmail: _email.text,
+                              ),
+                            ),
+                          ),
+                          child: Text(AppLocalizations.of(context).loginForgot),
+                        ),
+                      ],
                     ),
-                    if (_inactive) TextButton(onPressed: _contactSchool, child: const Text('Contact school')),
+                    if (_error != null) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF2F2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _inactive
+                                  ? Icons.support_agent
+                                  : Icons.error_outline,
+                              color: AppColors.danger,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _error!,
+                                style: const TextStyle(color: AppColors.danger),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (_inactive)
+                        TextButton(
+                          onPressed: _contactSchool,
+                          child: const Text('Contact school'),
+                        ),
+                    ],
+                    const SizedBox(height: 14),
+                    FilledButton(
+                      onPressed: _busy ? null : _submit,
+                      child: _busy
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.4,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(AppLocalizations.of(context).loginButton),
+                    ),
+                    const SizedBox(height: 18),
+                    OutlinedButton.icon(
+                      onPressed: _contactSchool,
+                      icon: const Icon(Icons.support_agent),
+                      label: Text(
+                        AppLocalizations.of(context).loginContactSchool,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      AppLocalizations.of(context).loginNoSignup,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      AppConfig.versionLabel,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppColors.muted, fontSize: 11),
+                    ),
                   ],
-                  const SizedBox(height: 14),
-                  FilledButton(
-                    onPressed: _busy ? null : _submit,
-                    child: _busy
-                        ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white))
-                        : const Text('Login'),
-                  ),
-                  const SizedBox(height: 18),
-                  OutlinedButton.icon(onPressed: _contactSchool, icon: const Icon(Icons.support_agent), label: const Text('Contact School')),
-                  const SizedBox(height: 18),
-                  const Text(
-                    'Guardian accounts are created by the school.\nYou cannot register from this app.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.muted, fontSize: 12),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(AppConfig.versionLabel, textAlign: TextAlign.center, style: TextStyle(color: AppColors.muted, fontSize: 11)),
-                ]),
+                ),
               ),
             ),
           ),

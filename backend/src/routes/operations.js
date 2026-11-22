@@ -11,6 +11,18 @@ const router = express.Router();
 const FINE_PER_DAY = 5;
 
 // ------------------------------------------------------------------ Library (OM-01/02)
+// Manual bus-arrival alert (transport desk / driver) for buses without GPS (Spec §1I).
+router.post("/transport/arrivals", requirePermission("transport", "edit"), asyncHandler(async (req, res) => {
+  const { routeId, stopName, trip } = req.body || {};
+  if (!routeId || !String(stopName || "").trim()) throw httpError(422, "Route and stop are required.");
+  if (trip !== undefined && !["morning", "afternoon"].includes(trip)) throw httpError(422, "Trip must be morning or afternoon.");
+  const route = (await query("SELECT id, vehicle_id FROM transport_routes WHERE id = $1", [routeId])).rows[0];
+  if (!route) throw httpError(404, "Route not found.");
+  const result = await require("../services/transport").announceArrival({ routeId, stopName: String(stopName).trim(), trip, vehicleId: route.vehicle_id });
+  await writeAudit(req, { entity: "bus_arrival_alerts", entityId: routeId, action: "BUS_ARRIVED", newValue: { stopName, trip, ...result } });
+  res.json({ success: true, data: result });
+}));
+
 router.post("/library/issue", requirePermission("library", "create"), asyncHandler(async (req, res) => {
   const { bookId, borrowerType, borrowerId, dueDate, note } = req.body || {};
   if (!bookId || !borrowerType || !borrowerId) throw httpError(422, "Book and borrower are required.");

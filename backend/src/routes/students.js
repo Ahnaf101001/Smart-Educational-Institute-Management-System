@@ -19,7 +19,7 @@ router.get("/:id/profile", requirePermission("students", "view"), asyncHandler(a
   if (!student) throw httpError(404, "Student not found.");
   const [enrollments, guardians, attendance, dues, results, cards, documents, history, certificates] = await Promise.all([
     query("SELECT * FROM enrollments WHERE student_id = $1 ORDER BY effective_date DESC", [id]),
-    query(`SELECT g.*, gs.relation, gs.is_primary, gs.access_status, gs.id AS link_id FROM guardian_students gs
+    query(`SELECT g.*, gs.relation, gs.is_primary, gs.access_status, gs.can_view_results, gs.can_view_fees, gs.id AS link_id FROM guardian_students gs
            JOIN guardians g ON g.id = gs.guardian_id WHERE gs.student_id = $1 ORDER BY gs.is_primary DESC`, [id]),
     query(`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status IN ('Present','Late'))::int AS present,
              COUNT(*) FILTER (WHERE status = 'Absent')::int AS absent, COUNT(*) FILTER (WHERE status = 'Late')::int AS late,

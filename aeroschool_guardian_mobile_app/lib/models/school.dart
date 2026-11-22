@@ -29,18 +29,18 @@ class SchoolInfo {
   final String? motto;
 
   factory SchoolInfo.fromJson(Map<String, dynamic> j) => SchoolInfo(
-        name: J.str(j['name'], 'School'),
-        nameBn: J.strOrNull(j['nameBn']),
-        address: J.strOrNull(j['address']),
-        phone: J.strOrNull(j['phone']),
-        email: J.strOrNull(j['email']),
-        website: J.strOrNull(j['website']),
-        logoUrl: J.strOrNull(j['logoUrl']),
-        principalName: J.strOrNull(j['principalName']),
-        principalTitle: J.strOrNull(j['principalTitle']),
-        emergencyContact: J.strOrNull(j['emergencyContact']),
-        motto: J.strOrNull(j['motto']),
-      );
+    name: J.str(j['name'], 'School'),
+    nameBn: J.strOrNull(j['nameBn']),
+    address: J.strOrNull(j['address']),
+    phone: J.strOrNull(j['phone']),
+    email: J.strOrNull(j['email']),
+    website: J.strOrNull(j['website']),
+    logoUrl: J.strOrNull(j['logoUrl']),
+    principalName: J.strOrNull(j['principalName']),
+    principalTitle: J.strOrNull(j['principalTitle']),
+    emergencyContact: J.strOrNull(j['emergencyContact']),
+    motto: J.strOrNull(j['motto']),
+  );
 
   static SchoolInfo empty() => SchoolInfo(name: 'School');
 }

@@ -14,11 +14,67 @@ const router = express.Router();
 
 router.get("/:id/students", requirePermission("guardians", "view"), asyncHandler(async (req, res) => {
   const rows = (await query(
-    `SELECT s.id, s.name, s.class_name, s.section, s.roll, s.status, s.photo_url, gs.relation, gs.is_primary, gs.access_status, gs.id AS link_id
+    `SELECT s.id, s.name, s.class_name, s.section, s.roll, s.status, s.photo_url, gs.relation, gs.is_primary, gs.access_status,
+            gs.can_view_results, gs.can_view_fees, gs.receives_notifications, gs.disabled_reason, gs.id AS link_id
      FROM guardian_students gs JOIN students s ON s.id = gs.student_id WHERE gs.guardian_id = $1 ORDER BY s.name`,
     [req.params.id],
   )).rows;
   res.json({ success: true, data: keysToCamel(rows) });
+}));
+
+// Delete account per policy (Workflow §7). Default "anonymize": unlinks every student, removes
+// personal data and disables the login, while fee/attendance/result history stays intact.
+// "delete" removes the guardian completely, only when no payment or invoice references it.
+router.post("/:id/remove", requirePermission("guardians", "delete"), asyncHandler(async (req, res) => {
+  const mode = req.body?.mode === "delete" ? "delete" : "anonymize";
+  const reason = String(req.body?.reason || "").trim();
+  if (!reason) throw httpError(422, "A reason is required to delete a guardian account.");
+  const result = await transaction(async (client) => {
+    const g = (await client.query("SELECT * FROM guardians WHERE id = $1 FOR UPDATE", [req.params.id])).rows[0];
+    if (!g) throw httpError(404, "Guardian not found.");
+    const links = (await client.query("DELETE FROM guardian_students WHERE guardian_id = $1 RETURNING student_id, relation", [g.id])).rows;
+    // Students whose primary contact was this guardian keep the record but lose the contact.
+    await client.query(
+      "UPDATE students SET parent_contact = NULL, guardian_name = NULL WHERE id = ANY($1) AND parent_contact = $2",
+      [links.map((l) => l.student_id), g.mobile],
+    );
+    if (g.user_id) {
+      await client.query("DELETE FROM guardian_devices WHERE user_id = $1", [g.user_id]);
+      await client.query("UPDATE user_sessions SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL", [g.user_id]);
+    }
+    if (mode === "delete") {
+      const refs = (await client.query(
+        `SELECT (SELECT COUNT(*) FROM fee_payments WHERE guardian_id = $1) + (SELECT COUNT(*) FROM fee_invoices WHERE guardian_id = $1)
+              + (SELECT COUNT(*) FROM gateway_transactions WHERE guardian_id = $1) AS n`,
+        [g.id],
+      )).rows[0];
+      if (Number(refs.n) > 0) throw httpError(409, "This guardian has payment history. Use 'Anonymize' to keep the financial records.");
+      await client.query("DELETE FROM complaints WHERE guardian_id = $1", [g.id]);
+      await client.query("DELETE FROM guardians WHERE id = $1", [g.id]);
+      if (g.user_id) {
+        await client.query("DELETE FROM user_sessions WHERE user_id = $1", [g.user_id]);
+        await client.query("DELETE FROM password_reset_tokens WHERE user_id = $1", [g.user_id]);
+        await client.query("DELETE FROM users WHERE id = $1", [g.user_id]);
+      }
+    } else {
+      await client.query(
+        `UPDATE guardians SET name = 'Removed guardian', name_bn = NULL, mobile = $2, alt_mobile = NULL, email = NULL, nid = NULL,
+           occupation = NULL, income_range = NULL, address = NULL, emergency_contact = NULL, photo_url = NULL,
+           portal_access = FALSE, status = 'Inactive', notification_prefs = '{}'::jsonb WHERE id = $1`,
+        [g.id, `removed-${g.id}`],
+      );
+      if (g.user_id) {
+        await client.query(
+          `UPDATE users SET name = 'Removed guardian', email = $2, phone = NULL, status = 'Inactive', pin_hash = NULL,
+             password_hash = $3, token_version = token_version + 1, must_change_password = FALSE WHERE id = $1`,
+          [g.user_id, `removed-${g.id}@deleted.local`, await bcrypt.hash(crypto.randomBytes(24).toString("hex"), 10)],
+        );
+      }
+    }
+    await writeAudit(req, { entity: "guardians", entityId: g.id, action: mode === "delete" ? "DELETE_ACCOUNT" : "ANONYMIZE_ACCOUNT", oldValue: { name: g.name, links }, reason }, client);
+    return { mode, unlinked: links.length };
+  });
+  res.json({ success: true, data: result });
 }));
 
 // Enable/disable portal access and (re)create credentials (GD-06).

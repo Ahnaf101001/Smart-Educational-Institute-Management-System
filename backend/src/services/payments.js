@@ -21,7 +21,24 @@ function verifySignature(rawBody, signature) {
   return expected.length === String(signature).length && crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(String(signature)));
 }
 
-async function initiate(req, { invoiceIds, gateway, guardianId }) {
+// Where the payer may be sent back after the gateway: the AeroSchool app's deep link or
+// this school's own website. Anything else is ignored (no open redirects).
+function safeReturnUrl(url) {
+  const value = String(url || "").trim();
+  if (!value) return null;
+  if (/^aeroschool:\/\/[a-z0-9/_-]+$/i.test(value.split("?")[0])) return value;
+  if (value.startsWith(`${env.publicAppUrl}/`)) return value;
+  return null;
+}
+
+// Final redirect after a gateway return: appends status + txn to the stored return URL.
+function returnRedirect(txn, status) {
+  const base = txn?.return_url || `${env.publicAppUrl}/pay/result`;
+  const sep = base.includes("?") ? "&" : "?";
+  return `${base}${sep}status=${encodeURIComponent(status)}&txn=${encodeURIComponent(txn?.txn_id || "")}&id=${encodeURIComponent(txn?.id || "")}`;
+}
+
+async function initiate(req, { invoiceIds, gateway, guardianId, returnUrl }) {
   if (!GATEWAYS.includes(gateway)) throw httpError(422, `Unsupported gateway. Use one of ${GATEWAYS.join(", ")}.`);
   const settings = (await query("SELECT payment_gateways FROM system_settings WHERE id = 1")).rows[0] || {};
   if (!settings.payment_gateways?.[gateway]) throw httpError(409, `${gateway} is not enabled by the institution.`);
@@ -34,9 +51,9 @@ async function initiate(req, { invoiceIds, gateway, guardianId }) {
   const txnId = `TXN${Date.now()}${crypto.randomInt(1000, 9999)}`;
   const idem = crypto.randomUUID();
   const row = (await query(
-    `INSERT INTO gateway_transactions (gateway, txn_id, idempotency_key, guardian_id, invoice_ids, amount)
-     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-    [gateway, txnId, idem, guardianId || null, JSON.stringify(invoices.map((i) => i.id)), Math.round(amount * 100) / 100],
+    `INSERT INTO gateway_transactions (gateway, txn_id, idempotency_key, guardian_id, invoice_ids, amount, return_url)
+     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    [gateway, txnId, idem, guardianId || null, JSON.stringify(invoices.map((i) => i.id)), Math.round(amount * 100) / 100, safeReturnUrl(returnUrl)],
   )).rows[0];
 
   // Real provider integrations require merchant credentials. Without them the
@@ -158,4 +175,4 @@ async function reconcilePending({ olderThanMinutes = 5, limit = 25 } = {}) {
   return summary;
 }
 
-module.exports = { GATEWAYS, initiate, finalize, verifySignature, sign, confirmReturn, reconcilePending };
+module.exports = { GATEWAYS, initiate, finalize, verifySignature, sign, confirmReturn, reconcilePending, returnRedirect, safeReturnUrl };

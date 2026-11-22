@@ -19,7 +19,9 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _form = GlobalKey<FormState>();
-  late final TextEditingController _email = TextEditingController(text: widget.initialEmail);
+  late final TextEditingController _email = TextEditingController(
+    text: widget.initialEmail,
+  );
   bool _busy = false;
   String? _done;
   String? _error;
@@ -37,7 +39,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _error = null;
     });
     try {
-      final msg = await context.read<AuthProvider>().forgotPassword(_email.text);
+      final msg = await context.read<AuthProvider>().forgotPassword(
+        _email.text,
+      );
       if (mounted) setState(() => _done = msg);
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
@@ -48,50 +52,86 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Forgot password')),
-        body: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: _done != null
-                    ? Column(children: [
-                        const Icon(Icons.mark_email_read_outlined, size: 64, color: AppColors.success),
-                        const SizedBox(height: 16),
-                        Text(_done!, textAlign: TextAlign.center),
-                        const SizedBox(height: 8),
-                        const Text('Open the link in the email, set a new password, then sign in here.',
-                            textAlign: TextAlign.center, style: TextStyle(color: AppColors.muted)),
-                        const SizedBox(height: 24),
-                        FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Back to login')),
-                      ])
-                    : Form(
-                        key: _form,
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                          const Text('Enter your login email. We will send you a secure link to reset your password.',
-                              style: TextStyle(color: AppColors.muted)),
-                          const SizedBox(height: 20),
-                          TextFormField(
-                            controller: _email,
-                            keyboardType: TextInputType.emailAddress,
-                            decoration: const InputDecoration(labelText: 'Login email', prefixIcon: Icon(Icons.alternate_email)),
-                            validator: (v) => (v ?? '').trim().contains('@') ? null : 'Enter a valid email address.',
-                            onFieldSubmitted: (_) => _submit(),
-                          ),
-                          if (_error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_error!, style: const TextStyle(color: AppColors.danger))),
-                          const SizedBox(height: 20),
-                          FilledButton(
-                            onPressed: _busy ? null : _submit,
-                            child: _busy
-                                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white))
-                                : const Text('Send reset link'),
-                          ),
-                        ]),
+    appBar: AppBar(title: const Text('Forgot password')),
+    body: SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: _done != null
+                ? Column(
+                    children: [
+                      const Icon(
+                        Icons.mark_email_read_outlined,
+                        size: 64,
+                        color: AppColors.success,
                       ),
-              ),
-            ),
+                      const SizedBox(height: 16),
+                      Text(_done!, textAlign: TextAlign.center),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Open the link in the email, set a new password, then sign in here.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.muted),
+                      ),
+                      const SizedBox(height: 24),
+                      FilledButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Back to login'),
+                      ),
+                    ],
+                  )
+                : Form(
+                    key: _form,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          'Enter your login email. We will send you a secure link to reset your password.',
+                          style: TextStyle(color: AppColors.muted),
+                        ),
+                        const SizedBox(height: 20),
+                        TextFormField(
+                          controller: _email,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(
+                            labelText: 'Login email',
+                            prefixIcon: Icon(Icons.alternate_email),
+                          ),
+                          validator: (v) => (v ?? '').trim().contains('@')
+                              ? null
+                              : 'Enter a valid email address.',
+                          onFieldSubmitted: (_) => _submit(),
+                        ),
+                        if (_error != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: Text(
+                              _error!,
+                              style: const TextStyle(color: AppColors.danger),
+                            ),
+                          ),
+                        const SizedBox(height: 20),
+                        FilledButton(
+                          onPressed: _busy ? null : _submit,
+                          child: _busy
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.4,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text('Send reset link'),
+                        ),
+                      ],
+                    ),
+                  ),
           ),
         ),
-      );
+      ),
+    ),
+  );
 }

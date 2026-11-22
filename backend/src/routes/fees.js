@@ -371,7 +371,7 @@ router.get("/reports/collection", requireAny(["fees", "view"], ["reports", "view
 
 // ------------------------------------------------------------ online payments
 router.post("/online/initiate", asyncHandler(async (req, res) => {
-  const { invoiceIds = [], gateway } = req.body || {};
+  const { invoiceIds = [], gateway, returnUrl } = req.body || {};
   if (req.user.linkedType !== "Guardian" && !req.user.isAdmin && !req.user.matrix?.fees?.includes("create")) {
     throw httpError(403, "You do not have permission to start an online payment.");
   }
@@ -383,7 +383,7 @@ router.post("/online/initiate", asyncHandler(async (req, res) => {
     );
     if (own.rowCount !== invoiceIds.length) throw httpError(403, "You can only pay invoices of your linked students.");
   }
-  const result = await payments.initiate(req, { invoiceIds, gateway, guardianId: req.user.linkedType === "Guardian" ? req.user.linkedId : null });
+  const result = await payments.initiate(req, { invoiceIds, gateway, returnUrl, guardianId: req.user.linkedType === "Guardian" ? req.user.linkedId : null });
   res.status(201).json({ success: true, data: keysToCamel(result) });
 }));
 

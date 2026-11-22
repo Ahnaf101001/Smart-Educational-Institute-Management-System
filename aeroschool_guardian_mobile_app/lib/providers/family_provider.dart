@@ -24,7 +24,10 @@ class FamilyProvider extends ChangeNotifier {
 
   ChildSummary? get selectedChild {
     if (children.isEmpty) return null;
-    return children.firstWhere((c) => c.id == _selectedChildId, orElse: () => children.first);
+    return children.firstWhere(
+      (c) => c.id == _selectedChildId,
+      orElse: () => children.first,
+    );
   }
 
   ChildSummary? childById(String id) {

@@ -88,11 +88,16 @@ async function processEvent(device, { credential, eventType, time, raw }) {
         [at, student.id, date],
       );
     }
+    // School entry / exit notification (Spec §1D, Workflow v2 §6): in-app + push to every linked
+    // guardian, SMS to the primary guardian. Late alerts are sent independently of this setting.
     if (settings.notify_entry_exit) {
       const lang = await defaultLanguage();
       const body = await renderTemplate(type === "IN" ? "entry" : "exit", lang, { student: student.name, time: hhmm });
-      await notifyStudentGuardians(student.id, { eventType: type === "IN" ? "Entry" : "Exit", body, subject: type === "IN" ? "Entry alert" : "Exit alert", relatedType: "device_events" });
-    } else if (type === "IN" && late && settings.notify_late) {
+      const msg = { eventType: type === "IN" ? "Entry" : "Exit", body, subject: type === "IN" ? "Entry alert" : "Exit alert", relatedType: "device_events" };
+      await notifyStudentGuardians(student.id, { ...msg, channels: ["Portal"], primaryOnly: false });
+      await notifyStudentGuardians(student.id, { ...msg, channels: ["SMS"], primaryOnly: true });
+    }
+    if (type === "IN" && late && settings.notify_late) {
       const lang = await defaultLanguage();
       const body = await renderTemplate("late", lang, { student: student.name, date });
       await notifyStudentGuardians(student.id, { eventType: "Late", body, subject: "Late arrival", relatedType: "device_events" });

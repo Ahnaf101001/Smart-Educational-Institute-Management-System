@@ -18,6 +18,9 @@ export default function SandboxPayPage() {
   async function finish(status) {
     try {
       const r = await publicApi.sandboxComplete(id, status);
+      // Payments started from the guardian app return to the app through its deep link.
+      const target = await publicApi.paymentReturnTarget(id).catch(() => null);
+      if (target?.url) { window.location.href = target.url; return; }
       router.push(`/pay/result?status=${r.status === "Success" ? "success" : "failed"}&txn=${txn.txnId}`);
     } catch (e) { toast.error(e); }
   }

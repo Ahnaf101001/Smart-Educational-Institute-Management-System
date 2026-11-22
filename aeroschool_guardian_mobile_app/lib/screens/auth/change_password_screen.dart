@@ -37,7 +37,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   static String? validateStrength(String? v) {
     final s = v ?? '';
     if (s.length < 8) return 'Use at least 8 characters.';
-    if (!RegExp(r'[A-Za-z]').hasMatch(s) || !RegExp(r'\d').hasMatch(s)) return 'Use both letters and numbers.';
+    if (!RegExp(r'[A-Za-z]').hasMatch(s) || !RegExp(r'\d').hasMatch(s)) {
+      return 'Use both letters and numbers.';
+    }
     return null;
   }
 
@@ -77,7 +79,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           if (widget.forced)
             TextButton(
               onPressed: () => auth.logout(),
-              child: const Text('Sign out', style: TextStyle(color: Colors.white)),
+              child: const Text(
+                'Sign out',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
         ],
       ),
@@ -89,65 +94,126 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               constraints: const BoxConstraints(maxWidth: 420),
               child: Form(
                 key: _form,
-                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  if (widget.forced) ...[
-                    const Icon(Icons.lock_reset_rounded, size: 56, color: AppColors.navy),
-                    const SizedBox(height: 12),
-                    Text('Welcome${auth.user != null ? ', ${auth.user!.name}' : ''}!',
-                        textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'You signed in with a temporary password from the school. Please set your own password to continue to your dashboard.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.muted),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                  if (askCurrent) ...[
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (widget.forced) ...[
+                      const Icon(
+                        Icons.lock_reset_rounded,
+                        size: 56,
+                        color: AppColors.navy,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Welcome${auth.user != null ? ', ${auth.user!.name}' : ''}!',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'You signed in with a temporary password from the school. Please set your own password to continue to your dashboard.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.muted),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                    if (askCurrent) ...[
+                      TextFormField(
+                        controller: _current,
+                        obscureText: _obscure,
+                        decoration: InputDecoration(
+                          labelText: widget.forced
+                              ? 'Temporary password'
+                              : 'Current password',
+                          prefixIcon: const Icon(Icons.key_outlined),
+                        ),
+                        validator: (v) => (v ?? '').isEmpty
+                            ? 'Enter your current password.'
+                            : null,
+                      ),
+                      const SizedBox(height: 14),
+                    ],
                     TextFormField(
-                      controller: _current,
+                      controller: _next,
                       obscureText: _obscure,
-                      decoration: InputDecoration(labelText: widget.forced ? 'Temporary password' : 'Current password', prefixIcon: const Icon(Icons.key_outlined)),
-                      validator: (v) => (v ?? '').isEmpty ? 'Enter your current password.' : null,
+                      decoration: InputDecoration(
+                        labelText: 'New password',
+                        helperText:
+                            'At least 8 characters with letters and numbers',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscure
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                          ),
+                          onPressed: () => setState(() => _obscure = !_obscure),
+                        ),
+                      ),
+                      validator: validateStrength,
                     ),
                     const SizedBox(height: 14),
-                  ],
-                  TextFormField(
-                    controller: _next,
-                    obscureText: _obscure,
-                    decoration: InputDecoration(
-                      labelText: 'New password',
-                      helperText: 'At least 8 characters with letters and numbers',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                        onPressed: () => setState(() => _obscure = !_obscure),
+                    TextFormField(
+                      controller: _confirm,
+                      obscureText: _obscure,
+                      decoration: const InputDecoration(
+                        labelText: 'Confirm new password',
+                        prefixIcon: Icon(Icons.lock_outline),
                       ),
+                      validator: (v) =>
+                          v != _next.text ? 'Passwords do not match.' : null,
+                      onFieldSubmitted: (_) => _submit(),
                     ),
-                    validator: validateStrength,
-                  ),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    controller: _confirm,
-                    obscureText: _obscure,
-                    decoration: const InputDecoration(labelText: 'Confirm new password', prefixIcon: Icon(Icons.lock_outline)),
-                    validator: (v) => v != _next.text ? 'Passwords do not match.' : null,
-                    onFieldSubmitted: (_) => _submit(),
-                  ),
-                  if (_error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_error!, style: const TextStyle(color: AppColors.danger))),
-                  const SizedBox(height: 22),
-                  FilledButton(
-                    onPressed: _busy ? null : _submit,
-                    child: _busy
-                        ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white))
-                        : Text(widget.forced ? 'Save and continue' : 'Change password'),
-                  ),
-                ]),
+                    if (_error != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Text(
+                          _error!,
+                          style: const TextStyle(color: AppColors.danger),
+                        ),
+                      ),
+                    const SizedBox(height: 22),
+                    FilledButton(
+                      onPressed: _busy ? null : _submit,
+                      child: _busy
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.4,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              widget.forced
+                                  ? 'Save and continue'
+                                  : 'Change password',
+                            ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ),
     );
+  }
+}
+
+/// Password rules shared by the change-password and reset-password screens.
+class ChangePasswordScreenValidators {
+  ChangePasswordScreenValidators._();
+
+  static String? strength(String? v) {
+    final s = v ?? '';
+    if (s.length < 8) return 'Use at least 8 characters.';
+    if (!RegExp(r'[A-Za-z]').hasMatch(s) || !RegExp(r'\d').hasMatch(s)) {
+      return 'Use both letters and numbers.';
+    }
+    return null;
   }
 }

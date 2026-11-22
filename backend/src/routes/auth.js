@@ -199,11 +199,17 @@ router.post("/password/forgot", otpLimiter, asyncHandler(async (req, res) => {
     const hash = crypto.createHash("sha256").update(token).digest("hex");
     await query("INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, NOW() + INTERVAL '30 minutes')", [user.id, hash]);
     const link = `${env.publicAppUrl}/reset-password?token=${token}`;
+    // Requests from the AeroSchool Guardian app also get a deep link that opens the in-app
+    // reset screen (Workflow §6); the website link stays as the fallback.
+    const appLink = req.body?.client === "app" ? `aeroschool://reset-password?token=${token}` : null;
     if (user.email && !user.email.endsWith(".local")) {
-      await queueMessage({ channel: "Email", eventType: "PasswordReset", recipient: user.email, recipientType: "User", recipientId: user.id, subject: "Password reset", body: `Reset your password using this link (valid 30 minutes): ${link}` });
+      const body = appLink
+        ? `Reset your password (valid 30 minutes).\n\nOn your phone with the AeroSchool Guardian app: ${appLink}\nIn a browser: ${link}`
+        : `Reset your password using this link (valid 30 minutes): ${link}`;
+      await queueMessage({ channel: "Email", eventType: "PasswordReset", recipient: user.email, recipientType: "User", recipientId: user.id, subject: "Password reset", body });
     }
     if (user.phone) {
-      await queueMessage({ channel: "SMS", eventType: "PasswordReset", recipient: user.phone, recipientType: "User", recipientId: user.id, body: `Password reset link (30 min): ${link}` });
+      await queueMessage({ channel: "SMS", eventType: "PasswordReset", recipient: user.phone, recipientType: "User", recipientId: user.id, body: `Password reset link (30 min): ${appLink || link}` });
     }
     processQueue().catch(() => {});
     if (env.nodeEnv === "development" && !env.sms.apiUrl && !env.email.host) devToken = token;

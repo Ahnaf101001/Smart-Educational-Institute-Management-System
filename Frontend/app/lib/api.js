@@ -62,7 +62,11 @@ const get = (path, params) => {
   const q = params ? `?${new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== "")).toString()}` : "";
   return request(`${path}${q}`).then((p) => p?.data ?? p);
 };
-export const http = { get, post, put, patch };
+const del = (path, params) => {
+  const q = params ? `?${new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== "")).toString()}` : "";
+  return request(`${path}${q}`, { method: "DELETE" }).then((p) => p?.data ?? p);
+};
+export const http = { get, post, put, patch, del };
 
 export const setupApi = {
   types: () => get("/setup/institution-types"),
@@ -412,4 +416,5 @@ export const publicApi = {
   verifyCard: (token) => get(`/public/cards/verify/${token}`),
   sandbox: (id) => get(`/public/payments/sandbox/${id}`),
   sandboxComplete: (id, status) => post(`/public/payments/sandbox/${id}/complete`, { status }),
+  paymentReturnTarget: (id) => get(`/public/payments/return-target/${id}`),
 };

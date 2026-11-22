@@ -10,7 +10,8 @@ enum AuthStatus { checking, signedOut, mustChangePassword, signedIn }
 
 /// Session state: login, first-login password change, restore and logout.
 class AuthProvider extends ChangeNotifier {
-  AuthProvider({required ApiClient api, required this.tokens}) : _auth = AuthService(api) {
+  AuthProvider({required ApiClient api, required this.tokens})
+    : _auth = AuthService(api) {
     api.onUnauthorized = _handleUnauthorized;
     api.onPasswordChangeRequired = _handlePasswordChangeRequired;
   }
@@ -53,7 +54,11 @@ class AuthProvider extends ChangeNotifier {
       }
       _user = me;
       _loginEmail = me.email;
-      _set(me.mustChangePassword ? AuthStatus.mustChangePassword : AuthStatus.signedIn);
+      _set(
+        me.mustChangePassword
+            ? AuthStatus.mustChangePassword
+            : AuthStatus.signedIn,
+      );
     } on ApiException catch (e) {
       if (e.isNetwork) {
         // Offline at start-up: keep the stored session and let screens retry.
@@ -65,7 +70,11 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> login(String email, String password, {required bool rememberMe}) async {
+  Future<void> login(
+    String email,
+    String password, {
+    required bool rememberMe,
+  }) async {
     final result = await _auth.login(email, password);
     _rememberMe = rememberMe;
     _loginEmail = email.trim();
@@ -82,14 +91,21 @@ class AuthProvider extends ChangeNotifier {
 
   /// Forced first-login change (or a voluntary change from the profile).
   /// The server ends all sessions, so we sign straight back in with the new password.
-  Future<void> changePassword({String? currentPassword, required String newPassword}) async {
+  Future<void> changePassword({
+    String? currentPassword,
+    required String newPassword,
+  }) async {
     final current = currentPassword ?? _pendingTempPassword;
-    if (current == null || current.isEmpty) throw ApiException('Enter your current password.');
+    if (current == null || current.isEmpty) {
+      throw ApiException('Enter your current password.');
+    }
     await _auth.changePassword(current, newPassword);
     _pendingTempPassword = null;
     final email = _loginEmail ?? _user?.email;
     if (email == null || email.isEmpty) {
-      await logout(message: 'Password changed. Please sign in with your new password.');
+      await logout(
+        message: 'Password changed. Please sign in with your new password.',
+      );
       return;
     }
     try {
@@ -98,11 +114,16 @@ class AuthProvider extends ChangeNotifier {
       _user = result.user;
       _set(AuthStatus.signedIn);
     } on ApiException {
-      await logout(message: 'Password changed. Please sign in with your new password.');
+      await logout(
+        message: 'Password changed. Please sign in with your new password.',
+      );
     }
   }
 
   Future<String> forgotPassword(String email) => _auth.forgotPassword(email);
+
+  Future<void> resetPassword(String token, String newPassword) =>
+      _auth.resetPassword(token, newPassword);
 
   Future<void> logout({String? message, bool allDevices = false}) async {
     if (allDevices) {
@@ -118,7 +139,8 @@ class AuthProvider extends ChangeNotifier {
   }
 
   void _handleUnauthorized() {
-    if (_status == AuthStatus.signedIn || _status == AuthStatus.mustChangePassword) {
+    if (_status == AuthStatus.signedIn ||
+        _status == AuthStatus.mustChangePassword) {
       logout(message: 'Your session has ended. Please sign in again.');
     }
   }

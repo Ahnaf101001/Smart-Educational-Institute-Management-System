@@ -5,7 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Keychain; encrypted browser storage on web). The token is only persisted
 /// when the guardian ticks "Remember me"; otherwise it lives in memory.
 class TokenStorage {
-  TokenStorage({FlutterSecureStorage? secure}) : _secure = secure ?? const FlutterSecureStorage();
+  TokenStorage({FlutterSecureStorage? secure})
+    : _secure = secure ?? const FlutterSecureStorage();
 
   final FlutterSecureStorage _secure;
   static const _tokenKey = 'aeroschool.session_token';
@@ -44,7 +45,10 @@ class TokenStorage {
     } catch (_) {}
   }
 
-  Future<void> saveRememberedLogin({required bool remember, String? email}) async {
+  Future<void> saveRememberedLogin({
+    required bool remember,
+    String? email,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_rememberKey, remember);
     if (remember && email != null) {
@@ -56,6 +60,9 @@ class TokenStorage {
 
   Future<({bool remember, String? email})> readRememberedLogin() async {
     final prefs = await SharedPreferences.getInstance();
-    return (remember: prefs.getBool(_rememberKey) ?? true, email: prefs.getString(_emailKey));
+    return (
+      remember: prefs.getBool(_rememberKey) ?? true,
+      email: prefs.getString(_emailKey),
+    );
   }
 }

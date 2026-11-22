@@ -13,7 +13,7 @@ const allowed = [
   "email_notif", "sms_notif", "system_alerts", "newsletter", "auto_backup", "backup_retention", "session_timeout",
   "two_factor_auth", "language", "digit_system", "date_format", "timezone", "currency", "calendar_type",
   "attendance_edit_window_days", "attendance_cutoff_time", "consecutive_absence_threshold", "notify_absent",
-  "notify_late", "notify_entry_exit", "notify_result", "notify_fee_reminder", "fee_reminder_day",
+  "notify_late", "notify_entry_exit", "show_class_position", "show_teacher_phone_to_guardians", "notify_result", "notify_fee_reminder", "fee_reminder_day",
   "invoice_generation_day", "sms_provider", "sms_sender_id", "sms_cost_per_part", "payment_gateways",
   "require_new_card_each_session", "card_print_requires_approval", "card_validity_months", "card_number_prefix",
   "staff_card_number_prefix", "student_id_format", "admit_card_block_on_due", "result_hide_on_due",

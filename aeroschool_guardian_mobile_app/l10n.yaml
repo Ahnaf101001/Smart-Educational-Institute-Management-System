@@ -1,0 +1,10 @@
+# English / Bangla app strings (lib/l10n/app_en.arb, app_bn.arb); regenerate with `flutter gen-l10n`.
+# The generated localizationsDelegates list refers to flutter_localizations classes that this Flutter
+# version deprecates. The app uses AppLocalizations.delegate together with material_ui's
+# GlobalMaterialLocalizations.delegates instead (see lib/app.dart), hence the header below.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false
+header: "// ignore_for_file: deprecated_member_use"

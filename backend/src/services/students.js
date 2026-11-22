@@ -123,6 +123,9 @@ async function upsertEnrollment(client, student, overrides = {}) {
   return row.id;
 }
 
+// Statuses that mean the student is no longer studying at the school.
+const STUDENT_LEFT_STATUSES = ["Transferred", "Dropped", "Passed Out", "Inactive", "Archived"];
+
 async function changeStatus(client, req, studentId, toStatus, reason) {
   const s = (await client.query("SELECT * FROM students WHERE id = $1 FOR UPDATE", [studentId])).rows[0];
   if (!s) throw httpError(404, "Student not found.");
@@ -137,6 +140,22 @@ async function changeStatus(client, req, studentId, toStatus, reason) {
     // Scenario "Student leaves school": stop future invoices, block active ID card.
     await client.query("UPDATE fee_invoices SET status = 'Cancelled', notes = COALESCE(notes,'') || ' [Auto-cancelled: student left]' WHERE student_id = $1 AND status = 'Due' AND paid_amount = 0 AND billing_month > CURRENT_DATE", [studentId]);
     await client.query("UPDATE id_cards SET status = 'Blocked', block_reason = $1 WHERE holder_type = 'Student' AND holder_id = $2 AND status = 'Active'", [`Student ${toStatus}`, studentId]);
+  }
+  // Guardian App rule (Spec §5, Workflow v2 §11): a transfer / admission cancel updates the
+  // guardian's access. Links disabled here are re-enabled automatically if the student returns;
+  // links an admin disabled manually are left alone.
+  if (STUDENT_LEFT_STATUSES.includes(toStatus)) {
+    await client.query(
+      `UPDATE guardian_students SET access_status = 'Disabled', disabled_reason = $1
+       WHERE student_id = $2 AND access_status = 'Enabled'`,
+      [`student_status:${toStatus}`, studentId],
+    );
+  } else if (toStatus === "Active") {
+    await client.query(
+      `UPDATE guardian_students SET access_status = 'Enabled', disabled_reason = NULL
+       WHERE student_id = $1 AND access_status = 'Disabled' AND disabled_reason LIKE 'student_status:%'`,
+      [studentId],
+    );
   }
   await writeAudit(req, { entity: "students", entityId: studentId, action: "STATUS_CHANGE", oldValue: { status: s.status }, newValue: { status: toStatus }, reason }, client);
   return { from: s.status, to: toStatus };

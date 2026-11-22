@@ -126,6 +126,49 @@ async function notifyStudentGuardians(studentId, { eventType, body, subject, cha
   return queued;
 }
 
+// Notifies the guardians of every active student in a class (optionally one section).
+// `body` receives the student's name so each guardian sees which child it is about
+// (Guardian App Workflow §5). With `dedupeKey` the notification is sent only once.
+async function notifyClassGuardians({
+  classId, section = null, eventType, subject, body, channels = ["Portal"], primaryOnly = false, relatedType, dedupeKey,
+}) {
+  if (!classId) return 0;
+  if (dedupeKey) {
+    const seen = await query("SELECT 1 FROM message_logs WHERE related_type = $1 AND related_id = $2 LIMIT 1", [relatedType, dedupeKey]);
+    if (seen.rowCount) return 0;
+  }
+  const students = (await query(
+    "SELECT id, name FROM students WHERE class_id = $1 AND status = 'Active' AND ($2::text IS NULL OR COALESCE(section, '') = $2)",
+    [classId, section || null],
+  )).rows;
+  let queued = 0;
+  for (const s of students) {
+    queued += await notifyStudentGuardians(s.id, {
+      eventType, subject, body: typeof body === "function" ? body(s.name) : body, channels, primaryOnly, relatedType, relatedId: dedupeKey,
+    });
+  }
+  return queued;
+}
+
+// School-wide in-app notification to every active guardian of an active student.
+async function notifyAllGuardians({ eventType, subject, body, relatedType, relatedId }) {
+  const guardians = (await query(
+    `SELECT DISTINCT g.id FROM guardians g JOIN guardian_students gs ON gs.guardian_id = g.id JOIN students s ON s.id = gs.student_id
+     WHERE g.status = 'Active' AND g.portal_access AND gs.access_status = 'Enabled' AND gs.receives_notifications AND s.status = 'Active'`,
+  )).rows;
+  for (const g of guardians) {
+    await queueMessage({ channel: "Portal", eventType, recipient: g.id, recipientType: "Guardian", recipientId: g.id, subject, body, relatedType, relatedId });
+  }
+  return guardians.length;
+}
+
+// Runs a notification job after the response is sent; failures are logged, never thrown.
+function notifyLater(label, job) {
+  setImmediate(() => {
+    Promise.resolve().then(job).catch((error) => console.error(`[notifications] ${label} failed:`, error.message));
+  });
+}
+
 // ------------------------------------------------------------------ adapters
 async function sendSms(message) {
   if (!env.sms.apiUrl || !env.sms.apiKey) {
@@ -167,7 +210,24 @@ async function sendEmailMessage(message) {
   return { provider: "smtp", providerMessageId: info.messageId };
 }
 
+// Background push for guardian notifications (Guardian App H7). Uses FCM HTTP v1 with the
+// device tokens registered by the app; falls back to the legacy topic API if only
+// FCM_SERVER_KEY is configured.
+function pushPayload(message) {
+  return {
+    title: message.subject || "AeroSchool",
+    body: message.body,
+    eventType: message.event_type,
+    data: { messageId: message.id, eventType: message.event_type, studentId: message.student_id, type: "notification" },
+  };
+}
+
 async function sendPush(message) {
+  const push = require("./push");
+  if (push.isConfigured() && message.recipient_type === "Guardian") {
+    const r = await push.pushToGuardian(message.recipient_id, pushPayload(message));
+    return { provider: "fcm-v1", providerMessageId: `devices:${r.sent || 0}` };
+  }
   if (!env.push.fcmServerKey) {
     throw new Error("Push provider (FCM) is not configured.");
   }
@@ -208,7 +268,17 @@ async function deliver(message) {
     case "Email": return sendEmailMessage(message);
     case "Push": return sendPush(message);
     case "WhatsApp": return sendWhatsApp(message);
-    case "Portal": return { provider: "portal", providerMessageId: null };
+    case "Portal": {
+      // In-app notifications to guardians are also pushed to their phones (best effort).
+      if (message.recipient_type === "Guardian") {
+        const push = require("./push");
+        if (push.isConfigured()) {
+          const r = await push.pushToGuardian(message.recipient_id, pushPayload(message));
+          return { provider: "portal+fcm", providerMessageId: `devices:${r.sent || 0}` };
+        }
+      }
+      return { provider: "portal", providerMessageId: null };
+    }
     default: throw new Error(`Unknown channel ${message.channel}`);
   }
 }
@@ -279,6 +349,9 @@ module.exports = {
   queueMessage,
   guardiansForStudent,
   notifyStudentGuardians,
+  notifyClassGuardians,
+  notifyAllGuardians,
+  notifyLater,
   processQueue,
   getSettings,
 };

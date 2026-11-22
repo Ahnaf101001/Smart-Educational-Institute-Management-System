@@ -15,7 +15,7 @@ router.get("/summary", asyncHandler(async (req, res) => {
   const attRes = await query(`
     SELECT 
       COUNT(*)::int AS total,
-      SUM(CASE WHEN status IN ('Present', 'Late') THEN 1 ELSE 0 END)::int AS present
+      SUM(CASE WHEN status IN ('Present', 'Late', 'Early Leave') THEN 1 ELSE 0 END)::int AS present
     FROM attendance
     WHERE attendance_date = (SELECT MAX(attendance_date) FROM attendance)
   `);
@@ -225,7 +225,7 @@ router.get("/summary", asyncHandler(async (req, res) => {
     SELECT 
       TO_CHAR(attendance_date, 'Dy') AS day,
       COUNT(*)::int AS total,
-      SUM(CASE WHEN status IN ('Present', 'Late') THEN 1 ELSE 0 END)::int AS present,
+      SUM(CASE WHEN status IN ('Present', 'Late', 'Early Leave') THEN 1 ELSE 0 END)::int AS present,
       DATE_TRUNC('day', attendance_date) AS day_date
     FROM attendance
     WHERE attendance_date >= CURRENT_DATE - INTERVAL '7 days'

@@ -22,16 +22,17 @@ class SessionUser {
   final bool mustChangePassword;
   final DateTime? lastLoginAt;
 
-  bool get isGuardian => linkedType == 'Guardian' && (linkedId?.isNotEmpty ?? false);
+  bool get isGuardian =>
+      linkedType == 'Guardian' && (linkedId?.isNotEmpty ?? false);
 
   factory SessionUser.fromJson(Map<String, dynamic> j) => SessionUser(
-        id: J.str(j['id']),
-        name: J.str(j['name'], 'Guardian'),
-        email: J.str(j['email']),
-        phone: J.strOrNull(j['phone']),
-        linkedType: J.strOrNull(j['linkedType']),
-        linkedId: J.strOrNull(j['linkedId']),
-        mustChangePassword: J.boolOf(j['mustChangePassword']),
-        lastLoginAt: J.date(j['lastLoginAt']),
-      );
+    id: J.str(j['id']),
+    name: J.str(j['name'], 'Guardian'),
+    email: J.str(j['email']),
+    phone: J.strOrNull(j['phone']),
+    linkedType: J.strOrNull(j['linkedType']),
+    linkedId: J.strOrNull(j['linkedId']),
+    mustChangePassword: J.boolOf(j['mustChangePassword']),
+    lastLoginAt: J.date(j['lastLoginAt']),
+  );
 }

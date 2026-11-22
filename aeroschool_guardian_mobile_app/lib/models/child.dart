@@ -2,7 +2,15 @@ import '../core/format.dart';
 
 /// One period of today's routine for a child.
 class RoutineSlot {
-  RoutineSlot({required this.subject, this.period, this.start, this.end, this.teacher, this.room, this.isBreak = false});
+  RoutineSlot({
+    required this.subject,
+    this.period,
+    this.start,
+    this.end,
+    this.teacher,
+    this.room,
+    this.isBreak = false,
+  });
 
   final String subject;
   final String? period;
@@ -13,14 +21,14 @@ class RoutineSlot {
   final bool isBreak;
 
   factory RoutineSlot.fromJson(Map<String, dynamic> j) => RoutineSlot(
-        subject: J.str(j['subject'], J.boolOf(j['isBreak']) ? 'Break' : 'Class'),
-        period: J.strOrNull(j['period']),
-        start: J.strOrNull(j['start']),
-        end: J.strOrNull(j['end']),
-        teacher: J.strOrNull(j['teacher']),
-        room: J.strOrNull(j['room']),
-        isBreak: J.boolOf(j['isBreak']),
-      );
+    subject: J.str(j['subject'], J.boolOf(j['isBreak']) ? 'Break' : 'Class'),
+    period: J.strOrNull(j['period']),
+    start: J.strOrNull(j['start']),
+    end: J.strOrNull(j['end']),
+    teacher: J.strOrNull(j['teacher']),
+    room: J.strOrNull(j['room']),
+    isBreak: J.boolOf(j['isBreak']),
+  );
 }
 
 /// A linked child as summarised on the guardian dashboard (`/portal/guardian/home`).
@@ -95,7 +103,9 @@ class ChildSummary {
 
   /// "Class 7 • Section A • Roll 001"
   String get classLine {
-    final base = className.contains('-') ? className.split('-').first : className;
+    final base = className.contains('-')
+        ? className.split('-').first
+        : className;
     return [
       base,
       if (section != null && section!.isNotEmpty) 'Section $section',
@@ -136,7 +146,10 @@ class ChildSummary {
       nextExamName: J.strOrNull(exam['name']),
       nextExamSubject: J.strOrNull(exam['subject']),
       nextExamDate: J.date(exam['date']),
-      todayRoutine: J.list(j['todayRoutine']).map(RoutineSlot.fromJson).toList(),
+      todayRoutine: J
+          .list(j['todayRoutine'])
+          .map(RoutineSlot.fromJson)
+          .toList(),
       latestResultExam: J.strOrNull(result['exam']),
       latestResultGrade: J.strOrNull(result['grade']),
       latestResultGpa: J.numOrNull(result['gpa']),

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ArrowUpCircle, FileUp, IdCard, ListOrdered, Search, Star, Upload, UserCircle2, Users } from "lucide-react";
+import { ArrowUpCircle, FileUp, IdCard, ListOrdered, Search, Star, Unlink, Upload, UserCircle2, Users } from "lucide-react";
 import { http, resource, uploadsApi } from "../../lib/api";
 import { can, useUser } from "../../lib/access";
 import { TranscriptCard } from "../extensions/Extras";
@@ -127,6 +127,25 @@ export function Student360() {
                 { key: "name", label: "Name" }, { key: "relation", label: "Relation" }, { key: "mobile", label: "Mobile" },
                 { key: "isPrimary", label: "Primary", render: (g) => (g.isPrimary ? <Badge tone="green">Primary</Badge> : can(user, "guardians", "edit") ? <Button size="sm" variant="ghost" icon={Star} onClick={async () => { try { await http.post(`/students/${studentId}/guardians/${g.linkId}/primary`); load(); } catch (e) { toast.error(e); } }}>Make primary</Button> : "—") },
                 { key: "portalAccess", label: "Portal", render: (g) => (g.portalAccess ? "Yes" : "No") },
+                // Per-link permissions (Spec §4 can_view_results / can_view_fees) and unlink (Workflow §7).
+                { key: "access", label: "App can see", render: (g) => (
+                  <div className="flex flex-col gap-1 text-xs">
+                    {[["canViewResults", "Results"], ["canViewFees", "Fees"]].map(([k, label]) => (
+                      <label key={k} className="inline-flex items-center gap-1.5">
+                        <input type="checkbox" className="accent-blue-600" checked={g[k] !== false} disabled={!can(user, "guardians", "edit")}
+                          onChange={async (e) => { try { await http.patch(`/guardians/${g.id}/students/${studentId}`, { [k]: e.target.checked }); load(); } catch (err) { toast.error(err); } }} />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                ) },
+                { key: "unlink", label: "", render: (g) => (can(user, "guardians", "delete") ? (
+                  <Button size="sm" variant="ghost" icon={Unlink} className="text-rose-600" onClick={async () => {
+                    const ok = await ask({ title: `Unlink ${g.name}?`, message: "This guardian will no longer see the student in the guardian app. Records are not changed.", input: false, danger: true, confirmLabel: "Unlink" });
+                    if (!ok) return;
+                    try { await http.del(`/guardians/${g.id}/students/${studentId}`); toast.success("Guardian unlinked"); load(); } catch (err) { toast.error(err); }
+                  }}>Unlink</Button>
+                ) : null) },
               ]} />
               {profile.siblings.length > 0 && (
                 <div className="mt-3 rounded-xl bg-blue-50 p-3 text-sm text-blue-800"><b>Siblings:</b> {profile.siblings.map((x) => `${x.name} (${x.className})`).join(", ")}</div>

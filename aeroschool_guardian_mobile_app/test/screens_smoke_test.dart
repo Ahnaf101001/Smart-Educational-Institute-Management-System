@@ -31,6 +31,9 @@ import 'package:aeroschool_guardian_mobile_app/screens/support/leave_screen.dart
 import 'package:aeroschool_guardian_mobile_app/screens/support/teachers_screen.dart';
 import 'package:aeroschool_guardian_mobile_app/screens/transport/transport_screen.dart';
 import 'package:aeroschool_guardian_mobile_app/core/theme.dart';
+import 'package:aeroschool_guardian_mobile_app/l10n/app_localizations.dart';
+import 'package:aeroschool_guardian_mobile_app/providers/locale_provider.dart';
+import 'package:aeroschool_guardian_mobile_app/services/deep_link_service.dart';
 import 'package:aeroschool_guardian_mobile_app/models/support.dart';
 import 'package:aeroschool_guardian_mobile_app/services/api_client.dart';
 import 'package:aeroschool_guardian_mobile_app/services/file_service.dart';
@@ -221,7 +224,7 @@ Future<void> settle(WidgetTester tester) async {
   }
 }
 
-Future<FamilyProvider> pumpScreen(WidgetTester tester, Widget screen) async {
+Future<FamilyProvider> pumpScreen(WidgetTester tester, Widget screen, {Locale locale = const Locale('en')}) async {
   tester.view.physicalSize = const Size(320, 640);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -239,8 +242,16 @@ Future<FamilyProvider> pumpScreen(WidgetTester tester, Widget screen) async {
       ChangeNotifierProvider(create: (_) => AuthProvider(api: api, tokens: tokens)),
       ChangeNotifierProvider.value(value: family),
       ChangeNotifierProvider(create: (_) => NotificationProvider(guardian)),
+      ChangeNotifierProvider(create: (_) => LocaleProvider()),
+      ChangeNotifierProvider(create: (_) => DeepLinkService()),
     ],
-    child: MaterialApp(theme: AppTheme.light(), home: screen),
+    child: MaterialApp(
+      theme: AppTheme.light(),
+      locale: locale,
+      supportedLocales: LocaleProvider.supported,
+      localizationsDelegates: const [AppLocalizations.delegate, ...GlobalMaterialLocalizations.delegates],
+      home: screen,
+    ),
   ));
   await settle(tester);
   return family;
@@ -310,6 +321,21 @@ void main() {
       await pumpScreen(tester, entry.value());
       await visitTabs(tester);
       // Any FlutterError (overflow, ParentData misuse, exceptions) fails the test automatically.
+    });
+  }
+
+  // Bangla UI (N2): the screens with the most translated text must not overflow either.
+  for (final entry in <String, Widget Function()>{
+    'login (Bangla)': () => const LoginScreen(),
+    'home shell (Bangla)': () => const HomeShell(),
+    'family dashboard (Bangla)': () => FamilyDashboardScreen(onOpenChild: (_) {}, onOpenNotifications: () {}),
+    'child dashboard (Bangla)': () => const ChildDashboardScreen(),
+    'profile (Bangla)': () => const ProfileScreen(),
+    'notifications (Bangla)': () => const NotificationsScreen(),
+  }.entries) {
+    testWidgets('renders ${entry.key} on a 320px phone without errors', (tester) async {
+      await pumpScreen(tester, entry.value(), locale: const Locale('bn'));
+      await scrollAll(tester);
     });
   }
 }

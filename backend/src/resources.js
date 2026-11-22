@@ -4,6 +4,44 @@
 
 const ARCHIVE = { column: "status", value: "Archived", stamp: null };
 
+// ---- Guardian notifications triggered by academic records (run after the response) ----
+const HOMEWORK_KIND_BN = { Homework: "হোমওয়ার্ক", Assignment: "অ্যাসাইনমেন্ট", Project: "প্রজেক্ট", "Class Test": "ক্লাস টেস্ট" };
+
+function notifyHomework(row) {
+  if (!row.class_id || (row.status && row.status !== "Published")) return;
+  const { notifyLater, notifyClassGuardians } = require("./services/notifications");
+  const kind = row.kind || "Homework";
+  const due = row.due_date ? ` (জমা: ${String(row.due_date).slice(0, 10)})` : "";
+  notifyLater("homework", () => notifyClassGuardians({
+    classId: row.class_id, section: row.section || null,
+    eventType: kind === "Class Test" ? "ClassTest" : "Homework",
+    subject: kind === "Class Test" ? "Upcoming class test" : `New ${kind.toLowerCase()}`,
+    body: (name) => `${name}-এর নতুন ${HOMEWORK_KIND_BN[kind] || "হোমওয়ার্ক"} দেওয়া হয়েছে: ${row.title}${due}`,
+    relatedType: "homework", dedupeKey: `homework:${row.id}`,
+  }));
+}
+
+function notifyExamRoutine(examId, classId) {
+  if (!examId || !classId) return;
+  const { notifyLater, notifyClassGuardians } = require("./services/notifications");
+  notifyLater("exam routine", async () => {
+    const { query } = require("./db/pool");
+    const info = (await query(
+      `SELECT e.name, MIN(es.exam_date) AS first_date FROM exams e JOIN exam_schedules es ON es.exam_id = e.id
+       WHERE e.id = $1 AND es.class_id = $2 GROUP BY e.name`,
+      [examId, classId],
+    )).rows[0];
+    if (!info) return;
+    const first = info.first_date ? ` প্রথম পরীক্ষা: ${String(info.first_date).slice(0, 10)}।` : "";
+    await notifyClassGuardians({
+      classId, eventType: "ExamSchedule", subject: `${info.name} routine published`,
+      body: (name) => `${name}-এর ${info.name} পরীক্ষার রুটিন প্রকাশিত হয়েছে।${first}`,
+      channels: ["Portal"], primaryOnly: false,
+      relatedType: "exam_schedule", dedupeKey: `exam_schedule:${examId}:${classId}`,
+    });
+  });
+}
+
 module.exports = {
   students: {
     table: "students", module: "students", label: "Student",
@@ -216,6 +254,17 @@ module.exports = {
     search: ["title", "description"], filters: ["type", "audience"], dateColumn: "start_date",
     writable: ["title", "type", "start_date", "end_date", "audience", "hijri_label", "description", "is_public", "images"],
     required: ["title", "start_date"], orderBy: "start_date DESC",
+    // School event notification (Spec §1H) for public calendar events.
+    afterCreate: async (row) => {
+      if (row.is_public === false) return;
+      const { notifyLater, notifyAllGuardians } = require("./services/notifications");
+      const when = row.end_date && String(row.end_date) !== String(row.start_date) ? `${row.start_date} – ${row.end_date}` : row.start_date;
+      notifyLater("school event", () => notifyAllGuardians({
+        eventType: String(row.type || "").toLowerCase().includes("holiday") ? "HolidayEvent" : "SchoolEvent",
+        subject: row.title, body: `${row.title} (${when})${row.description ? ` – ${row.description}` : ""}`,
+        relatedType: "academic_events", relatedId: row.id,
+      }));
+    },
   },
   homework: {
     table: "homework", module: "homework", label: "Homework",
@@ -224,6 +273,9 @@ module.exports = {
     writable: ["kind", "class_id", "class_name", "section", "subject_id", "teacher_id", "title", "description",
       "attachment_url", "assigned_date", "due_date", "total_marks", "status", "submissions", "created_by"],
     required: ["title"], scopeColumn: { id: "class_id", name: "class_name" },
+    // Guardian App (Workflow v2 §9, Workflow §5): notify guardians when homework is published.
+    afterCreate: async (row) => notifyHomework(row),
+    afterUpdate: async (row, old) => { if (row.status === "Published" && old.status !== "Published") notifyHomework(row); },
   },
   learningResources: {
     table: "learning_resources", module: "homework", label: "Learning resource",
@@ -265,6 +317,9 @@ module.exports = {
     writable: ["exam_id", "class_id", "subject_id", "exam_date", "start_time", "end_time", "room", "invigilator_id",
       "full_marks", "pass_marks", "components"],
     required: ["exam_id", "class_id", "subject_id"], orderBy: "exam_date NULLS LAST, start_time",
+    // Exam notification (Spec §1H): once per exam and class, when the routine first gets dates.
+    afterCreate: async (row) => { if (row.exam_date) notifyExamRoutine(row.exam_id, row.class_id); },
+    afterUpdate: async (row, old) => { if (row.exam_date && !old.exam_date) notifyExamRoutine(row.exam_id, row.class_id); },
   },
   gradeScales: {
     table: "grade_scales", module: "settings", label: "Grade scale",
@@ -546,7 +601,7 @@ module.exports = {
   transportAssignments: {
     table: "transport_assignments", module: "transport", label: "Transport assignment",
     search: ["student_id", "stop_name"], filters: ["student_id", "route_id", "status"],
-    writable: ["student_id", "route_id", "stop_name", "monthly_fee", "start_date", "status"], required: ["student_id", "route_id"],
+    writable: ["student_id", "route_id", "stop_name", "dropoff_stop", "monthly_fee", "start_date", "status"], required: ["student_id", "route_id"],
   },
   halaqas: {
     table: "halaqas", module: "madrasa", label: "Halaqa",

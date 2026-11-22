@@ -35,29 +35,47 @@ class FeeInvoice {
   /// Fee categories from the specification (Monthly Tuition, Admission, Examination, Transport, Other).
   String get category {
     final h = feeHead.toLowerCase();
-    if (h.contains('tuition') || h.contains('monthly') || h.contains('salary') || h.contains('বেতন')) return 'Monthly Tuition';
-    if (h.contains('admission') || h.contains('readmission') || h.contains('session')) return 'Admission';
+    if (h.contains('tuition') ||
+        h.contains('monthly') ||
+        h.contains('salary') ||
+        h.contains('বেতন')) {
+      return 'Monthly Tuition';
+    }
+    if (h.contains('admission') ||
+        h.contains('readmission') ||
+        h.contains('session')) {
+      return 'Admission';
+    }
     if (h.contains('exam') || h.contains('test')) return 'Examination';
     if (h.contains('transport') || h.contains('bus')) return 'Transport';
     return 'Other';
   }
 
   factory FeeInvoice.fromJson(Map<String, dynamic> j) => FeeInvoice(
-        id: J.str(j['id']),
-        feeHead: J.str(j['feeHead'], 'Fee'),
-        amount: J.numOf(j['amount']),
-        discount: J.numOf(j['discount']),
-        lateFine: J.numOf(j['lateFine']),
-        paidAmount: J.numOf(j['paidAmount']),
-        due: J.numOf(j['due']),
-        status: J.str(j['status'], 'Due'),
-        billingMonth: J.date(j['billingMonth']),
-        dueDate: J.date(j['dueDate']),
-      );
+    id: J.str(j['id']),
+    feeHead: J.str(j['feeHead'], 'Fee'),
+    amount: J.numOf(j['amount']),
+    discount: J.numOf(j['discount']),
+    lateFine: J.numOf(j['lateFine']),
+    paidAmount: J.numOf(j['paidAmount']),
+    due: J.numOf(j['due']),
+    status: J.str(j['status'], 'Due'),
+    billingMonth: J.date(j['billingMonth']),
+    dueDate: J.date(j['dueDate']),
+  );
 }
 
 class FeePayment {
-  FeePayment({required this.id, required this.amount, required this.status, this.receiptNo, this.method, this.paidAt, this.feeHead, this.billingMonth});
+  FeePayment({
+    required this.id,
+    required this.amount,
+    required this.status,
+    this.receiptNo,
+    this.method,
+    this.paidAt,
+    this.feeHead,
+    this.billingMonth,
+  });
 
   final String id;
   final String? receiptNo;
@@ -71,19 +89,27 @@ class FeePayment {
   bool get isValid => status == 'Valid';
 
   factory FeePayment.fromJson(Map<String, dynamic> j) => FeePayment(
-        id: J.str(j['id']),
-        receiptNo: J.strOrNull(j['receiptNo']),
-        amount: J.numOf(j['amount']),
-        method: J.strOrNull(j['paymentMethod']),
-        paidAt: J.date(j['paidAt']),
-        status: J.str(j['status'], 'Valid'),
-        feeHead: J.strOrNull(j['feeHead']),
-        billingMonth: J.date(j['billingMonth']),
-      );
+    id: J.str(j['id']),
+    receiptNo: J.strOrNull(j['receiptNo']),
+    amount: J.numOf(j['amount']),
+    method: J.strOrNull(j['paymentMethod']),
+    paidAt: J.date(j['paidAt']),
+    status: J.str(j['status'], 'Valid'),
+    feeHead: J.strOrNull(j['feeHead']),
+    billingMonth: J.date(j['billingMonth']),
+  );
 }
 
 class FeeDiscount {
-  FeeDiscount({required this.type, required this.mode, required this.value, this.reason, this.feeHead, this.validFrom, this.validTo});
+  FeeDiscount({
+    required this.type,
+    required this.mode,
+    required this.value,
+    this.reason,
+    this.feeHead,
+    this.validFrom,
+    this.validTo,
+  });
 
   final String type;
   final String mode;
@@ -93,17 +119,19 @@ class FeeDiscount {
   final DateTime? validFrom;
   final DateTime? validTo;
 
-  String get valueLabel => mode.toLowerCase().startsWith('percent') ? '${value.toStringAsFixed(value % 1 == 0 ? 0 : 1)}%' : Fmt.money(value);
+  String get valueLabel => mode.toLowerCase().startsWith('percent')
+      ? '${value.toStringAsFixed(value % 1 == 0 ? 0 : 1)}%'
+      : Fmt.money(value);
 
   factory FeeDiscount.fromJson(Map<String, dynamic> j) => FeeDiscount(
-        type: J.str(j['discountType'], 'Discount'),
-        mode: J.str(j['mode'], 'Percent'),
-        value: J.numOf(j['value']),
-        reason: J.strOrNull(j['reason']),
-        feeHead: J.strOrNull(j['feeHead']),
-        validFrom: J.date(j['validFrom']),
-        validTo: J.date(j['validTo']),
-      );
+    type: J.str(j['discountType'], 'Discount'),
+    mode: J.str(j['mode'], 'Percent'),
+    value: J.numOf(j['value']),
+    reason: J.strOrNull(j['reason']),
+    feeHead: J.strOrNull(j['feeHead']),
+    validFrom: J.date(j['validFrom']),
+    validTo: J.date(j['validTo']),
+  );
 }
 
 /// `/portal/guardian/students/:id/fees` – one student's fees only.
@@ -141,7 +169,10 @@ class FeeOverview {
       invoices: J.list(j['invoices']).map(FeeInvoice.fromJson).toList(),
       payments: J.list(j['payments']).map(FeePayment.fromJson).toList(),
       discounts: J.list(j['discounts']).map(FeeDiscount.fromJson).toList(),
-      gateways: g.entries.where((e) => J.boolOf(e.value)).map((e) => e.key).toList(),
+      gateways: g.entries
+          .where((e) => J.boolOf(e.value))
+          .map((e) => e.key)
+          .toList(),
       totalPayable: J.numOf(s['totalPayable']),
       previousDue: J.numOf(s['previousDue']),
       currentMonthDue: J.numOf(s['currentMonthDue']),
@@ -153,7 +184,13 @@ class FeeOverview {
 }
 
 class ReceiptLine {
-  ReceiptLine({required this.feeHead, required this.amount, required this.status, this.billingMonth, this.receiptNo});
+  ReceiptLine({
+    required this.feeHead,
+    required this.amount,
+    required this.status,
+    this.billingMonth,
+    this.receiptNo,
+  });
 
   final String feeHead;
   final num amount;
@@ -162,12 +199,12 @@ class ReceiptLine {
   final String? receiptNo;
 
   factory ReceiptLine.fromJson(Map<String, dynamic> j) => ReceiptLine(
-        feeHead: J.str(j['feeHead'], 'Fee'),
-        amount: J.numOf(j['amount']),
-        status: J.str(j['status'], 'Valid'),
-        billingMonth: J.date(j['billingMonth']),
-        receiptNo: J.strOrNull(j['receiptNo']),
-      );
+    feeHead: J.str(j['feeHead'], 'Fee'),
+    amount: J.numOf(j['amount']),
+    status: J.str(j['status'], 'Valid'),
+    billingMonth: J.date(j['billingMonth']),
+    receiptNo: J.strOrNull(j['receiptNo']),
+  );
 }
 
 /// Digital payment receipt (`/portal/guardian/receipts/:receiptNo`).

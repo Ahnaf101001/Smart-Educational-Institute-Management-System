@@ -264,8 +264,13 @@ router.post("/conversations", asyncHandler(async (req, res) => {
       const qh = recipientUser.quiet_hours?.enabled ? recipientUser.quiet_hours : global;
       deferredUntil = quietUntil(qh);
     }
+    // Teacher → guardian messages reach the Guardian App inbox and push (Spec §1H teacher
+    // notifications), tagged with the child so multi-child guardians know who it concerns.
+    const toGuardian = recipientType === "Guardian";
     await queueMessage({
-      channel: "Portal", eventType: "Message", recipientType: "User", recipientId: recipientUser.id,
+      channel: "Portal", eventType: toGuardian ? "TeacherMessage" : "Message",
+      recipientType: toGuardian ? "Guardian" : "User", recipientId: toGuardian ? recipientId : recipientUser.id,
+      studentId: toGuardian ? studentId || null : null,
       subject: `Message from ${req.user.name}`, body: String(body).slice(0, 140), relatedType: "messages", relatedId: String(row.id),
       scheduledAt: deferredUntil,
     });

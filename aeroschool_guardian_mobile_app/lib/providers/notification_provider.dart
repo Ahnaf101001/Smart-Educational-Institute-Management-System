@@ -33,7 +33,10 @@ class NotificationProvider extends ChangeNotifier {
   void startPolling() {
     _timer?.cancel();
     refreshCount();
-    _timer = Timer.periodic(AppConfig.notificationPollInterval, (_) => refreshCount());
+    _timer = Timer.periodic(
+      AppConfig.notificationPollInterval,
+      (_) => refreshCount(),
+    );
   }
 
   void stopPolling() {
@@ -44,7 +47,9 @@ class NotificationProvider extends ChangeNotifier {
   Future<void> refreshCount() async {
     try {
       final n = await service.unreadCount();
-      if (n > _unread && _unread >= 0 && _items.isNotEmpty) onNewNotifications?.call(n - _unread);
+      if (n > _unread && _unread >= 0 && _items.isNotEmpty) {
+        onNewNotifications?.call(n - _unread);
+      }
       if (n != _unread) {
         _unread = n;
         notifyListeners();
@@ -74,18 +79,20 @@ class NotificationProvider extends ChangeNotifier {
       await service.markNotificationsRead();
       _unread = 0;
       _items = _items
-          .map((n) => n.isUnread
-              ? AppNotification(
-                  id: n.id,
-                  title: n.title,
-                  body: n.body,
-                  eventType: n.eventType,
-                  studentId: n.studentId,
-                  studentName: n.studentName,
-                  createdAt: n.createdAt,
-                  readAt: DateTime.now(),
-                )
-              : n)
+          .map(
+            (n) => n.isUnread
+                ? AppNotification(
+                    id: n.id,
+                    title: n.title,
+                    body: n.body,
+                    eventType: n.eventType,
+                    studentId: n.studentId,
+                    studentName: n.studentName,
+                    createdAt: n.createdAt,
+                    readAt: DateTime.now(),
+                  )
+                : n,
+          )
           .toList();
       notifyListeners();
     } on ApiException catch (e) {

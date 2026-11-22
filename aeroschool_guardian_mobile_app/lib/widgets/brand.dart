@@ -12,14 +12,18 @@ class BrandMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: light ? Colors.white : AppColors.navy,
-          borderRadius: BorderRadius.circular(size * 0.28),
-        ),
-        child: Icon(Icons.school_rounded, size: size * 0.58, color: light ? AppColors.navy : Colors.white),
-      );
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      color: light ? Colors.white : AppColors.navy,
+      borderRadius: BorderRadius.circular(size * 0.28),
+    ),
+    child: Icon(
+      Icons.school_rounded,
+      size: size * 0.58,
+      color: light ? AppColors.navy : Colors.white,
+    ),
+  );
 }
 
 /// School logo from the institution profile, falling back to the brand mark.

@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -8,6 +11,7 @@ import '../../models/child.dart';
 import '../../models/fees.dart';
 import '../../providers/family_provider.dart';
 import '../../services/api_exception.dart';
+import '../../services/deep_link_service.dart';
 import '../../services/file_service.dart';
 import '../../services/guardian_service.dart';
 import '../../widgets/async_view.dart';
@@ -37,7 +41,12 @@ class _FeesScreenState extends State<FeesScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text('Fees – ${widget.child.name}'),
-          bottom: const TabBar(tabs: [Tab(text: 'Dues & Pay'), Tab(text: 'Payment History')]),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Dues & Pay'),
+              Tab(text: 'Payment History'),
+            ],
+          ),
         ),
         body: AsyncView<FeeOverview>(
           key: ValueKey(_version),
@@ -46,16 +55,27 @@ class _FeesScreenState extends State<FeesScreen> {
             if (fees.hidden) {
               return Padding(
                 padding: const EdgeInsets.all(16),
-                child: AccessNotice(message: fees.message ?? 'Fee information is not shared with your account.'),
+                child: AccessNotice(
+                  message:
+                      fees.message ??
+                      'Fee information is not shared with your account.',
+                ),
               );
             }
-            return TabBarView(children: [
-              _DuesTab(child: widget.child, fees: fees, onRefresh: reload, onPaid: () {
-                setState(() => _version++);
-                context.read<FamilyProvider>().load(silent: true);
-              }),
-              _HistoryTab(fees: fees, onRefresh: reload),
-            ]);
+            return TabBarView(
+              children: [
+                _DuesTab(
+                  child: widget.child,
+                  fees: fees,
+                  onRefresh: reload,
+                  onPaid: () {
+                    setState(() => _version++);
+                    context.read<FamilyProvider>().load(silent: true);
+                  },
+                ),
+                _HistoryTab(fees: fees, onRefresh: reload),
+              ],
+            );
           },
         ),
       ),
@@ -64,7 +84,12 @@ class _FeesScreenState extends State<FeesScreen> {
 }
 
 class _DuesTab extends StatefulWidget {
-  const _DuesTab({required this.child, required this.fees, required this.onRefresh, required this.onPaid});
+  const _DuesTab({
+    required this.child,
+    required this.fees,
+    required this.onRefresh,
+    required this.onPaid,
+  });
 
   final ChildSummary child;
   final FeeOverview fees;
@@ -76,30 +101,48 @@ class _DuesTab extends StatefulWidget {
 }
 
 class _DuesTabState extends State<_DuesTab> {
-  late Set<String> _selected = widget.fees.openInvoices.map((i) => i.id).toSet();
+  late Set<String> _selected = widget.fees.openInvoices
+      .map((i) => i.id)
+      .toSet();
 
   @override
   void didUpdateWidget(covariant _DuesTab oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.fees != widget.fees) _selected = widget.fees.openInvoices.map((i) => i.id).toSet();
+    if (oldWidget.fees != widget.fees) {
+      _selected = widget.fees.openInvoices.map((i) => i.id).toSet();
+    }
   }
 
-  num get _selectedTotal => widget.fees.openInvoices.where((i) => _selected.contains(i.id)).fold<num>(0, (s, i) => s + i.due);
+  num get _selectedTotal => widget.fees.openInvoices
+      .where((i) => _selected.contains(i.id))
+      .fold<num>(0, (s, i) => s + i.due);
 
   Future<void> _pay() async {
     final fees = widget.fees;
     if (_selected.isEmpty) return;
     if (fees.gateways.isEmpty) {
-      showSnack(context, 'Online payment is not enabled by the school yet. Please pay at the school office.', error: true);
+      showSnack(
+        context,
+        'Online payment is not enabled by the school yet. Please pay at the school office.',
+        error: true,
+      );
       return;
     }
-    final gateway = fees.gateways.length == 1 ? fees.gateways.first : await _pickGateway(fees.gateways);
+    final gateway = fees.gateways.length == 1
+        ? fees.gateways.first
+        : await _pickGateway(fees.gateways);
     if (gateway == null || !mounted) return;
     final service = context.read<GuardianService>();
     final files = context.read<FileService>();
     try {
-      final start = await service.startPayment(_selected.toList(), gateway);
-      final url = start.paymentUrl.startsWith('http') ? start.paymentUrl : '${AppConfig.webAppUrl}${start.paymentUrl}';
+      final start = await service.startPayment(
+        _selected.toList(),
+        gateway,
+        returnUrl: kIsWeb ? null : DeepLinkService.paymentReturnUrl,
+      );
+      final url = start.paymentUrl.startsWith('http')
+          ? start.paymentUrl
+          : '${AppConfig.webAppUrl}${start.paymentUrl}';
       final opened = await files.openUrl(url);
       if (!mounted) return;
       if (!opened) {
@@ -112,78 +155,66 @@ class _DuesTabState extends State<_DuesTab> {
     }
   }
 
-  Future<String?> _pickGateway(List<String> gateways) => showModalBottomSheet<String>(
+  Future<String?> _pickGateway(List<String> gateways) =>
+      showModalBottomSheet<String>(
         context: context,
         showDragHandle: true,
         builder: (ctx) => SafeArea(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Choose payment method', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
-            for (final g in gateways)
-              ListTile(
-                leading: const Icon(Icons.account_balance_wallet_outlined),
-                title: Text(_gatewayLabel(g)),
-                onTap: () => Navigator.pop(ctx, g),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'Choose payment method',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                ),
               ),
-            const SizedBox(height: 8),
-          ]),
+              for (final g in gateways)
+                ListTile(
+                  leading: const Icon(Icons.account_balance_wallet_outlined),
+                  title: Text(_gatewayLabel(g)),
+                  onTap: () => Navigator.pop(ctx, g),
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       );
 
   static String _gatewayLabel(String g) => switch (g.toLowerCase()) {
-        'bkash' => 'bKash',
-        'nagad' => 'Nagad',
-        'rocket' => 'Rocket',
-        'sslcommerz' => 'Card / Mobile banking (SSLCommerz)',
-        _ => g,
-      };
+    'bkash' => 'bKash',
+    'nagad' => 'Nagad',
+    'rocket' => 'Rocket',
+    'sslcommerz' => 'Card / Mobile banking (SSLCommerz)',
+    _ => g,
+  };
 
   /// After the gateway page, verify the transaction on the server before
-  /// showing the fee as paid (workflow §7 steps 6–8).
+  /// showing the fee as paid (workflow §7 steps 6–8). Verification starts by itself
+  /// when the gateway redirects back to the app (deep link) and is also polled.
   Future<void> _awaitConfirmation(String transactionId, num amount) async {
     final service = context.read<GuardianService>();
-    await showDialog<void>(
+    final deepLinks = context.read<DeepLinkService>();
+    final paid = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) {
-        var checking = false;
-        String? status;
-        return StatefulBuilder(builder: (ctx, setLocal) {
-          Future<void> check() async {
-            setLocal(() => checking = true);
-            try {
-              final s = await service.paymentStatus(transactionId);
-              setLocal(() => status = s.status);
-              if (s.status == 'Success' && s.posted && ctx.mounted) {
-                Navigator.pop(ctx);
-                widget.onPaid();
-                if (mounted) showSnack(context, 'Payment successful. Your receipt is in Payment History.');
-              }
-            } on ApiException catch (e) {
-              setLocal(() => status = e.message);
-            } finally {
-              setLocal(() => checking = false);
-            }
-          }
-
-          return AlertDialog(
-            title: const Text('Complete your payment'),
-            content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Amount: ${Fmt.money(amount)}'),
-              const SizedBox(height: 8),
-              const Text('Finish the payment on the gateway page, then come back and tap "Check status".'),
-              if (status != null) ...[
-                const SizedBox(height: 12),
-                Row(children: [const Text('Status: '), StatusChip(status!)]),
-              ],
-            ]),
-            actions: [
-              TextButton(onPressed: checking ? null : () => Navigator.pop(ctx), child: const Text('Close')),
-              FilledButton(onPressed: checking ? null : check, child: Text(checking ? 'Checking…' : 'Check status')),
-            ],
-          );
-        });
-      },
+      builder: (_) => _PaymentConfirmDialog(
+        service: service,
+        deepLinks: deepLinks,
+        transactionId: transactionId,
+        amount: amount,
+      ),
     );
+    if (paid == true) {
+      widget.onPaid();
+      if (mounted) {
+        showSnack(
+          context,
+          'Payment successful. Your receipt is in Payment History.',
+        );
+      }
+    }
   }
 
   @override
@@ -194,93 +225,358 @@ class _DuesTabState extends State<_DuesTab> {
     for (final i in open) {
       categories[i.category] = (categories[i.category] ?? 0) + i.due;
     }
-    return Column(children: [
-      Expanded(
-        child: RefreshIndicator(
-          onRefresh: widget.onRefresh,
-          child: ListView(padding: const EdgeInsets.all(16), children: [
-            StatGrid(children: [
-              StatTile(label: 'Total Payable', value: Fmt.money(fees.totalPayable), icon: Icons.account_balance_wallet_outlined, color: fees.totalPayable > 0 ? AppColors.danger : AppColors.success),
-              StatTile(label: 'Previous Due', value: Fmt.money(fees.previousDue), icon: Icons.history_rounded, color: AppColors.warning),
-              StatTile(label: 'This Month', value: Fmt.money(fees.currentMonthDue), icon: Icons.calendar_month_outlined),
-              StatTile(label: 'Total Paid', value: Fmt.money(fees.totalPaid), icon: Icons.verified_outlined, color: AppColors.success),
-            ]),
-            if (open.any((i) => i.isOverdue)) ...[
-              const SizedBox(height: 12),
-              const AccessNotice(icon: Icons.notifications_active_outlined, message: 'Fee reminder: some fees are past their due date. Please pay to avoid late fines.'),
-            ],
-            if (categories.isNotEmpty) ...[
-              const SectionTitle('Due by Fee Type'),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  child: Column(children: [for (final e in categories.entries) InfoRow(label: e.key, value: Fmt.money(e.value))]),
+    return Column(
+      children: [
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: widget.onRefresh,
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                StatGrid(
+                  children: [
+                    StatTile(
+                      label: 'Total Payable',
+                      value: Fmt.money(fees.totalPayable),
+                      icon: Icons.account_balance_wallet_outlined,
+                      color: fees.totalPayable > 0
+                          ? AppColors.danger
+                          : AppColors.success,
+                    ),
+                    StatTile(
+                      label: 'Previous Due',
+                      value: Fmt.money(fees.previousDue),
+                      icon: Icons.history_rounded,
+                      color: AppColors.warning,
+                    ),
+                    StatTile(
+                      label: 'This Month',
+                      value: Fmt.money(fees.currentMonthDue),
+                      icon: Icons.calendar_month_outlined,
+                    ),
+                    StatTile(
+                      label: 'Total Paid',
+                      value: Fmt.money(fees.totalPaid),
+                      icon: Icons.verified_outlined,
+                      color: AppColors.success,
+                    ),
+                  ],
                 ),
-              ),
-            ],
-            SectionTitle('Unpaid Fees (${open.length})'),
-            if (open.isEmpty)
-              const Card(child: EmptyView(title: 'All fees are paid', subtitle: 'Thank you!', icon: Icons.verified_rounded))
-            else
-              Card(
-                child: Column(children: [
-                  for (final i in open)
-                    CheckboxListTile(
-                      value: _selected.contains(i.id),
-                      onChanged: (v) => setState(() => v == true ? _selected.add(i.id) : _selected.remove(i.id)),
-                      title: Text(i.feeHead, style: const TextStyle(fontWeight: FontWeight.w700)),
-                      subtitle: Text([
-                        if (i.billingMonth != null) Fmt.monthLabel(Fmt.month(i.billingMonth!)),
-                        if (i.dueDate != null) 'Due ${Fmt.date(i.dueDate)}',
-                        if (i.lateFine > 0) 'Late fine ${Fmt.money(i.lateFine)}',
-                        if (i.discount > 0) 'Discount ${Fmt.money(i.discount)}',
-                      ].join(' • ')),
-                      secondary: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
-                        Text(Fmt.money(i.due), style: const TextStyle(fontWeight: FontWeight.w800)),
-                        if (i.isOverdue) const Text('Overdue', style: TextStyle(color: AppColors.danger, fontSize: 11, fontWeight: FontWeight.w700)),
-                      ]),
+                if (open.any((i) => i.isOverdue)) ...[
+                  const SizedBox(height: 12),
+                  const AccessNotice(
+                    icon: Icons.notifications_active_outlined,
+                    message: 'Fee reminder: some fees are past their due date. Please pay to avoid late fines.',
+                  ),
+                ],
+                if (categories.isNotEmpty) ...[
+                  const SectionTitle('Due by Fee Type'),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
+                      child: Column(
+                        children: [
+                          for (final e in categories.entries)
+                            InfoRow(label: e.key, value: Fmt.money(e.value)),
+                        ],
+                      ),
                     ),
-                ]),
-              ),
-            if (fees.discounts.isNotEmpty) ...[
-              const SectionTitle('Discount / Scholarship'),
-              Card(
-                child: Column(children: [
-                  for (final d in fees.discounts)
-                    ListTile(
-                      leading: const Icon(Icons.card_giftcard_rounded, color: AppColors.success),
-                      title: Text('${d.type} – ${d.valueLabel}', style: const TextStyle(fontWeight: FontWeight.w700)),
-                      subtitle: Text([
-                        d.feeHead ?? 'All fees',
-                        if (d.validTo != null) 'until ${Fmt.date(d.validTo)}',
-                        ?d.reason,
-                      ].join(' • ')),
+                  ),
+                ],
+                SectionTitle('Unpaid Fees (${open.length})'),
+                if (open.isEmpty)
+                  const Card(
+                    child: EmptyView(
+                      title: 'All fees are paid',
+                      subtitle: 'Thank you!',
+                      icon: Icons.verified_rounded,
                     ),
-                ]),
-              ),
-            ],
-          ]),
-        ),
-      ),
-      if (open.isNotEmpty)
-        SafeArea(
-          top: false,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-            decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: AppColors.border))),
-            child: Row(children: [
-              Expanded(
-                child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('${_selected.length} selected', style: const TextStyle(color: AppColors.muted, fontSize: 12)),
-                  Text(Fmt.money(_selectedTotal), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-                ]),
-              ),
-              FilledButton.icon(onPressed: _selected.isEmpty ? null : _pay, icon: const Icon(Icons.lock_outline), label: const Text('Pay Now')),
-            ]),
+                  )
+                else
+                  Card(
+                    child: Column(
+                      children: [
+                        for (final i in open)
+                          CheckboxListTile(
+                            value: _selected.contains(i.id),
+                            onChanged: (v) => setState(
+                              () => v == true
+                                  ? _selected.add(i.id)
+                                  : _selected.remove(i.id),
+                            ),
+                            title: Text(
+                              i.feeHead,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            subtitle: Text(
+                              [
+                                if (i.billingMonth != null)
+                                  Fmt.monthLabel(Fmt.month(i.billingMonth!)),
+                                if (i.dueDate != null)
+                                  'Due ${Fmt.date(i.dueDate)}',
+                                if (i.lateFine > 0)
+                                  'Late fine ${Fmt.money(i.lateFine)}',
+                                if (i.discount > 0)
+                                  'Discount ${Fmt.money(i.discount)}',
+                              ].join(' • '),
+                            ),
+                            secondary: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  Fmt.money(i.due),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                if (i.isOverdue)
+                                  const Text(
+                                    'Overdue',
+                                    style: TextStyle(
+                                      color: AppColors.danger,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                if (fees.discounts.isNotEmpty) ...[
+                  const SectionTitle('Discount / Scholarship'),
+                  Card(
+                    child: Column(
+                      children: [
+                        for (final d in fees.discounts)
+                          ListTile(
+                            leading: const Icon(
+                              Icons.card_giftcard_rounded,
+                              color: AppColors.success,
+                            ),
+                            title: Text(
+                              '${d.type} – ${d.valueLabel}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            subtitle: Text(
+                              [
+                                d.feeHead ?? 'All fees',
+                                if (d.validTo != null)
+                                  'until ${Fmt.date(d.validTo)}',
+                                ?d.reason,
+                              ].join(' • '),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
-    ]);
+        if (open.isNotEmpty)
+          SafeArea(
+            top: false,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: AppColors.border)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${_selected.length} selected',
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          Fmt.money(_selectedTotal),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  FilledButton.icon(
+                    onPressed: _selected.isEmpty ? null : _pay,
+                    icon: const Icon(Icons.lock_outline),
+                    label: const Text('Pay Now'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
   }
+}
+
+/// Waits for payment confirmation: reacts to the `aeroschool://payment-return` deep link,
+/// polls the server every few seconds (also covers returning to the app manually) and
+/// keeps a manual "Check status" button as fallback. Pops `true` once the payment is posted.
+class _PaymentConfirmDialog extends StatefulWidget {
+  const _PaymentConfirmDialog({
+    required this.service,
+    required this.deepLinks,
+    required this.transactionId,
+    required this.amount,
+  });
+
+  final GuardianService service;
+  final DeepLinkService deepLinks;
+  final String transactionId;
+  final num amount;
+
+  @override
+  State<_PaymentConfirmDialog> createState() => _PaymentConfirmDialogState();
+}
+
+class _PaymentConfirmDialogState extends State<_PaymentConfirmDialog> {
+  static const _pollEvery = Duration(seconds: 4);
+  static const _pollFor = Duration(minutes: 5);
+
+  Timer? _timer;
+  final _started = DateTime.now();
+  bool _checking = false;
+  String? _status;
+  String? _note;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.deepLinks.addListener(_onDeepLink);
+    _timer = Timer.periodic(_pollEvery, (_) {
+      if (DateTime.now().difference(_started) > _pollFor) {
+        _timer?.cancel();
+        if (mounted) {
+          setState(
+            () => _note = 'Still waiting. Tap "Check status" after completing the payment.',
+          );
+        }
+        return;
+      }
+      _check(silent: true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    widget.deepLinks.removeListener(_onDeepLink);
+    super.dispose();
+  }
+
+  void _onDeepLink() {
+    final link = widget.deepLinks.paymentReturn;
+    if (link == null) return;
+    final id = link.queryParameters['id'];
+    if (id != null && id.isNotEmpty && id != widget.transactionId) {
+      return; // another payment
+    }
+    widget.deepLinks.takePaymentReturn();
+    final s = link.queryParameters['status'];
+    if (s == 'failed' || s == 'cancelled') {
+      setState(
+        () => _note = s == 'failed'
+            ? 'The gateway reported a failed payment.'
+            : 'The payment was cancelled.',
+      );
+    }
+    _check();
+  }
+
+  Future<void> _check({bool silent = false}) async {
+    if (_checking) return;
+    if (!silent) setState(() => _checking = true);
+    _checking = true;
+    try {
+      final s = await widget.service.paymentStatus(widget.transactionId);
+      if (!mounted) return;
+      setState(() => _status = s.status);
+      if (s.status == 'Success' && s.posted) {
+        _timer?.cancel();
+        Navigator.pop(context, true);
+      } else if (s.status == 'Failed' || s.status == 'Cancelled') {
+        _timer?.cancel();
+      }
+    } on ApiException catch (e) {
+      if (mounted && !silent) setState(() => _status = e.message);
+    } finally {
+      _checking = false;
+      if (mounted && !silent) setState(() {});
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Complete your payment'),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Amount: ${Fmt.money(widget.amount)}'),
+        const SizedBox(height: 8),
+        const Text(
+          'Finish the payment on the gateway page. The app confirms it automatically when you return.',
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            if (_status == null || _status == 'Pending') ...[
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(width: 8),
+              const Flexible(child: Text('Waiting for confirmation…')),
+            ] else ...[
+              const Text('Status: '),
+              Flexible(child: StatusChip(_status!)),
+            ],
+          ],
+        ),
+        if (_note != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              _note!,
+              style: const TextStyle(color: AppColors.muted, fontSize: 13),
+            ),
+          ),
+      ],
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context, false),
+        child: const Text('Close'),
+      ),
+      FilledButton(
+        onPressed: _checking ? null : () => _check(),
+        child: Text(_checking ? 'Checking…' : 'Check status'),
+      ),
+    ],
+  );
 }
 
 class _HistoryTab extends StatelessWidget {
@@ -294,43 +590,81 @@ class _HistoryTab extends StatelessWidget {
     final paid = fees.invoices.where((i) => !i.isOpen).toList();
     return RefreshIndicator(
       onRefresh: onRefresh,
-      child: ListView(padding: const EdgeInsets.all(16), children: [
-        const SectionTitle('Payments & Receipts'),
-        Card(
-          child: fees.payments.isEmpty
-              ? const EmptyView(title: 'No payments yet', icon: Icons.receipt_long_outlined)
-              : Column(children: [
-                  for (final p in fees.payments)
-                    ListTile(
-                      leading: const Icon(Icons.receipt_long_rounded, color: AppColors.navy),
-                      title: Text(Fmt.money(p.amount), style: const TextStyle(fontWeight: FontWeight.w800)),
-                      subtitle: Text([p.feeHead, p.method, Fmt.date(p.paidAt)].whereType<String>().join(' • ')),
-                      trailing: p.receiptNo == null
-                          ? StatusChip(p.status)
-                          : Row(mainAxisSize: MainAxisSize.min, children: [
-                              if (!p.isValid) StatusChip(p.status),
-                              const Icon(Icons.chevron_right),
-                            ]),
-                      onTap: p.receiptNo == null
-                          ? null
-                          : () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => ReceiptScreen(receiptNo: p.receiptNo!))),
-                    ),
-                ]),
-        ),
-        if (paid.isNotEmpty) ...[
-          const SectionTitle('Paid Fees'),
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const SectionTitle('Payments & Receipts'),
           Card(
-            child: Column(children: [
-              for (final i in paid)
-                ListTile(
-                  title: Text(i.feeHead),
-                  subtitle: Text(i.billingMonth == null ? i.category : Fmt.monthLabel(Fmt.month(i.billingMonth!))),
-                  trailing: Text(Fmt.money(i.amount + i.lateFine - i.discount), style: const TextStyle(fontWeight: FontWeight.w700)),
-                ),
-            ]),
+            child: fees.payments.isEmpty
+                ? const EmptyView(
+                    title: 'No payments yet',
+                    icon: Icons.receipt_long_outlined,
+                  )
+                : Column(
+                    children: [
+                      for (final p in fees.payments)
+                        ListTile(
+                          leading: const Icon(
+                            Icons.receipt_long_rounded,
+                            color: AppColors.navy,
+                          ),
+                          title: Text(
+                            Fmt.money(p.amount),
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          subtitle: Text(
+                            [
+                              p.feeHead,
+                              p.method,
+                              Fmt.date(p.paidAt),
+                            ].whereType<String>().join(' • '),
+                          ),
+                          trailing: p.receiptNo == null
+                              ? StatusChip(p.status)
+                              : Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (!p.isValid) StatusChip(p.status),
+                                    const Icon(Icons.chevron_right),
+                                  ],
+                                ),
+                          onTap: p.receiptNo == null
+                              ? null
+                              : () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute<void>(
+                                    builder: (_) =>
+                                        ReceiptScreen(receiptNo: p.receiptNo!),
+                                  ),
+                                ),
+                        ),
+                    ],
+                  ),
           ),
+          if (paid.isNotEmpty) ...[
+            const SectionTitle('Paid Fees'),
+            Card(
+              child: Column(
+                children: [
+                  for (final i in paid)
+                    ListTile(
+                      title: Text(i.feeHead),
+                      subtitle: Text(
+                        i.billingMonth == null
+                            ? i.category
+                            : Fmt.monthLabel(Fmt.month(i.billingMonth!)),
+                      ),
+                      trailing: Text(
+                        Fmt.money(i.amount + i.lateFine - i.discount),
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
         ],
-      ]),
+      ),
     );
   }
 }

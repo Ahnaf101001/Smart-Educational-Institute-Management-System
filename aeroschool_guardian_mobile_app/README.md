@@ -19,7 +19,7 @@ Built from the three AeroSchool specification documents (Guardian App Spec, Full
 | Exams & results | Exam routine, results with subject-wise marks, GPA/grade/position, marksheet PDF, progress report |
 | Fees | Total payable, previous due, this month, fee categories, discounts/scholarships, online payment, payment history, receipt PDF |
 | Transport | Bus, route, pickup/drop-off, driver contact, schedule, last GPS position (open in Maps) |
-| Notifications | Each item names the child; filter by child and by type; unread badge; checked every 60 s while the app is open |
+| Notifications | Each item names the child; filter by child and by type; unread badge; background push (Firebase) plus 60 s checks while open; teacher message inbox |
 | Profile & support | Contact and address editing, notification preferences, other guardian contacts, school contact, leave application, complaints/feedback, document downloads, change password, sign out (this device or all) |
 
 The server enforces data isolation: a guardian only receives data for students linked to the account,
@@ -57,12 +57,22 @@ flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:4001/api/v1
 For `flutter run -d chrome` against the API directly, add the dev origin to `CORS_ORIGIN` in `backend/.env`.
 
 Release builds need an HTTPS API. Plain HTTP is only allowed in Android debug builds and for
-local networking on iOS.
+local networking on iOS. A release build without a valid `API_BASE_URL` shows an
+"App configuration missing" screen instead of silently using a development address.
+
+Build settings live in JSON files passed with `--dart-define-from-file` (real files are git-ignored):
 
 ```bash
-flutter build apk --release --dart-define=API_BASE_URL=https://school.example.com/api/v1
-flutter build ipa --release --dart-define=API_BASE_URL=https://school.example.com/api/v1
+cp env/production.example.json env/production.json   # fill in the server URL and Firebase values
+flutter build apk --release --dart-define-from-file=env/production.json
+flutter build appbundle --release --dart-define-from-file=env/production.json   # Play Store
+flutter build ipa --release --dart-define-from-file=env/production.json
+# Same-Wi-Fi phone test (debug build, plain HTTP):
+flutter build apk --debug --dart-define-from-file=env/lan-test.example.json
 ```
+
+Play Store releases are signed with the key in `android/key.properties` (see
+`android/key.properties.example`); without it release builds use the debug key.
 
 ## Docker (web build)
 
@@ -92,9 +102,50 @@ Added for this app (migration `backend/sql/009_guardian_mobile_app.sql`):
 - `GET|PATCH /portal/guardian/profile`, `GET /portal/guardian/school`, `GET /portal/guardian/students/:id/{profile,documents}`, `GET …/documents/:docId/file`, `GET /portal/guardian/receipts/:receiptNo`, `GET /portal/guardian/leave-types`, `GET /portal/guardian/notifications/unread-count`, `POST /portal/guardian/notifications/read`
 - First-login password enforcement (`users.must_change_password`), per-link `can_view_results` / `can_view_fees`, `ACCOUNT_INACTIVE` login code, and guardian-scoped `GET /fees/online/:id`.
 
+Added for the gap closure (migration `backend/sql/010_guardian_app_gap_closure.sql`):
+
+- `POST|DELETE /portal/guardian/devices` (push tokens), `GET /portal/guardian/students/:id/bus-location`,
+  `POST /guardians/:id/remove` (anonymize / delete policy), `POST /ops/transport/arrivals` (manual bus arrival),
+  `GET /public/payments/return-target/:id`; `returnUrl` on `POST /fees/online/initiate`; `client: "app"` on
+  `POST /auth/password/forgot`.
+- Automatic guardian notifications: homework / class test published, exam routine published, public school
+  events, teacher replies, entry / exit (when enabled), bus arrival (GPS geofence on route stops with `lat`/`lng`).
+- Settings `show_class_position` and `show_teacher_phone_to_guardians` (System settings → Guardian app visibility).
+- Student transfer / drop / pass-out disables guardian access automatically (restored if the student returns).
+
 ## Push notifications
 
-The app polls for new notifications every 60 seconds while it is open and shows an in-app alert.
-Background push (FCM/APNs) needs a Firebase project and server key, which this repository does not
-contain. Add `firebase_messaging` and a backend sender once those credentials exist. SMS and email
-alerts keep working through the backend's existing notification queue.
+The app checks for new notifications every 60 seconds while it is open. Background push uses
+Firebase Cloud Messaging and turns on when both sides are configured:
+
+1. **Firebase project** → add an Android app with package `com.aeroschool.aeroschool_guardian_mobile_app`
+   (and an iOS app if needed). No `google-services.json` is committed; pass the values at build time via
+   `env/production.json`: `FIREBASE_API_KEY`, `FIREBASE_APP_ID`, `FIREBASE_MESSAGING_SENDER_ID`,
+   `FIREBASE_PROJECT_ID` (+ `FIREBASE_IOS_BUNDLE_ID`). iOS additionally needs an APNs key uploaded to Firebase
+   and the Push Notifications capability in Xcode.
+2. **Backend**: Firebase console → Service accounts → Generate new private key, then set
+   `FCM_SERVICE_ACCOUNT_FILE` (or `FCM_SERVICE_ACCOUNT_JSON`) in `backend/.env`.
+
+The app registers its token after login and removes it on logout. Every in-app notification to a guardian
+is then pushed to their phones (guardians can turn push off; emergency alerts are always sent).
+
+## Deep links
+
+The app handles `aeroschool://` links:
+
+- `aeroschool://payment-return?status=…&id=…`: the backend returns the payer here after bKash / Nagad /
+  SSLCommerz (or the sandbox); the app verifies the payment automatically (it also polls while waiting).
+- `aeroschool://reset-password?token=…`: included in reset emails requested from the app; opens the in-app
+  reset screen. The website's reset page also offers "Open in the app".
+
+## Language
+
+English and বাংলা (`lib/l10n/app_en.arb`, `app_bn.arb`, regenerate with `flutter gen-l10n`). The app follows the
+phone's language until the guardian picks one on the login or profile screen. Navigation, login, both
+dashboards, modules, notifications and profile are translated; detail screens are still English.
+
+## Email (SMTP)
+
+Guardian credentials and reset links are emailed through the backend queue. Configure `EMAIL_HOST`,
+`EMAIL_PORT`, `EMAIL_SECURE`, `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_FROM` in `backend/.env` and verify with
+`npm run check:smtp -- you@example.com`.

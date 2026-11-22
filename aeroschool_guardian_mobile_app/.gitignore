@@ -49,3 +49,7 @@ app.*.map.json
 
 # Built APKs handed out for testing (large binaries, not source)
 /release/
+
+# Real build configs (copy from env/*.example.json); keep secrets out of git
+/env/*.json
+!/env/*.example.json

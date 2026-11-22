@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { http } from "../../lib/api";
 import { Badge, money, today } from "../ui/kit";
+import GuardianManagePanel from "../guardians/GuardianManagePanel";
 
 // Relation helpers ------------------------------------------------------------
 const REL = {
@@ -72,9 +73,11 @@ export const CONFIGS = {
       { key: "altMobile", label: "Alternate mobile" }, { key: "email", label: "Email", inputType: "email" }, { key: "nid", label: "NID" },
       { key: "occupation", label: "Occupation" }, { key: "incomeRange", label: "Income range", type: "select", options: ["< 15,000", "15,000–30,000", "30,000–60,000", "> 60,000"] },
       { key: "emergencyContact", label: "Emergency contact" }, { key: "address", label: "Address", type: "textarea", wide: true },
+      { key: "photoUrl", label: "Profile photo (optional)", type: "image", category: "photo" },
       { key: "portalAccess", label: "Portal access", type: "checkbox", default: true }, { key: "status", label: "Status", type: "select", options: STATUS, default: "Active" },
     ],
-    rowActions: (r, { toast, ask, reload }) => [
+    rowActions: (r, { toast, ask, reload, openPanel }) => [
+      { label: "Manage", icon: Users, variant: "primary", onClick: () => openPanel({ title: `Manage guardian – ${r.name}`, render: (close) => <GuardianManagePanel guardian={r} onClose={close} /> }) },
       { label: "App account", icon: Smartphone, onClick: async () => {
         // AeroSchool Guardian Mobile App: admin-created email login with a temporary password.
         const email = await ask({ title: "Guardian app login email", message: `Login email for ${r.name}. Guardians cannot sign up themselves.`, placeholder: "guardian@example.com", defaultValue: r.email || "" });
@@ -185,8 +188,8 @@ export const CONFIGS = {
     subtitle: "Create, attach and publish homework per class/section (AC-11, TA-05). Visible to guardians.",
     columns: [{ key: "title", label: "Title" }, { key: "kind", label: "Type" }, { key: "classId", label: "Class" }, { key: "section", label: "Section" },
       { key: "subjectId", label: "Subject" }, { key: "dueDate", label: "Due", type: "date" }, { key: "status", label: "Status", type: "badge" }],
-    filters: [{ key: "classId", label: "Class", relation: REL.class }, { key: "kind", label: "Type", options: ["Homework", "Assignment", "Project"] }],
-    fields: [{ key: "title", label: "Title", required: true, wide: true }, { key: "kind", label: "Type", type: "select", options: ["Homework", "Assignment", "Project"], default: "Homework" },
+    filters: [{ key: "classId", label: "Class", relation: REL.class }, { key: "kind", label: "Type", options: ["Homework", "Assignment", "Project", "Class Test"] }],
+    fields: [{ key: "title", label: "Title", required: true, wide: true }, { key: "kind", label: "Type", type: "select", options: ["Homework", "Assignment", "Project", "Class Test"], default: "Homework" },
       rel("class", "classId", "Class", { required: true }), { key: "section", label: "Section" }, rel("subject", "subjectId", "Subject"), rel("teacher", "teacherId", "Teacher"),
       { key: "assignedDate", label: "Assigned", type: "date", default: () => today() }, { key: "dueDate", label: "Due date", type: "date" },
       { key: "totalMarks", label: "Marks", type: "number" }, { key: "attachmentUrl", label: "Attachment URL", wide: true },
@@ -532,13 +535,13 @@ export const CONFIGS = {
     columns: [{ key: "name", label: "Route" }, { key: "vehicleId", label: "Vehicle" }, { key: "stops", label: "Stops", render: (r) => (r.stops || []).map((s) => s.name).join(" → ") }, { key: "monthlyFare", label: "Fare", type: "money" }, { key: "morningDeparture", label: "Departs" }],
     fields: [{ key: "name", label: "Route name", required: true }, rel("vehicle", "vehicleId", "Vehicle"), { key: "monthlyFare", label: "Monthly fare", type: "money", default: 0 },
       { key: "morningDeparture", label: "Morning departure", type: "time" }, { key: "eveningDeparture", label: "Evening departure", type: "time" },
-      { key: "stops", label: "Stops (JSON)", type: "json", wide: true, default: [{ name: "Stop 1", time: "07:00", fare: 0 }] }],
+      { key: "stops", label: "Stops (JSON)", type: "json", wide: true, default: [{ name: "Stop 1", time: "07:00", fare: 0, lat: null, lng: null }], hint: "Add lat / lng (and optional radius in metres) to a stop to send automatic bus-arrival alerts to guardians." }],
   },
   transportAssignments: {
     title: "Student Transport Assignment", singular: "Assignment", endpoint: "/transport-assignments", module: "transport",
-    columns: [{ key: "studentId", label: "Student" }, { key: "routeId", label: "Route" }, { key: "stopName", label: "Stop" }, { key: "monthlyFee", label: "Fee", type: "money" }, { key: "status", label: "Status", type: "badge" }],
+    columns: [{ key: "studentId", label: "Student" }, { key: "routeId", label: "Route" }, { key: "stopName", label: "Pickup stop" }, { key: "dropoffStop", label: "Drop-off stop" }, { key: "monthlyFee", label: "Fee", type: "money" }, { key: "status", label: "Status", type: "badge" }],
     filters: [{ key: "routeId", label: "Route", relation: REL.route }],
-    fields: [rel("student", "studentId", "Student", { required: true }), rel("route", "routeId", "Route", { required: true }), { key: "stopName", label: "Stop" },
+    fields: [rel("student", "studentId", "Student", { required: true }), rel("route", "routeId", "Route", { required: true }), { key: "stopName", label: "Pickup stop" }, { key: "dropoffStop", label: "Drop-off stop", hint: "Leave empty when the child is dropped at the pickup stop." },
       { key: "monthlyFee", label: "Monthly fee", type: "money", default: 0 }, { key: "startDate", label: "Start date", type: "date" }, { key: "status", label: "Status", type: "select", options: STATUS, default: "Active" }],
   },
   halaqas: {

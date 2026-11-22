@@ -221,6 +221,11 @@ function PoliciesTab() {
           {chk("notifyEntryExit", "Entry / exit alerts from devices")}{chk("notifyResult", "Result published notification")}
           {chk("notifyFeeReminder", "Automatic fee reminders")}
         </div>
+        <p className="mt-4 text-xs font-bold uppercase tracking-wide text-slate-500">Guardian app visibility</p>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          {chk("showClassPosition", "Show class / section position in results")}
+          {chk("showTeacherPhoneToGuardians", "Show teacher phone numbers to guardians")}
+        </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <Field label="SMS sender ID"><Input value={s.smsSenderId || ""} onChange={(e) => set("smsSenderId", e.target.value)} /></Field>
           <Field label="SMS provider"><Input value={s.smsProvider || ""} onChange={(e) => set("smsProvider", e.target.value)} placeholder="e.g. BulkSMSBD" /></Field>

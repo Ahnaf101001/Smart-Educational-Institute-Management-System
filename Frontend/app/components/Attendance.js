@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  LogOut,
   TrendingUp,
   Users,
   XCircle,
@@ -20,6 +21,8 @@ const statuses = [
   { id: "Present", label: "Present", color: "bg-emerald-500", text: "text-emerald-500", icon: CheckCircle2 },
   { id: "Absent", label: "Absent", color: "bg-red-500", text: "text-red-500", icon: XCircle },
   { id: "Late", label: "Late", color: "bg-amber-500", text: "text-amber-500", icon: Clock },
+  // Left school before the end of the day (counts as present; shown to guardians as early leave).
+  { id: "Early Leave", label: "Early leave", color: "bg-sky-500", text: "text-sky-500", icon: LogOut },
 ];
 
 function getInitials(name) {

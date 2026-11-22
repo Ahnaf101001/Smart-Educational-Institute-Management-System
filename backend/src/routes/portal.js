@@ -18,7 +18,7 @@ function requireGuardian(req) {
 async function assertLinked(guardianId, studentId) {
   const r = await query(
     `SELECT gs.* FROM guardian_students gs JOIN guardians g ON g.id = gs.guardian_id JOIN students s ON s.id = gs.student_id
-     WHERE gs.guardian_id = $1 AND gs.student_id = $2 AND gs.access_status = 'Enabled' AND g.portal_access AND s.status <> 'Archived'`,
+     WHERE gs.guardian_id = $1 AND gs.student_id = $2 AND gs.access_status = 'Enabled' AND g.portal_access AND s.status NOT IN ('Archived', 'Transferred', 'Dropped', 'Passed Out', 'Inactive')`,
     [guardianId, studentId],
   );
   if (!r.rowCount) throw httpError(403, "This student is not linked to your account.");
@@ -40,6 +40,12 @@ router.use("/guardian", asyncHandler(async (req, res, next) => {
   return next();
 }));
 
+// School-controlled visibility for guardians (Spec §1F class position, §1J teacher contact).
+async function guardianVisibility() {
+  const s = (await query("SELECT show_class_position, show_teacher_phone_to_guardians FROM system_settings WHERE id = 1")).rows[0] || {};
+  return { showPosition: s.show_class_position !== false, showTeacherPhone: s.show_teacher_phone_to_guardians !== false };
+}
+
 async function hideResultsOnDue(studentId) {
   const s = (await query("SELECT result_hide_on_due FROM system_settings WHERE id = 1")).rows[0];
   if (!s?.result_hide_on_due) return false;
@@ -60,7 +66,7 @@ router.get("/guardian/home", asyncHandler(async (req, res) => {
             (SELECT status FROM attendance a WHERE a.student_id = s.id AND a.attendance_date = $2) AS today_attendance,
             (SELECT in_time FROM attendance a WHERE a.student_id = s.id AND a.attendance_date = $2) AS today_in_time,
             (SELECT out_time FROM attendance a WHERE a.student_id = s.id AND a.attendance_date = $2) AS today_out_time,
-            (SELECT json_build_object('total', COUNT(*), 'present', COUNT(*) FILTER (WHERE a.status IN ('Present','Late')),
+            (SELECT json_build_object('total', COUNT(*), 'present', COUNT(*) FILTER (WHERE a.status IN ('Present','Late','Early Leave')),
                                       'absent', COUNT(*) FILTER (WHERE a.status = 'Absent'), 'late', COUNT(*) FILTER (WHERE a.status = 'Late'))
                FROM attendance a WHERE a.student_id = s.id AND to_char(a.attendance_date, 'YYYY-MM') = $3) AS month_attendance,
             CASE WHEN gs.can_view_fees THEN (SELECT COALESCE(SUM(amount + late_fine - discount - paid_amount),0) FROM fee_invoices i
@@ -81,10 +87,12 @@ router.get("/guardian/home", asyncHandler(async (req, res) => {
                WHERE r.student_id = s.id AND r.published AND gs.can_view_results ORDER BY r.published_at DESC NULLS LAST LIMIT 1) AS latest_result
      FROM guardian_students gs JOIN students s ON s.id = gs.student_id
      LEFT JOIN classes c ON c.id = s.class_id LEFT JOIN teachers t ON t.id = c.teacher_id
-     WHERE gs.guardian_id = $1 AND gs.access_status = 'Enabled' AND s.status <> 'Archived' ORDER BY s.name`,
+     WHERE gs.guardian_id = $1 AND gs.access_status = 'Enabled' AND s.status NOT IN ('Archived', 'Transferred', 'Dropped', 'Passed Out', 'Inactive') ORDER BY s.name`,
     [gid, today, localMonth(), dayName],
   )).rows;
+  const visibility = await guardianVisibility();
   for (const c of children) {
+    if (!visibility.showTeacherPhone) c.class_teacher_phone = null;
     const m = c.month_attendance || {};
     c.month_attendance_percentage = Number(m.total) ? Math.round((Number(m.present) / Number(m.total)) * 1000) / 10 : null;
   }
@@ -92,7 +100,7 @@ router.get("/guardian/home", asyncHandler(async (req, res) => {
     `SELECT es.exam_date, es.start_time, es.end_time, es.room, e.name AS exam_name, sub.name AS subject_name, s.id AS student_id, s.name AS student_name
      FROM guardian_students gs JOIN students s ON s.id = gs.student_id JOIN exam_schedules es ON es.class_id = s.class_id
      JOIN exams e ON e.id = es.exam_id JOIN subjects sub ON sub.id = es.subject_id
-     WHERE gs.guardian_id = $1 AND gs.access_status = 'Enabled' AND s.status <> 'Archived' AND es.exam_date >= $2
+     WHERE gs.guardian_id = $1 AND gs.access_status = 'Enabled' AND s.status NOT IN ('Archived', 'Transferred', 'Dropped', 'Passed Out', 'Inactive') AND es.exam_date >= $2
      ORDER BY es.exam_date, es.start_time NULLS LAST LIMIT 10`,
     [gid, today],
   )).rows;
@@ -128,16 +136,16 @@ router.get("/guardian/students/:id/attendance", asyncHandler(async (req, res) =>
     "SELECT attendance_date, status, in_time, out_time FROM attendance WHERE student_id = $1 AND to_char(attendance_date, 'YYYY-MM') = $2 ORDER BY attendance_date",
     [req.params.id, month],
   )).rows;
-  const present = rows.filter((r) => ["Present", "Late"].includes(r.status)).length;
+  const present = rows.filter((r) => ["Present", "Late", "Early Leave"].includes(r.status)).length;
   const count = (st) => rows.filter((r) => r.status === st).length;
   const summary = {
     total: rows.length, present, absent: count("Absent"), late: count("Late"), leave: count("Leave"),
-    earlyLeave: rows.filter((r) => r.status === "Early Leave" || /early/i.test(r.note || "")).length,
+    earlyLeave: count("Early Leave"),
   };
   // Six-month history for the attendance-history view.
   const history = (await query(
     `SELECT to_char(attendance_date, 'YYYY-MM') AS month, COUNT(*)::int AS total,
-            COUNT(*) FILTER (WHERE status IN ('Present','Late'))::int AS present, COUNT(*) FILTER (WHERE status = 'Absent')::int AS absent,
+            COUNT(*) FILTER (WHERE status IN ('Present','Late','Early Leave'))::int AS present, COUNT(*) FILTER (WHERE status = 'Absent')::int AS absent,
             COUNT(*) FILTER (WHERE status = 'Late')::int AS late
      FROM attendance WHERE student_id = $1 AND attendance_date >= (date_trunc('month', CURRENT_DATE) - INTERVAL '5 months')
      GROUP BY 1 ORDER BY 1 DESC`,
@@ -160,7 +168,9 @@ router.get("/guardian/students/:id/results", asyncHandler(async (req, res) => {
      WHERE r.student_id = $1 AND r.published ORDER BY r.published_at DESC`,
     [req.params.id],
   )).rows;
-  res.json({ success: true, data: keysToCamel(rows) });
+  const { showPosition } = await guardianVisibility();
+  if (!showPosition) for (const r of rows) { r.class_position = null; r.section_position = null; }
+  res.json({ success: true, data: keysToCamel(rows), positionVisible: showPosition });
 }));
 
 router.get("/guardian/students/:id/fees", asyncHandler(async (req, res) => {
@@ -252,7 +262,8 @@ router.get("/guardian/students/:id/extras", asyncHandler(async (req, res) => {
     query("SELECT COUNT(*) FILTER (WHERE status IN ('Done','Revised'))::int AS done FROM hifz_progress WHERE student_id = $1", [id]),
     query("SELECT h.*, t.name AS ustad_name FROM hifz_logs h LEFT JOIN teachers t ON t.id = h.ustad_id WHERE student_id = $1 ORDER BY log_date DESC LIMIT 7", [id]),
     query(`SELECT attendance_date, wakt, status FROM salah_attendance WHERE student_id = $1 AND attendance_date > CURRENT_DATE - 7 ORDER BY attendance_date, wakt`, [id]),
-    query(`SELECT ta.stop_name, r.name AS route_name, r.morning_departure, v.registration_no, v.driver_name, v.driver_phone,
+    query(`SELECT ta.stop_name, COALESCE(NULLIF(ta.dropoff_stop, ''), ta.stop_name) AS dropoff_stop, r.name AS route_name, r.morning_departure,
+             r.evening_departure, r.stops, v.registration_no, v.driver_name, v.driver_phone,
              (SELECT json_build_object('lat', latitude, 'lng', longitude, 'at', recorded_at) FROM vehicle_locations vl WHERE vl.vehicle_id = v.id ORDER BY recorded_at DESC LIMIT 1) AS location
            FROM transport_assignments ta JOIN transport_routes r ON r.id = ta.route_id LEFT JOIN transport_vehicles v ON v.id = r.vehicle_id
            WHERE ta.student_id = $1 AND ta.status = 'Active'`, [id]),
@@ -271,7 +282,8 @@ router.get("/guardian/students/:id/extras", asyncHandler(async (req, res) => {
     data: keysToCamel({
       hifz: { parasDone: hifz.rows[0]?.done || 0, logs: hifzLogs.rows },
       salah: salah.rows, transport: transport.rows[0] || null, library: library.rows, hostel: hostel.rows[0] || null,
-      leaves: leaves.rows, teachers: teachers.rows,
+      leaves: leaves.rows,
+      teachers: (await guardianVisibility()).showTeacherPhone ? teachers.rows : teachers.rows.map((t) => ({ ...t, phone: null })),
     }),
   });
 }));
@@ -293,6 +305,29 @@ router.get("/guardian/notifications", asyncHandler(async (req, res) => {
     await query("UPDATE message_logs SET read_at = NOW(), status = 'Read' WHERE recipient_type = 'Guardian' AND recipient_id = $1 AND channel = 'Portal' AND read_at IS NULL", [gid]);
   }
   res.json({ success: true, data: keysToCamel(rows) });
+}));
+
+// Push device registration (Guardian App H7). A token belongs to one guardian at a time:
+// re-registering on a shared phone moves it to the guardian who is signed in now.
+router.post("/guardian/devices", asyncHandler(async (req, res) => {
+  const gid = requireGuardian(req);
+  const token = String(req.body?.token || "").trim();
+  if (token.length < 20 || token.length > 4096) throw httpError(422, "A valid device token is required.");
+  const platform = ["android", "ios", "web"].includes(req.body?.platform) ? req.body.platform : null;
+  await query(
+    `INSERT INTO guardian_devices (user_id, guardian_id, token, platform, app_version) VALUES ($1,$2,$3,$4,$5)
+     ON CONFLICT (token) DO UPDATE SET user_id = EXCLUDED.user_id, guardian_id = EXCLUDED.guardian_id,
+       platform = EXCLUDED.platform, app_version = EXCLUDED.app_version, last_seen_at = NOW()`,
+    [req.user.id, gid, token, platform, String(req.body?.appVersion || "").slice(0, 40) || null],
+  );
+  res.status(201).json({ success: true, data: { registered: true, pushEnabled: require("../services/push").isConfigured() } });
+}));
+
+router.delete("/guardian/devices", asyncHandler(async (req, res) => {
+  requireGuardian(req);
+  const token = String(req.body?.token || req.query.token || "").trim();
+  if (token) await query("DELETE FROM guardian_devices WHERE token = $1 AND user_id = $2", [token, req.user.id]);
+  res.status(204).send();
 }));
 
 router.get("/guardian/notifications/unread-count", asyncHandler(async (req, res) => {
@@ -332,7 +367,7 @@ router.get("/guardian/profile", asyncHandler(async (req, res) => {
   const children = (await query(
     `SELECT s.id, s.name, s.class_name, s.section, s.roll, s.photo_url, gs.relation, gs.is_primary
      FROM guardian_students gs JOIN students s ON s.id = gs.student_id
-     WHERE gs.guardian_id = $1 AND gs.access_status = 'Enabled' AND s.status <> 'Archived' ORDER BY s.name`,
+     WHERE gs.guardian_id = $1 AND gs.access_status = 'Enabled' AND s.status NOT IN ('Archived', 'Transferred', 'Dropped', 'Passed Out', 'Inactive') ORDER BY s.name`,
     [gid],
   )).rows;
   // Multiple guardian contacts: the other guardians (e.g. mother/father) of the same children.
@@ -404,6 +439,7 @@ router.get("/guardian/students/:id/profile", asyncHandler(async (req, res) => {
      JOIN guardians g ON g.id = gs.guardian_id WHERE gs.student_id = $1 ORDER BY gs.is_primary DESC, g.name`,
     [req.params.id],
   )).rows;
+  if (!(await guardianVisibility()).showTeacherPhone) s.class_teacher_phone = null;
   const primary = guardians.find((g) => g.is_primary) || guardians[0];
   res.json({
     success: true,
@@ -455,6 +491,20 @@ router.get("/guardian/students/:id/documents/:docId/file", asyncHandler(async (r
   res.setHeader("Cache-Control", "private, no-store");
   if (doc.file_name) res.attachment(doc.file_name);
   res.sendFile(file);
+}));
+
+// Live bus position for one child (auto-refreshed by the app every few seconds).
+router.get("/guardian/students/:id/bus-location", asyncHandler(async (req, res) => {
+  const gid = requireGuardian(req);
+  await assertLinked(gid, req.params.id);
+  const row = (await query(
+    `SELECT v.registration_no, vl.latitude, vl.longitude, vl.speed, vl.heading, vl.recorded_at
+     FROM transport_assignments ta JOIN transport_routes r ON r.id = ta.route_id JOIN transport_vehicles v ON v.id = r.vehicle_id
+     LEFT JOIN LATERAL (SELECT * FROM vehicle_locations x WHERE x.vehicle_id = v.id ORDER BY x.recorded_at DESC LIMIT 1) vl ON TRUE
+     WHERE ta.student_id = $1 AND ta.status = 'Active' LIMIT 1`,
+    [req.params.id],
+  )).rows[0];
+  res.json({ success: true, data: row && row.latitude !== null ? keysToCamel(row) : null });
 }));
 
 router.get("/guardian/leave-types", asyncHandler(async (req, res) => {

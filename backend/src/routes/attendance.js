@@ -13,7 +13,7 @@ const { renderTemplate, defaultLanguage } = require("../services/templates");
 const { localDate, localMonth, lastDayOfMonth } = require("../utils/dates");
 
 const router = express.Router();
-const STATUS = z.enum(["Present", "Absent", "Late", "Leave"]);
+const STATUS = z.enum(["Present", "Absent", "Late", "Leave", "Early Leave"]);
 const bulkSchema = z.object({
   className: z.string().min(1),
   date: z.string().date(),
@@ -128,7 +128,7 @@ router.get("/summary", requirePermission("attendance", "view"), asyncHandler(asy
             COUNT(*) FILTER (WHERE status = 'Absent')::int AS absent,
             COUNT(*) FILTER (WHERE status = 'Late')::int AS late,
             COUNT(*) FILTER (WHERE status = 'Leave')::int AS leave,
-            ROUND(100.0 * COUNT(*) FILTER (WHERE status IN ('Present', 'Late')) / NULLIF(COUNT(*), 0), 2) AS attendance_rate
+            ROUND(100.0 * COUNT(*) FILTER (WHERE status IN ('Present', 'Late', 'Early Leave')) / NULLIF(COUNT(*), 0), 2) AS attendance_rate
      FROM attendance WHERE attendance_date BETWEEN $1 AND $2 AND ($3::text IS NULL OR class_name = $3)
      GROUP BY attendance_date ORDER BY attendance_date`,
     [from, to, className],
@@ -176,10 +176,10 @@ router.get("/report/classwise", requirePermission("attendance", "view"), asyncHa
   const to = req.query.to || from;
   const rows = (await query(
     `SELECT class_name, COUNT(*)::int AS total,
-            COUNT(*) FILTER (WHERE status IN ('Present','Late'))::int AS present,
+            COUNT(*) FILTER (WHERE status IN ('Present','Late','Early Leave'))::int AS present,
             COUNT(*) FILTER (WHERE status = 'Absent')::int AS absent,
             COUNT(*) FILTER (WHERE status = 'Late')::int AS late,
-            ROUND(100.0 * COUNT(*) FILTER (WHERE status IN ('Present','Late')) / NULLIF(COUNT(*),0), 1) AS percentage
+            ROUND(100.0 * COUNT(*) FILTER (WHERE status IN ('Present','Late','Early Leave')) / NULLIF(COUNT(*),0), 1) AS percentage
      FROM attendance WHERE attendance_date BETWEEN $1 AND $2 GROUP BY class_name ORDER BY class_name`,
     [from, to],
   )).rows;
@@ -193,7 +193,7 @@ router.get("/report/student/:id", requirePermission("attendance", "view"), async
     "SELECT attendance_date, status, note, source, in_time, out_time FROM attendance WHERE student_id = $1 AND attendance_date BETWEEN $2 AND $3 ORDER BY attendance_date",
     [req.params.id, from, to],
   )).rows;
-  const present = rows.filter((r) => ["Present", "Late"].includes(r.status)).length;
+  const present = rows.filter((r) => ["Present", "Late", "Early Leave"].includes(r.status)).length;
   res.json({ success: true, data: keysToCamel({ records: rows, total: rows.length, present, percentage: rows.length ? Math.round((present / rows.length) * 1000) / 10 : 0 }) });
 }));
 

@@ -1,7 +1,13 @@
 import '../core/format.dart';
 
 class StudentGuardianContact {
-  StudentGuardianContact({required this.name, required this.relation, required this.mobile, this.isPrimary = false, this.altMobile});
+  StudentGuardianContact({
+    required this.name,
+    required this.relation,
+    required this.mobile,
+    this.isPrimary = false,
+    this.altMobile,
+  });
 
   final String name;
   final String relation;
@@ -9,7 +15,8 @@ class StudentGuardianContact {
   final String? altMobile;
   final bool isPrimary;
 
-  factory StudentGuardianContact.fromJson(Map<String, dynamic> j) => StudentGuardianContact(
+  factory StudentGuardianContact.fromJson(Map<String, dynamic> j) =>
+      StudentGuardianContact(
         name: J.str(j['name']),
         relation: J.str(j['relation'], 'Guardian'),
         mobile: J.str(j['mobile']),
@@ -119,13 +126,21 @@ class StudentProfile {
       emergencyMobile: J.strOrNull(e['mobile']),
       canViewResults: J.boolOf(j['canViewResults'], true),
       canViewFees: J.boolOf(j['canViewFees'], true),
-      guardians: J.list(j['guardians']).map(StudentGuardianContact.fromJson).toList(),
+      guardians: J
+          .list(j['guardians'])
+          .map(StudentGuardianContact.fromJson)
+          .toList(),
     );
   }
 }
 
 class AttendanceRecord {
-  AttendanceRecord({required this.date, required this.status, this.inTime, this.outTime});
+  AttendanceRecord({
+    required this.date,
+    required this.status,
+    this.inTime,
+    this.outTime,
+  });
 
   final DateTime date;
   final String status;
@@ -133,15 +148,22 @@ class AttendanceRecord {
   final DateTime? outTime;
 
   factory AttendanceRecord.fromJson(Map<String, dynamic> j) => AttendanceRecord(
-        date: J.date(j['attendanceDate']) ?? DateTime.now(),
-        status: J.str(j['status'], '—'),
-        inTime: J.date(j['inTime']),
-        outTime: J.date(j['outTime']),
-      );
+    date: J.date(j['attendanceDate']) ?? DateTime.now(),
+    status: J.str(j['status'], '—'),
+    inTime: J.date(j['inTime']),
+    outTime: J.date(j['outTime']),
+  );
 }
 
 class AttendanceMonthSummary {
-  AttendanceMonthSummary({required this.month, required this.total, required this.present, required this.absent, required this.late, this.percentage});
+  AttendanceMonthSummary({
+    required this.month,
+    required this.total,
+    required this.present,
+    required this.absent,
+    required this.late,
+    this.percentage,
+  });
 
   final String month;
   final int total;
@@ -150,7 +172,8 @@ class AttendanceMonthSummary {
   final int late;
   final num? percentage;
 
-  factory AttendanceMonthSummary.fromJson(Map<String, dynamic> j) => AttendanceMonthSummary(
+  factory AttendanceMonthSummary.fromJson(Map<String, dynamic> j) =>
+      AttendanceMonthSummary(
         month: J.str(j['month']),
         total: J.intOf(j['total']),
         present: J.intOf(j['present']),
@@ -191,7 +214,10 @@ class AttendanceReport {
     return AttendanceReport(
       month: J.str(j['month']),
       records: J.list(j['records']).map(AttendanceRecord.fromJson).toList(),
-      history: J.list(j['history']).map(AttendanceMonthSummary.fromJson).toList(),
+      history: J
+          .list(j['history'])
+          .map(AttendanceMonthSummary.fromJson)
+          .toList(),
       total: J.intOf(s['total']),
       present: J.intOf(s['present']),
       absent: J.intOf(s['absent']),
