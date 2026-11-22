@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
+import PhotoUpload from "./ui/PhotoUpload";
 import {
   BriefcaseBusiness,
   Edit3,
@@ -28,6 +29,7 @@ const emptyStaff = {
   gender: "Male",
   address: "",
   status: "Active",
+  photoUrl: "",
 };
 
 const designationOptions = [
@@ -72,7 +74,7 @@ function normalizeForm(form) {
     lastName,
     name: `${firstName} ${lastName}`.trim(),
     designation: form.designation,
-    department: "",
+    department: (form.department || "").trim(),
     phone: form.phone.trim(),
     email: form.email.trim(),
     joinDate: form.joinDate,
@@ -81,6 +83,7 @@ function normalizeForm(form) {
     gender: form.gender,
     address: form.address.trim(),
     status: form.status,
+    photoUrl: form.photoUrl || null,
   };
 }
 
@@ -98,6 +101,7 @@ function staffToForm(member) {
     gender: member.gender || "Male",
     address: member.address || "",
     status: member.status || "Active",
+    photoUrl: member.photoUrl || "",
   };
 }
 
@@ -214,6 +218,16 @@ function StaffModal({ editingMember, onClose, onSave }) {
             </div>
           )}
 
+          <div className="mb-5 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+            <PhotoUpload
+              label="ID Card Photo"
+              value={form.photoUrl}
+              onChange={(url) => setForm((current) => ({ ...current, photoUrl: url }))}
+              ownerType={editingMember?.id ? "Staff" : undefined}
+              ownerId={editingMember?.id}
+            />
+          </div>
+
           <div className="grid gap-5 md:grid-cols-2">
             <Field label="First Name" name="firstName" value={form.firstName} onChange={changeField} placeholder="e.g. Kabir" required />
             <Field label="Last Name" name="lastName" value={form.lastName} onChange={changeField} placeholder="e.g. Hossain" required />
@@ -273,9 +287,13 @@ function ViewModal({ member, onClose }) {
       <div className="w-full max-w-md rounded-[20px] bg-white p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            <span className="grid size-14 place-items-center rounded-2xl bg-gradient-to-br from-[#54a2ff] to-[#483ff2] text-lg font-extrabold text-white">
-              {getInitials(member.name)}
-            </span>
+            {member.photoUrl ? (
+              <img src={member.photoUrl} alt={`${member.name} photo`} className="size-14 rounded-2xl shrink-0 object-cover object-top" />
+            ) : (
+              <span className="grid size-14 rounded-2xl shrink-0 place-items-center bg-gradient-to-br from-[#54a2ff] to-[#483ff2] text-lg font-extrabold text-white">
+                {getInitials(member.name)}
+              </span>
+            )}
             <div>
               <h2 className="text-xl font-extrabold text-slate-950">{member.name}</h2>
               <p className="text-sm font-semibold text-blue-600">{member.designation}</p>
@@ -468,9 +486,13 @@ export default function Staff() {
                 <tr className="transition hover:bg-slate-50" key={member.id}>
                   <td className="px-5 py-5">
                     <div className="flex items-center gap-4">
-                      <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[#54a2ff] to-[#483ff2] text-sm font-extrabold text-white">
-                        {getInitials(member.name)}
-                      </span>
+                      {member.photoUrl ? (
+                        <img src={member.photoUrl} alt={`${member.name} photo`} className="size-12 rounded-2xl shrink-0 object-cover object-top" />
+                      ) : (
+                        <span className="grid size-12 rounded-2xl shrink-0 place-items-center bg-gradient-to-br from-[#54a2ff] to-[#483ff2] text-sm font-extrabold text-white">
+                          {getInitials(member.name)}
+                        </span>
+                      )}
                       <span className="min-w-0">
                         <strong className="block max-w-[160px] text-base font-extrabold text-slate-950">
                           {member.name}

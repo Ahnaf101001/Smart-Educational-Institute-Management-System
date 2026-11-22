@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import PhotoUpload from "./ui/PhotoUpload";
 import {
   ArrowLeft,
   Award,
@@ -38,6 +39,7 @@ const emptyTeacher = {
   classes: "",
   rating: "4.5",
   status: "Active",
+  photoUrl: "",
 };
 
 function getInitials(name) {
@@ -71,6 +73,7 @@ function normalizeTeacherForm(form) {
     classes: Number(form.classes) || 0,
     rating: Number(form.rating) || 0,
     status: form.status,
+    photoUrl: form.photoUrl || null,
   };
 }
 
@@ -89,6 +92,7 @@ function teacherToForm(teacher) {
     classes: String(teacher.classes || 0),
     rating: String(teacher.rating || 0),
     status: teacher.status || "Active",
+    photoUrl: teacher.photoUrl || "",
   };
 }
 
@@ -173,9 +177,13 @@ function TeacherCard({ teacher, selected, onOpen, onView, onEdit, onDelete }) {
       aria-label={`Open ${teacher.name} profile`}
     >
       <div className="flex gap-4">
-        <span className="grid size-15 shrink-0 place-items-center rounded-[20px] bg-gradient-to-br from-[#54a2ff] to-[#483ff2] text-xl font-extrabold text-white">
-          {getInitials(teacher.name)}
-        </span>
+        {teacher.photoUrl ? (
+          <img src={teacher.photoUrl} alt={`${teacher.name} photo`} className="size-15 rounded-[20px] shrink-0 object-cover object-top" />
+        ) : (
+          <span className="grid size-15 rounded-[20px] shrink-0 place-items-center bg-gradient-to-br from-[#54a2ff] to-[#483ff2] text-xl font-extrabold text-white">
+            {getInitials(teacher.name)}
+          </span>
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -276,9 +284,13 @@ function TeacherProfile({ teacher, onBack }) {
 
       <div className="grid gap-5 lg:grid-cols-[360px_1fr]">
         <aside className="rounded-[20px] border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <span className="mx-auto grid size-25 place-items-center rounded-[20px] bg-gradient-to-br from-[#54a2ff] to-[#483ff2] text-3xl font-extrabold text-white">
+          {teacher.photoUrl ? (
+          <img src={teacher.photoUrl} alt={`${teacher.name} photo`} className="mx-auto size-25 rounded-[20px] shrink-0 object-cover object-top" />
+        ) : (
+          <span className="grid mx-auto size-25 rounded-[20px] shrink-0 place-items-center bg-gradient-to-br from-[#54a2ff] to-[#483ff2] text-3xl font-extrabold text-white">
             {getInitials(teacher.name)}
           </span>
+        )}
           <h2 className="mt-6 text-2xl font-extrabold text-slate-950">{teacher.name}</h2>
           <p className="mt-1 text-lg font-semibold text-blue-600">{teacher.department} Teacher</p>
           <div className="mt-3 flex justify-center">
@@ -421,6 +433,16 @@ function TeacherModal({ editingTeacher, onClose, onSave }) {
             </div>
           )}
 
+          <div className="mb-5 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+            <PhotoUpload
+              label="ID Card Photo"
+              value={form.photoUrl}
+              onChange={(url) => setForm((current) => ({ ...current, photoUrl: url }))}
+              ownerType={editingTeacher?.id ? "Teacher" : undefined}
+              ownerId={editingTeacher?.id}
+            />
+          </div>
+
           <div className="grid gap-5 md:grid-cols-2">
             <Field label="First Name" name="firstName" value={form.firstName} onChange={changeField} placeholder="e.g. Rahim" required />
             <Field label="Last Name" name="lastName" value={form.lastName} onChange={changeField} placeholder="e.g. Ahmed" required />
@@ -468,9 +490,13 @@ function ViewModal({ teacher, onClose }) {
       <div className="w-full max-w-md rounded-[20px] bg-white p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            <span className="grid size-14 place-items-center rounded-2xl bg-gradient-to-br from-[#54a2ff] to-[#483ff2] text-lg font-extrabold text-white">
-              {getInitials(teacher.name)}
-            </span>
+            {teacher.photoUrl ? (
+          <img src={teacher.photoUrl} alt={`${teacher.name} photo`} className="size-14 rounded-2xl shrink-0 object-cover object-top" />
+        ) : (
+          <span className="grid size-14 rounded-2xl shrink-0 place-items-center bg-gradient-to-br from-[#54a2ff] to-[#483ff2] text-lg font-extrabold text-white">
+            {getInitials(teacher.name)}
+          </span>
+        )}
             <div>
               <h2 className="text-xl font-extrabold text-slate-950">{teacher.name}</h2>
               <p className="text-sm font-semibold text-blue-600">{teacher.department}</p>

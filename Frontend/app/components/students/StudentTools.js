@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ArrowUpCircle, FileUp, IdCard, ListOrdered, Search, Star, Unlink, Upload, UserCircle2, Users } from "lucide-react";
+import { ArrowUpCircle, FileUp, IdCard, ListOrdered, Search, Star, Unlink, UserCircle2, Users } from "lucide-react";
 import { http, resource, uploadsApi } from "../../lib/api";
 import { can, useUser } from "../../lib/access";
 import { TranscriptCard } from "../extensions/Extras";
+import PhotoUpload, { PhotoAvatar } from "../ui/PhotoUpload";
 import { Badge, Button, Card, Field, Input, Modal, PageHeader, Select, StatCard, Table, Tabs, formatDate, money, useToast, usePrompt } from "../ui/kit";
 
 const CERTS = ["Transfer Certificate", "Testimonial", "Character Certificate", "Study Certificate", "Sanad", "Hifz Sanad"];
@@ -59,14 +60,6 @@ export function Student360() {
       load();
     } catch (e) { toast.error(e); }
   }
-  async function setPhoto(file) {
-    try {
-      const up = await uploadsApi.upload(file, { category: "photo" });
-      await resource("/students").update(studentId, { photoUrl: up.url });
-      toast.success("Photo updated");
-      load();
-    } catch (e) { toast.error(e); }
-  }
 
   const s = profile?.student;
   const att = profile?.attendance;
@@ -97,11 +90,11 @@ export function Student360() {
         <div className="mt-5 space-y-5">
           <Card>
             <div className="flex flex-col gap-4 md:flex-row md:items-center">
-              <label className="relative cursor-pointer">
-                {s.photoUrl ? <img src={s.photoUrl} alt="" className="size-24 rounded-2xl object-cover" /> : <span className="grid size-24 place-items-center rounded-2xl bg-slate-100 text-2xl font-bold text-slate-400">{s.name.slice(0, 2)}</span>}
-                {can(user, "students", "edit") && <span className="absolute -bottom-1 -right-1 rounded-lg bg-blue-600 p-1 text-white"><Upload size={14} /></span>}
-                {can(user, "students", "edit") && <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files[0] && setPhoto(e.target.files[0])} />}
-              </label>
+              {can(user, "students", "edit") ? (
+                <PhotoUpload label="" value={s.photoUrl || ""} ownerType="Student" ownerId={studentId} allowRemove={false} onChange={() => load()} />
+              ) : (
+                <PhotoAvatar src={s.photoUrl} name={s.name} className="size-24" rounded="rounded-2xl" textClass="text-2xl" />
+              )}
               <div className="flex-1">
                 <div className="flex flex-wrap items-center gap-2"><h2 className="text-xl font-extrabold">{s.name}</h2>{s.nameBn && <span className="text-slate-500">{s.nameBn}</span>}<Badge>{s.status}</Badge></div>
                 <p className="text-sm text-slate-600">{s.id} · {s.className} · Roll {s.roll || "—"} · {s.shift || ""} {s.groupName ? `· ${s.groupName}` : ""}</p>

@@ -2,11 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Check, Upload } from "lucide-react";
-import { academicApi, studentsApi } from "../lib/api";
+import { academicApi, studentsApi, uploadsApi } from "../lib/api";
+import PhotoUpload from "./ui/PhotoUpload";
+import { useToast } from "./ui/kit";
 
 const steps = ["Personal Info", "Guardian Info", "Academic Info", "Documents"];
 
 const defaultForm = {
+  photoUrl: "",
   firstName: "",
   lastName: "",
   dateOfBirth: "",
@@ -44,12 +47,12 @@ const defaultForm = {
   previousGpa: "",
 };
 
+// [form key, title, subtitle, student_documents.document_type]
 const documentFields = [
-  ["studentPhoto", "Student Photo", "Student passport photo"],
-  ["birthCertificate", "Birth Certificate", "Birth registration certificate"],
-  ["nicForm", "NIC/B-Form", "National ID card copy"],
-  ["previousResults", "Previous Results", "Last class result card"],
-  ["transferCertificate", "Transfer Certificate", "TC from previous school"],
+  ["birthCertificate", "Birth Certificate", "Birth registration certificate", "Birth Certificate"],
+  ["nicForm", "NIC/B-Form", "National ID card copy", "NID (Guardian)"],
+  ["previousResults", "Previous Results", "Last class result card", "Previous Result"],
+  ["transferCertificate", "Transfer Certificate", "TC from previous school", "Transfer Certificate"],
 ];
 
 function Field({ label, name, value, onChange, type = "text", children, className = "" }) {
@@ -139,13 +142,15 @@ function UploadBox({ name, title, subtitle, fileName, onFile }) {
         className="hidden"
         name={name}
         type="file"
-        onChange={(event) => onFile(name, event.target.files?.[0]?.name || "")}
+        accept="image/jpeg,image/png,image/webp,application/pdf"
+        onChange={(event) => onFile(name, event.target.files?.[0] || null)}
       />
     </label>
   );
 }
 
 export default function AddStudent({ onCancel, onSaved }) {
+  const toast = useToast();
   const [currentStep, setCurrentStep] = useState(0);
   const [form, setForm] = useState(defaultForm);
   const [academicYears, setAcademicYears] = useState([]);
@@ -187,8 +192,8 @@ export default function AddStudent({ onCancel, onSaved }) {
     setMessage("");
   }
 
-  function changeDocument(name, fileName) {
-    setDocuments((current) => ({ ...current, [name]: fileName }));
+  function changeDocument(name, file) {
+    setDocuments((current) => ({ ...current, [name]: file }));
   }
 
   function validateStep() {
@@ -220,7 +225,7 @@ export default function AddStudent({ onCancel, onSaved }) {
 
   async function saveStudent() {
     try {
-      await studentsApi.create({
+      const created = await studentsApi.create({
         roll: (form.rollNumber || "").padStart(3, "0"),
         name: fullName || "New Student",
         gender: form.gender,
@@ -247,9 +252,22 @@ export default function AddStudent({ onCancel, onSaved }) {
         previousSchool: form.previousSchool || undefined,
         section: form.section || undefined,
         status: "Active",
+        photoUrl: form.photoUrl || undefined,
         details: { ...form },
-        documents,
       });
+      // Upload the chosen documents to the new student's record (PDF or image, private storage).
+      const failed = [];
+      for (const [key, title, , documentType] of documentFields) {
+        const file = documents[key];
+        if (!file || !created?.id) continue;
+        try {
+          await uploadsApi.upload(file, { category: "document", ownerType: "Student", ownerId: created.id, documentType });
+        } catch {
+          failed.push(title);
+        }
+      }
+      // The student exists now, so always finish (re-saving would create a duplicate) and report any failures.
+      if (failed.length) toast.warning(`Student saved, but these documents could not be uploaded: ${failed.join(", ")}. Add them from Student 360.`);
       onSaved?.();
     } catch (error) {
       setMessage(error.message || "Failed to save student.");
@@ -355,6 +373,13 @@ export default function AddStudent({ onCancel, onSaved }) {
         {currentStep === 3 && (
           <div>
             <h1 className="mb-6 text-2xl font-bold text-slate-950">Documents</h1>
+            <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50/60 p-5">
+              <PhotoUpload
+                label="Student Photo (ID Card)"
+                value={form.photoUrl}
+                onChange={(url) => setForm((current) => ({ ...current, photoUrl: url }))}
+              />
+            </div>
             <div className="grid gap-5 md:grid-cols-2">
               {documentFields.map(([name, title, subtitle]) => (
                 <UploadBox
@@ -362,7 +387,7 @@ export default function AddStudent({ onCancel, onSaved }) {
                   name={name}
                   title={title}
                   subtitle={subtitle}
-                  fileName={documents[name]}
+                  fileName={documents[name]?.name}
                   onFile={changeDocument}
                 />
               ))}

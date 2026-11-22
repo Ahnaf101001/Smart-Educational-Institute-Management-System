@@ -52,9 +52,20 @@ function Silhouette({ color = "#94a3b8" }) {
 }
 
 function Photo({ src, w, h, radius = "1.5mm", border, shadow, grayscale }) {
+  // A broken / missing file falls back to the silhouette so a card never prints an empty box.
+  const [failedSrc, setFailedSrc] = useState(null);
+  const ok = src && failedSrc !== src;
   return (
     <div style={{ width: `${w}mm`, height: `${h}mm`, borderRadius: radius, overflow: "hidden", border, boxShadow: shadow, flexShrink: 0, background: "#e2e8f0" }}>
-      {src ? <img src={src} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: grayscale ? "grayscale(1)" : undefined }} /> : <Silhouette />}
+      {ok ? (
+        <img
+          src={src}
+          alt=""
+          crossOrigin="anonymous"
+          onError={() => setFailedSrc(src)}
+          style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top", display: "block", filter: grayscale ? "grayscale(1)" : undefined }}
+        />
+      ) : <Silhouette />}
     </div>
   );
 }

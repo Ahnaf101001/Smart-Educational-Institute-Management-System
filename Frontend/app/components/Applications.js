@@ -128,11 +128,15 @@ function ApplicantCard({ applicant, index, onOpen, onApprove, onReject, onDelete
     >
       {/* Card Header */}
       <div className="flex items-center gap-3 px-5 pt-5 pb-4">
-        <span
-          className={`grid size-12 shrink-0 place-items-center rounded-full bg-gradient-to-br text-sm font-bold text-white ${getAvatarColor(index)}`}
-        >
-          {applicant.initials}
-        </span>
+        {applicant.details?.photoUrl ? (
+          <img src={applicant.details.photoUrl} alt={`${applicant.name} photo`} className="size-12 shrink-0 rounded-full object-cover object-top" />
+        ) : (
+          <span
+            className={`grid size-12 shrink-0 place-items-center rounded-full bg-gradient-to-br text-sm font-bold text-white ${getAvatarColor(index)}`}
+          >
+            {applicant.initials}
+          </span>
+        )}
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-base font-bold text-slate-900">{applicant.name}</h3>
           <p className="text-xs text-slate-500">{applicant.id}</p>
@@ -230,9 +234,13 @@ function ApplicationDetails({ applicant, onBack, onApprove, onReject, onDelete }
       <section className="rounded-[20px] border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <span className="grid size-16 shrink-0 place-items-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-lg font-extrabold text-white">
-              {applicant.initials}
-            </span>
+            {details.photoUrl ? (
+              <img src={details.photoUrl} alt={`${applicant.name} photo`} className="size-16 shrink-0 rounded-full object-cover object-top" />
+            ) : (
+              <span className="grid size-16 shrink-0 place-items-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-lg font-extrabold text-white">
+                {applicant.initials}
+              </span>
+            )}
             <div>
               <h2 className="text-2xl font-extrabold text-slate-950">{applicant.name}</h2>
               <p className="mt-1 text-sm font-semibold text-slate-500">{applicant.id}</p>

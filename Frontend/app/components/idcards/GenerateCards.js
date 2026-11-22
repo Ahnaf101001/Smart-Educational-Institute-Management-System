@@ -1,17 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Image as ImageIcon, Printer, ShieldCheck, Upload, Users } from "lucide-react";
-import { idCardsApi, resource, uploadsApi } from "../../lib/api";
+import { AlertTriangle, CheckCircle2, Image as ImageIcon, Printer, ShieldCheck, Users } from "lucide-react";
+import { idCardsApi, resource } from "../../lib/api";
+import PhotoUpload from "../ui/PhotoUpload";
 import { can, useUser } from "../../lib/access";
 import { Badge, Button, Card, EmptyState, Field, Input, Select, Spinner, useToast } from "../ui/kit";
 import { CardFace } from "./CardRenderer";
 import PrintPreview from "./PrintPreview";
 
-export default function GenerateCards({ institute }) {
+export default function GenerateCards({ institute, initialHolderType = "Student" }) {
   const { user } = useUser();
   const toast = useToast();
-  const [holderType, setHolderType] = useState("Student");
+  const [holderType, setHolderType] = useState(initialHolderType);
   const [filters, setFilters] = useState({ classId: "", section: "", shift: "", status: "Active", rollFrom: "", rollTo: "", search: "" });
   const [classes, setClasses] = useState([]);
   const [shifts, setShifts] = useState([]);
@@ -64,15 +65,9 @@ export default function GenerateCards({ institute }) {
     } catch (e) { toast.error(e); }
   }
 
-  async function uploadPhoto(holder, file) {
-    try {
-      const up = await uploadsApi.upload(file, { category: "photo" });
-      const path = holderType === "Student" ? "/students" : holderType === "Teacher" ? "/teachers" : "/staff";
-      await resource(path).update(holder.id, { photoUrl: up.url });
-      toast.success(`Photo saved for ${holder.name}`);
-      await loadHolders();
-      setReport(null);
-    } catch (e) { toast.error(e); }
+  async function photoSaved() {
+    await loadHolders();
+    setReport(null); // re-validate with the new photos
   }
 
   async function generate() {
@@ -121,6 +116,9 @@ export default function GenerateCards({ institute }) {
             <>
               <Button size="sm" variant="ghost" onClick={() => setSelected(new Set(holders.map((h) => h.id)))}>Select all</Button>
               <Button size="sm" variant="ghost" onClick={() => setSelected(new Set(holders.filter((h) => !h.activeCardNumber).map((h) => h.id)))}>Only without card</Button>
+              <Button size="sm" variant="ghost" onClick={() => setSelected(new Set(holders.filter((h) => !h.photoUrl).map((h) => h.id)))}>
+                Only missing photo ({holders.filter((h) => !h.photoUrl).length})
+              </Button>
               <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
             </>
           )}
@@ -171,12 +169,10 @@ export default function GenerateCards({ institute }) {
                     <p className="mb-2 flex items-center gap-2 text-sm font-bold text-rose-700"><AlertTriangle size={16} /> Missing photos – upload now or use an authorised placeholder</p>
                     <div className="grid gap-2 sm:grid-cols-2">
                       {report.missingPhoto.map((m) => (
-                        <label key={m.id} className="flex items-center justify-between gap-2 rounded-lg bg-rose-50/60 px-3 py-2 text-sm">
-                          <span>{m.name} <span className="text-xs text-slate-500">({m.id})</span></span>
-                          <span className="inline-flex cursor-pointer items-center gap-1 rounded-lg bg-white px-2 py-1 text-xs font-semibold text-blue-600 shadow-sm"><Upload size={13} /> Upload
-                            <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => e.target.files[0] && uploadPhoto(m, e.target.files[0])} />
-                          </span>
-                        </label>
+                        <div key={m.id} className="flex items-center justify-between gap-2 rounded-lg bg-rose-50/60 px-3 py-2 text-sm">
+                          <span className="min-w-0">{m.name} <span className="text-xs text-slate-500">({m.id})</span></span>
+                          <PhotoUpload label="" size="sm" hint="" allowRemove={false} ownerType={holderType} ownerId={m.id} onChange={photoSaved} />
+                        </div>
                       ))}
                     </div>
                   </div>

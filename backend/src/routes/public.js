@@ -14,6 +14,8 @@ const { normalizeMobile } = require("../services/students");
 const { queueMessage } = require("../services/notifications");
 const { deviceByKey, processEvent } = require("../services/deviceIngest");
 const payments = require("../services/payments");
+const uploads = require("../services/uploads");
+const { writeAudit } = require("../services/audit");
 const { localDate } = require("../utils/dates");
 
 const router = express.Router();
@@ -41,6 +43,20 @@ router.get("/circulars", asyncHandler(async (req, res) => {
   res.json({ success: true, data: keysToCamel(rows) });
 }));
 
+// Applicant photo for the online admission form (no login). Same magic-byte / size / dimension rules as
+// signed-in uploads, photos only, max 2 MB; the returned URL is sent back as details.photoUrl and becomes
+// the student's ID-card photo when the admission is approved.
+const photoLimiter = rateLimit({ windowMs: 60 * 60_000, max: 15, message: "Too many photo uploads from this network. Try later." });
+router.post("/uploads/photo", photoLimiter, asyncHandler(async (req, res) => {
+  const s = (await query("SELECT public_admission_enabled FROM system_settings WHERE id = 1")).rows[0];
+  if (s && s.public_admission_enabled === false) throw httpError(403, "Online admission is currently closed.");
+  const { buffer, sig, dimensions } = uploads.validateUpload({ data: req.body?.data, category: "photo", maxMb: 2 });
+  if (sig.mime === "application/pdf") throw httpError(415, "A JPG, PNG or WEBP photo is required.");
+  const { name, url } = await uploads.saveFile(buffer, sig, "photo");
+  await writeAudit(req, { entity: "uploads", entityId: name, action: "PUBLIC_UPLOAD", newValue: { category: "photo", size: buffer.length, ...(dimensions || {}) } });
+  res.status(201).json({ success: true, data: { url, mimeType: sig.mime, size: buffer.length, width: dimensions.width, height: dimensions.height } });
+}));
+
 // Online admission form (AD-02, v1 AD-02..05).
 router.post("/admissions/apply", applyLimiter, asyncHandler(async (req, res) => {
   const s = (await query("SELECT public_admission_enabled FROM system_settings WHERE id = 1")).rows[0];
@@ -60,6 +76,10 @@ router.post("/admissions/apply", applyLimiter, asyncHandler(async (req, res) => 
     "motherOccupation", "guardianName", "guardianPhone", "guardianRelation", "presentAddress", "permanentAddress", "email", "photoUrl", "documents", "primaryGuardian"];
   const details = Object.fromEntries(Object.entries(b).filter(([k]) => allowedKeys.includes(k)).map(([k, v]) => [k, typeof v === "string" ? v.slice(0, 500) : v]));
   details.classApplied = circular?.class_name || b.classApplied;
+  // Only photos uploaded through /public/uploads/photo are accepted (no external image links).
+  if (details.photoUrl && !/^\/api\/backend\/public\/files\/[A-Za-z0-9-]+\.(?:jpg|png|webp)$/.test(String(details.photoUrl))) {
+    delete details.photoUrl;
+  }
 
   const dups = await findDuplicates({ query }, { birthCertNo: b.birthCertificateNo, name, dateOfBirth: b.dateOfBirth, guardianMobile: mobile });
   const row = await transaction(async (client) => {

@@ -15,6 +15,7 @@ export default function IdCardCenter({ initialTab = "gallery" }) {
   const [editing, setEditing] = useState(null);
   const [institute, setInstitute] = useState({});
   const [stats, setStats] = useState(null);
+  const [generateFor, setGenerateFor] = useState("Student");
 
   useEffect(() => { setTab(initialTab); setEditing(null); }, [initialTab]);
   useEffect(() => {
@@ -34,6 +35,22 @@ export default function IdCardCenter({ initialTab = "gallery" }) {
         <StatCard label="Students missing photo" value={stats?.students?.missingPhoto ?? "—"} icon={ImageOff} tone="red" />
         <StatCard label="Print jobs pending" value={pendingJobs} icon={Printer} tone="blue" />
       </div>
+      {stats && (
+        <div className="mb-5 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
+          <span className="flex items-center gap-1.5 font-semibold text-slate-700"><ImageOff size={16} className="text-rose-500" /> Missing ID photos:</span>
+          {[["Student", "Students", stats.students], ["Teacher", "Teachers", stats.teachers], ["Staff", "Staff", stats.staff]].map(([type, label, st]) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => { setGenerateFor(type); setEditing(null); setTab("generate"); }}
+              className={`rounded-full px-3 py-1 font-semibold transition ${st?.missingPhoto ? "bg-rose-50 text-rose-700 hover:bg-rose-100" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}`}
+              title={`Open Generate & Print for ${label.toLowerCase()}`}
+            >
+              {label}: {st?.missingPhoto ?? 0} of {st?.total ?? 0}
+            </button>
+          ))}
+        </div>
+      )}
       {!editing && (
         <Tabs value={tab} onChange={setTab} tabs={[
           { key: "gallery", label: "Template Gallery" }, { key: "generate", label: "Generate & Print" },
@@ -42,7 +59,7 @@ export default function IdCardCenter({ initialTab = "gallery" }) {
       )}
       {editing ? <TemplateEditor templateId={editing} institute={institute} onBack={() => setEditing(null)} />
         : tab === "gallery" ? <TemplateGallery institute={institute} onCustomize={setEditing} />
-          : tab === "generate" ? <GenerateCards institute={institute} />
+          : tab === "generate" ? <GenerateCards key={generateFor} institute={institute} initialHolderType={generateFor} />
             : tab === "history" ? <PrintHistory institute={institute} />
               : <IssuedCards institute={institute} />}
     </div>

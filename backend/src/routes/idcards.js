@@ -461,14 +461,24 @@ router.patch("/print-jobs/:id/status", requirePermission("idcards", "print"), as
 }));
 
 router.get("/stats", requirePermission("idcards", "view"), asyncHandler(async (req, res) => {
-  const [cards, students, jobs] = await Promise.all([
+  // Same shape for every holder type: total active, missing photo, without an active card.
+  const holderStats = (table, holderType) => query(
+    `SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE photo_url IS NULL OR photo_url = '')::int AS missing_photo,
+            COUNT(*) FILTER (WHERE NOT EXISTS (SELECT 1 FROM id_cards c WHERE c.holder_type = $1 AND c.holder_id = h.id AND c.status = 'Active'))::int AS without_card
+     FROM ${table} h WHERE status = 'Active'`,
+    [holderType],
+  );
+  const [cards, students, teachers, staff, jobs] = await Promise.all([
     query("SELECT holder_type, status, COUNT(*)::int AS n FROM id_cards GROUP BY holder_type, status"),
-    query(`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE photo_url IS NULL OR photo_url = '')::int AS missing_photo,
-             COUNT(*) FILTER (WHERE NOT EXISTS (SELECT 1 FROM id_cards c WHERE c.holder_type = 'Student' AND c.holder_id = s.id AND c.status = 'Active'))::int AS without_card
-           FROM students s WHERE status = 'Active'`),
+    holderStats("students", "Student"),
+    holderStats("teachers", "Teacher"),
+    holderStats("staff", "Staff"),
     query("SELECT status, COUNT(*)::int AS n FROM id_card_print_jobs GROUP BY status"),
   ]);
-  res.json({ success: true, data: keysToCamel({ cards: cards.rows, students: students.rows[0], jobs: jobs.rows }) });
+  res.json({
+    success: true,
+    data: keysToCamel({ cards: cards.rows, students: students.rows[0], teachers: teachers.rows[0], staff: staff.rows[0], jobs: jobs.rows }),
+  });
 }));
 
 module.exports = router;

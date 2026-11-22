@@ -417,4 +417,11 @@ export const publicApi = {
   sandbox: (id) => get(`/public/payments/sandbox/${id}`),
   sandboxComplete: (id, status) => post(`/public/payments/sandbox/${id}/complete`, { status }),
   paymentReturnTarget: (id) => get(`/public/payments/return-target/${id}`),
+  // Applicant photo for the online admission form (no login required).
+  uploadPhoto: (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => post("/public/uploads/photo", { data: reader.result, fileName: file.name }).then(resolve, reject);
+    reader.onerror = () => reject(new Error("Could not read the file."));
+    reader.readAsDataURL(file);
+  }),
 };

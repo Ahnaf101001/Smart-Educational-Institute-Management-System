@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import PhotoUpload, { PhotoAvatar } from "./ui/PhotoUpload";
 import {
   ChevronLeft,
   ChevronRight,
@@ -42,15 +43,6 @@ const initialStudents = [];
 */
 
 const pageSize = 8;
-
-function getInitials(name) {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
 
 function toDateInputValue(value) {
   if (!value) return "";
@@ -288,9 +280,7 @@ export default function StudentList({ onAddStudent }) {
                 <tr className="transition hover:bg-blue-50/30" key={student.id}>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-4">
-                      <span className="grid size-11 shrink-0 place-items-center rounded-full bg-blue-100 text-sm font-extrabold text-blue-700">
-                        {getInitials(student.name)}
-                      </span>
+                      <PhotoAvatar src={student.photoUrl} name={student.name} className="size-11" textClass="text-sm" />
                       <span className="min-w-0">
                         <strong className="block truncate text-base font-extrabold text-slate-950">
                           {student.name}
@@ -392,13 +382,16 @@ export default function StudentList({ onAddStudent }) {
         <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/40 p-4">
           <div className="w-full max-w-md rounded-[20px] bg-white p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
-              <div>
+              <div className="flex items-center gap-4">
+                <PhotoAvatar src={selectedStudent.photoUrl} name={selectedStudent.name} className="size-16" rounded="rounded-2xl" textClass="text-lg" />
+                <div>
                 <h2 className="text-xl font-extrabold text-slate-950">
                   {selectedStudent.name}
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
                   {selectedStudent.id} - Roll {selectedStudent.roll}
                 </p>
+                </div>
               </div>
               <button
                 aria-label="Close student details"
@@ -456,6 +449,15 @@ export default function StudentList({ onAddStudent }) {
               </button>
             </div>
             <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <PhotoUpload
+                  label="ID Card Photo"
+                  value={editingStudent.photoUrl || ""}
+                  onChange={(url) => setEditingStudent((current) => ({ ...current, photoUrl: url }))}
+                  ownerType="Student"
+                  ownerId={editingStudent.id}
+                />
+              </div>
               <label className="col-span-2">
                 <span className="block text-sm font-medium text-slate-700 mb-1">Name</span>
                 <input required className="w-full h-11 rounded-xl border border-slate-200 px-4 text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition" value={editingStudent.name} onChange={e => setEditingStudent({...editingStudent, name: e.target.value})} />

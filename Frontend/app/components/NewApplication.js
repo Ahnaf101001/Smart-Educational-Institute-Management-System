@@ -6,8 +6,10 @@ import { CheckCircle2, Save, Send, X } from "lucide-react";
 import { academicApi, admissionsApi } from "../lib/api";
 import { db } from "../lib/localDb";
 import { today } from "./ui/kit";
+import PhotoUpload from "./ui/PhotoUpload";
 
 const emptyForm = {
+  photoUrl: "",
   firstName: "",
   lastName: "",
   dateOfBirth: "",
@@ -188,6 +190,10 @@ export default function NewApplication({ onSubmitted }) {
       </AnimatePresence>
 
       <FormSection title="Student Information">
+        {/* Carried in details.photoUrl; becomes the student's ID-card photo when the admission is approved. */}
+        <div className="md:col-span-2">
+          <PhotoUpload label="Applicant Photo (ID Card)" value={form.photoUrl} onChange={(url) => setForm((current) => ({ ...current, photoUrl: url }))} />
+        </div>
         <Field label="First Name *" name="firstName" value={form.firstName} onChange={changeField} error={errors.firstName} placeholder="Enter first name" />
         <Field label="Last Name *" name="lastName" value={form.lastName} onChange={changeField} error={errors.lastName} placeholder="Enter last name" />
         <Field label="Date of Birth *" name="dateOfBirth" value={form.dateOfBirth} onChange={changeField} error={errors.dateOfBirth} type="date" />

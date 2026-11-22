@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Download, Edit3, FileSpreadsheet, FileText, Plus, Printer, RefreshCw, Search, Trash2 } from "lucide-react";
 import { resource, uploadsApi } from "../../lib/api";
+import PhotoUpload from "./PhotoUpload";
 import { can, useUser } from "../../lib/access";
 import {
   Badge, Button, Card, EmptyState, Field, Input, Modal, PageHeader, Select, Spinner, Textarea,
@@ -62,6 +63,12 @@ export function renderValue(type, value) {
 
 // Optional photo upload (public file); stores the returned URL in the field.
 function ImageField({ value, onChange, category }) {
+  // People photos (guardians etc.) use the shared ID-photo field; logos / signatures keep the simple uploader.
+  if (category === "photo") return <PhotoUpload value={value} onChange={onChange} label="" size="sm" />;
+  return <SimpleImageField value={value} onChange={onChange} category={category} />;
+}
+
+function SimpleImageField({ value, onChange, category }) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   async function pick(e) {

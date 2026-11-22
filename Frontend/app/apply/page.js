@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, FileSearch, Send } from "lucide-react";
 import { publicApi } from "../lib/api";
 import PublicShell from "../components/public/PublicShell";
+import PhotoUpload from "../components/ui/PhotoUpload";
 import { Badge, Button, Card, EmptyState, Field, Input, Select, Spinner, Tabs, Textarea, formatDate, money, useToast } from "../components/ui/kit";
 
 function ApplyForm() {
@@ -61,6 +62,15 @@ function ApplyForm() {
       </Card>
       <Card title="Student information">
         <div className="grid gap-3 md:grid-cols-3">
+          {/* Uploaded without login; sent as photoUrl and used on the ID card if the student is admitted. */}
+          <div className="md:col-span-3">
+            <PhotoUpload
+              label="Student photo"
+              value={form.photoUrl || ""}
+              onChange={(url) => setForm((current) => ({ ...current, photoUrl: url }))}
+              upload={(file) => publicApi.uploadPhoto(file)}
+            />
+          </div>
           <Field label="Full name (English)" required><Input required value={form.studentName || ""} onChange={set("studentName")} /></Field>
           <Field label="নাম (বাংলা)"><Input value={form.nameBn || ""} onChange={set("nameBn")} /></Field>
           <Field label="Date of birth" required><Input required type="date" value={form.dateOfBirth || ""} onChange={set("dateOfBirth")} /></Field>
