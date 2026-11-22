@@ -47,15 +47,17 @@ function readDimensions(file) {
   });
 }
 
-/** Returns an error message, or null when the file is acceptable. */
+/** Returns { error } when the file is not acceptable, otherwise { dims }. */
 export async function checkPhotoFile(file) {
-  if (!file) return "No file selected.";
-  if (!TYPES.test(file.type)) return "Choose a JPG, PNG or WEBP image.";
-  if (file.size > MAX_BYTES) return "Photo must be 2 MB or smaller.";
+  if (!file) return { error: "No file selected." };
+  if (!TYPES.test(file.type)) return { error: "Choose a JPG, PNG or WEBP image." };
+  if (file.size > MAX_BYTES) return { error: "Photo must be 2 MB or smaller." };
   let dims;
-  try { dims = await readDimensions(file); } catch (e) { return e.message; }
-  if (dims.width < MIN_PX || dims.height < MIN_PX) return `Photo must be at least ${MIN_PX}×${MIN_PX} px (this one is ${dims.width}×${dims.height}).`;
-  return null;
+  try { dims = await readDimensions(file); } catch (e) { return { error: e.message }; }
+  if (dims.width < MIN_PX || dims.height < MIN_PX) {
+    return { error: `Photo must be at least ${MIN_PX}×${MIN_PX} px (this one is ${dims.width}×${dims.height}).` };
+  }
+  return { dims };
 }
 
 export default function PhotoUpload({
@@ -77,15 +79,12 @@ export default function PhotoUpload({
   async function handle(file) {
     if (!file || disabled || busy) return;
     setError("");
-    const problem = await checkPhotoFile(file);
+    const { error: problem, dims } = await checkPhotoFile(file);
     if (problem) { setError(problem); return; }
-    const dims = await readDimensions(file).catch(() => null);
-    if (dims) {
-      const ratio = dims.width / dims.height;
-      const nearPassport = Math.abs(ratio - 0.75) < 0.12 || Math.abs(ratio - 1) < 0.12;
-      if (!nearPassport) toast.warning("Tip: a passport-style photo (3:4 portrait or square) fits ID cards best.");
-    }
-    setPreview(URL.createObjectURL(file));
+    const ratio = dims.width / dims.height;
+    const nearPassport = Math.abs(ratio - 0.75) < 0.12 || Math.abs(ratio - 1) < 0.12;
+    if (!nearPassport) toast.warning("Tip: a passport-style photo (3:4 portrait or square) fits ID cards best.");
+    setPreview(URL.createObjectURL(file)); // instant preview while uploading
     setBusy(true);
     try {
       const up = await upload(file, { category: "photo", ...(ownerType && ownerId ? { ownerType, ownerId } : {}) });
@@ -93,8 +92,9 @@ export default function PhotoUpload({
       if (ownerType && ownerId) toast.success("Photo saved");
     } catch (err) {
       setError(err?.message || "Upload failed.");
-      setPreview("");
     } finally {
+      // From here on the field shows the parent's `value` (the saved URL), so a form reset clears it.
+      setPreview("");
       setBusy(false);
     }
   }
