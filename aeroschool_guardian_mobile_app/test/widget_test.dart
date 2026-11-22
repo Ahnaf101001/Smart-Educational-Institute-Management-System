@@ -15,10 +15,32 @@ void main() {
 
     test('family overview keeps each child separate', () {
       final o = FamilyOverview.fromJson({
-        'guardian': {'id': 'GDN-00005', 'name': 'Mizanur Rahman', 'relationDefault': 'Father'},
+        'guardian': {
+          'id': 'GDN-00005',
+          'name': 'Mizanur Rahman',
+          'relationDefault': 'Father',
+        },
         'children': [
-          {'id': 'STU-4003', 'name': 'Tanvir Ahmed', 'className': 'Class 7-A', 'section': 'A', 'roll': '001', 'feeDue': '1200.00', 'todayAttendance': 'Present', 'homeworkCount': 2},
-          {'id': 'STU-4008', 'name': 'Tasnim Ahmed', 'className': 'Class 6-A', 'section': 'A', 'roll': '003', 'feeDue': '0', 'todayAttendance': 'Absent', 'canViewFees': false},
+          {
+            'id': 'STU-4003',
+            'name': 'Tanvir Ahmed',
+            'className': 'Class 7-A',
+            'section': 'A',
+            'roll': '001',
+            'feeDue': '1200.00',
+            'todayAttendance': 'Present',
+            'homeworkCount': 2,
+          },
+          {
+            'id': 'STU-4008',
+            'name': 'Tasnim Ahmed',
+            'className': 'Class 6-A',
+            'section': 'A',
+            'roll': '003',
+            'feeDue': '0',
+            'todayAttendance': 'Absent',
+            'canViewFees': false,
+          },
         ],
         'totalDue': '1200',
         'unreadNotifications': 3,
@@ -32,13 +54,23 @@ void main() {
     });
 
     test('notifications are categorised for child-wise filtering', () {
-      final n = AppNotification.fromJson({'id': 1, 'eventType': 'StudentAbsent', 'body': 'Karim is absent today', 'studentName': 'Karim'});
+      final n = AppNotification.fromJson({
+        'id': 1,
+        'eventType': 'StudentAbsent',
+        'body': 'Karim is absent today',
+        'studentName': 'Karim',
+      });
       expect(n.category, 'Attendance');
       expect(n.isUnread, isTrue);
     });
 
     test('fee categories follow the specification', () {
-      FeeInvoice inv(String head) => FeeInvoice.fromJson({'id': 'x', 'feeHead': head, 'amount': '100', 'due': '100'});
+      FeeInvoice inv(String head) => FeeInvoice.fromJson({
+        'id': 'x',
+        'feeHead': head,
+        'amount': '100',
+        'due': '100',
+      });
       expect(inv('Monthly Tuition Fee').category, 'Monthly Tuition');
       expect(inv('Admission Fee').category, 'Admission');
       expect(inv('Half-yearly Exam Fee').category, 'Examination');

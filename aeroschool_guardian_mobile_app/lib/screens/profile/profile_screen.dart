@@ -114,7 +114,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           builder: (_) => EditProfileScreen(profile: p),
                         ),
                       );
-                      if (saved == true) setState(() => _version++);
+                      if (saved == true && mounted) {
+                        setState(() => _version++);
+                      }
                     },
                     icon: const Icon(Icons.edit_outlined, size: 18),
                     label: Text(AppLocalizations.of(context).edit),

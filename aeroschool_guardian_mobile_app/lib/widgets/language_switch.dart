@@ -17,10 +17,18 @@ class LanguageSwitch extends StatelessWidget {
     final l = AppLocalizations.of(context);
     return SegmentedButton<String>(
       showSelectedIcon: false,
-      style: compact ? const ButtonStyle(visualDensity: VisualDensity.compact) : null,
+      style: compact
+          ? const ButtonStyle(visualDensity: VisualDensity.compact)
+          : null,
       segments: [
-        ButtonSegment(value: 'en', label: Text(compact ? 'EN' : l.languageEnglish)),
-        ButtonSegment(value: 'bn', label: Text(compact ? 'বাং' : l.languageBangla)),
+        ButtonSegment(
+          value: 'en',
+          label: Text(compact ? 'EN' : l.languageEnglish),
+        ),
+        ButtonSegment(
+          value: 'bn',
+          label: Text(compact ? 'বাং' : l.languageBangla),
+        ),
       ],
       selected: {current},
       onSelectionChanged: (s) => locale.setLanguage(s.first),

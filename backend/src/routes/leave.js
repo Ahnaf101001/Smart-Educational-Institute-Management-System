@@ -64,6 +64,16 @@ router.post("/apply", asyncHandler(async (req, res) => {
 router.get("/balances/:type/:id", asyncHandler(async (req, res) => {
   const { type, id } = req.params;
   const applies = type === "Student" ? "Student" : "Staff";
+  // Same self-service scope as /apply: staff with leave access see anyone; guardians only their
+  // linked students; teachers / staff only themselves.
+  if (!hasPermission(req.user, "leave", "view") && !hasPermission(req.user, "leave", "create")) {
+    if (req.user.linkedType === "Guardian") {
+      const link = await query("SELECT 1 FROM guardian_students WHERE guardian_id = $1 AND student_id = $2 AND access_status = 'Enabled'", [req.user.linkedId, id]);
+      if (type !== "Student" || !link.rowCount) throw httpError(403, "You can only view leave balances of your linked students.");
+    } else if (!(["Teacher", "Staff"].includes(req.user.linkedType) && type === req.user.linkedType && id === req.user.linkedId)) {
+      throw httpError(403, "You can only view your own leave balance.");
+    }
+  }
   const rows = (await query(
     `SELECT lt.id, lt.name, lt.days_per_year, lt.is_paid,
             COALESCE(SUM(lr.days) FILTER (WHERE lr.status = 'Approved' AND EXTRACT(YEAR FROM lr.from_date) = EXTRACT(YEAR FROM CURRENT_DATE)), 0)::int AS used,

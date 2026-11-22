@@ -14,6 +14,16 @@ function required(name, fallback) {
   return value;
 }
 
+// A production server must never sign sessions with a publicly known secret: anyone could
+// forge an admin token. Refuse to start instead of falling back to the development default.
+const PLACEHOLDER_SECRETS = ["development-only-change-me", "replace-with-a-long-random-secret"];
+if (process.env.NODE_ENV === "production") {
+  const secret = process.env.JWT_SECRET || "";
+  if (!secret || PLACEHOLDER_SECRETS.includes(secret) || secret.length < 32) {
+    throw new Error("JWT_SECRET must be set to a random value of at least 32 characters when NODE_ENV=production.");
+  }
+}
+
 module.exports = {
   nodeEnv: process.env.NODE_ENV || "development",
   port: Number(process.env.PORT || 4000),

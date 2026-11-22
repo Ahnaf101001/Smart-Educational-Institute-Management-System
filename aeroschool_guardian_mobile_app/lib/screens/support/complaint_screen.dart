@@ -38,7 +38,7 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
             builder: (_) =>
                 _ComplaintForm(initialStudentId: widget.initialStudentId),
           );
-          if (sent == true) setState(() => _version++);
+          if (sent == true && mounted) setState(() => _version++);
         },
         icon: const Icon(Icons.add_comment_outlined),
         label: const Text('New'),

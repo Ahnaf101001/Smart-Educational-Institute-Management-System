@@ -131,7 +131,7 @@ class _LeaveFormState extends State<_LeaveForm> {
       ).subtract(const Duration(days: 7)),
       lastDate: DateTime(now.year + 1),
     );
-    if (picked == null) return;
+    if (picked == null || !mounted) return;
     setState(() {
       if (from) {
         _from = picked;

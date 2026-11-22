@@ -87,6 +87,11 @@ async function authenticate(req, res, next) {
   } catch {
     return next(httpError(401, "Authentication token is invalid or expired."));
   }
+  // 2FA / OTP-login challenge tokens are signed with the same secret but carry a `purpose`
+  // claim; they only unlock the OTP verification step and must never work as a session.
+  if (payload.purpose) {
+    return next(httpError(401, "Authentication token is invalid or expired."));
+  }
 
   try {
     const result = await query("SELECT * FROM users WHERE id = $1", [payload.sub]);

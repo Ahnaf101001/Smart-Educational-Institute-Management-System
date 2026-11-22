@@ -120,8 +120,15 @@ class PushService {
   }
 
   /// Removes this device from the guardian's account (call before logging out).
+  /// Also cancels the listeners so a token refresh after logout cannot re-register the
+  /// device; [start] subscribes again on the next sign-in.
   Future<void> stop() async {
     final token = _token;
+    await _onMessage?.cancel();
+    await _onOpened?.cancel();
+    await _onRefresh?.cancel();
+    _onMessage = _onOpened = _onRefresh = null;
+    _token = null;
     if (!_ready || token == null) return;
     try {
       await _guardian.unregisterDevice(token);

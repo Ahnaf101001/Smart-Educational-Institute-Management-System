@@ -151,6 +151,7 @@ router.post("/verify-otp", otpLimiter, asyncHandler(async (req, res) => {
   const { challenge, code } = req.body || {};
   let payload;
   try { payload = jwt.verify(String(challenge || ""), env.jwtSecret); } catch { throw httpError(401, "OTP session expired. Sign in again."); }
+  if (payload.purpose !== "2fa") throw httpError(401, "OTP session expired. Sign in again.");
   const user = (await query("SELECT * FROM users WHERE id = $1", [payload.sub])).rows[0];
   if (!user || !user.otp_hash || !user.otp_expires_at || new Date(user.otp_expires_at) < new Date()) {
     throw httpError(401, "OTP expired. Request a new code.");
@@ -182,6 +183,7 @@ router.post("/otp/verify", otpLimiter, asyncHandler(async (req, res) => {
   const { challenge, code } = req.body || {};
   let payload;
   try { payload = jwt.verify(String(challenge || ""), env.jwtSecret); } catch { throw httpError(401, "OTP session expired."); }
+  if (payload.purpose !== "otp-login") throw httpError(401, "OTP session expired.");
   if (!payload.sub) throw httpError(401, "Incorrect OTP.");
   const user = (await query("SELECT * FROM users WHERE id = $1 AND status = 'Active'", [payload.sub])).rows[0];
   if (!user || !user.otp_hash || new Date(user.otp_expires_at) < new Date()) throw httpError(401, "OTP expired.");
