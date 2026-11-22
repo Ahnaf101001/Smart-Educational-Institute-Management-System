@@ -182,6 +182,8 @@ function createCrudRouter(resourceName) {
     if (config.beforeCreate) await config.beforeCreate(payload, req);
     for (const f of config.encrypted || []) if (payload[f] !== undefined) payload[f] = encryptField(payload[f]);
     const fields = Object.keys(payload);
+    // Records such as book issues are created by their own workflow route; an empty INSERT would be a 500.
+    if (!fields.length) throw httpError(422, `No valid fields to save for ${config.label || resourceName}.`);
     const result = await query(
       `INSERT INTO ${config.table} (${fields.join(", ")})
        VALUES (${fields.map((_, i) => `$${i + 1}`).join(", ")}) RETURNING *`,
