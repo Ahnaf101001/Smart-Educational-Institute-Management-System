@@ -43,7 +43,7 @@ class ErrorView extends StatelessWidget {
           const Icon(Icons.cloud_off_rounded, size: 48, color: AppColors.muted),
           const SizedBox(height: 12),
           Text(
-            message,
+            context.l10n.word(message),
             textAlign: TextAlign.center,
             style: const TextStyle(color: AppColors.muted),
           ),
@@ -177,7 +177,7 @@ void showSnack(BuildContext context, String message, {bool error = false}) {
     ..hideCurrentSnackBar()
     ..showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(context.l10n.word(message)),
         behavior: SnackBarBehavior.floating,
         backgroundColor: error ? AppColors.danger : null,
       ),

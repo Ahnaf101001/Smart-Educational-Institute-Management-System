@@ -170,7 +170,9 @@ export const academicApi = {
       list("/academic-years"),
       request("/academic-settings").then((payload) => payload.data),
       list("/assignments"),
-      list("/teachers"),
+      // Teacher names are display-only here; roles without Teacher access (e.g. teachers
+      // themselves) must still get classes and subjects instead of a failed page.
+      list("/teachers").catch((e) => (e?.status === 403 ? [] : Promise.reject(e))),
     ]).then(([classes, subjects, years, settings, assignments, teachers]) => ({
       classes,
       subjects,

@@ -310,7 +310,7 @@ function HifzEntry() {
   const [summary, setSummary] = useState(null);
   const [form, setForm] = useState({ logType: "Hifz", sabakPara: "", sabakFrom: "", sabakTo: "", sabqi: "", amukhtaPara: "", mistakes: 0, tajweedRating: 4, comment: "", paraCompleted: false });
   useEffect(() => {
-    resource("/halaqas").all().then(setHalaqas);
+    resource("/halaqas").all().then(setHalaqas).catch(() => setHalaqas([]));
     resource("/students").all({ status: "Active" }).then((rows) => setStudents(Object.fromEntries(rows.map((s) => [s.id, s]))));
   }, []);
   useEffect(() => { if (halaqaId) resource("/halaqa-members").all({ halaqaId }).then(setMembers); }, [halaqaId]);
@@ -391,7 +391,7 @@ function SalahAttendance() {
   const [students, setStudents] = useState([]);
   const [marks, setMarks] = useState({});
   const [weekly, setWeekly] = useState([]);
-  useEffect(() => { resource("/classes").all().then(setClasses); }, []);
+  useEffect(() => { resource("/classes").all().then(setClasses).catch(() => setClasses([])); }, []);
   useEffect(() => {
     resource("/students").all({ status: "Active" }).then((rows) => {
       const list = className ? rows.filter((s) => String(s.className || "").startsWith(className)) : rows;

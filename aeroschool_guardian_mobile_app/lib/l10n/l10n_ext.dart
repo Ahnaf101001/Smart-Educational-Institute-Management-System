@@ -106,6 +106,14 @@ const _bn = <String, String>{
   'School notices & events': 'স্কুলের নোটিশ ও অনুষ্ঠান',
   'Also send by SMS (if enabled)': 'এসএমএসেও পাঠান (চালু থাকলে)',
   'Also send by email (if enabled)': 'ইমেইলেও পাঠান (চালু থাকলে)',
+  // Messages the app itself raises (network, sign-in); server messages stay as sent.
+  'The server is taking too long to respond. Please try again.':
+      'সার্ভার সাড়া দিতে দেরি করছে। আবার চেষ্টা করুন।',
+  'Cannot reach the school server. Check your internet connection and try again.': 'স্কুলের সার্ভারে সংযোগ করা যাচ্ছে না। ইন্টারনেট সংযোগ দেখে আবার চেষ্টা করুন।',
+  'Sign-in failed. Please try again.': 'লগইন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।',
+  'Enter your current password.': 'আপনার বর্তমান পাসওয়ার্ড লিখুন।',
+  'Two-step verification is enabled for this account. Please contact the school to use the guardian app.': 'এই অ্যাকাউন্টে দুই-ধাপের যাচাই চালু আছে। অভিভাবক অ্যাপ ব্যবহারের জন্য স্কুলে যোগাযোগ করুন।',
+  'This app is for guardians only. Please use the school web portal for staff accounts.': 'এই অ্যাপ শুধু অভিভাবকদের জন্য। স্টাফ অ্যাকাউন্টের জন্য স্কুলের ওয়েব পোর্টাল ব্যবহার করুন।',
   // Payment gateways and validator messages
   'Card / Mobile banking (SSLCommerz)': 'কার্ড / মোবাইল ব্যাংকিং (SSLCommerz)',
   'Use at least 8 characters.': 'কমপক্ষে ৮টি অক্ষর ব্যবহার করুন।',

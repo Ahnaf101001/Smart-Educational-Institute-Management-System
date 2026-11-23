@@ -217,7 +217,7 @@ const NAVIGATION = [
     label: "Settings", icon: SettingsIcon, perm: [["settings"], ["users"], ["audit"], ["dashboard"]],
     children: [
       { label: "Institution Setup", perm: [["settings"]], render: () => <InstitutionSetup /> },
-      { label: "Roles & Permissions", render: () => <RolesPermissions /> },
+      { label: "Roles & Permissions", perm: [["users"]], render: () => <RolesPermissions /> },
       { label: "Approval Rules", perm: [["approvals"]], render: RMX("approvalRules") },
       { label: "Integrations & API", perm: [["settings"]], render: () => <IntegrationsPage /> },
       { label: "My Account & Devices", render: () => <AccountSecurity /> },

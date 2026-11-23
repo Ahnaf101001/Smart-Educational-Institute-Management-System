@@ -149,7 +149,8 @@ export default function Routine() {
       try {
         const [academicData, teachersData] = await Promise.all([
           academicApi.load(),
-          teachersApi.list()
+          // Teachers may view the routine without access to the teacher list.
+          teachersApi.list().catch((e) => (e?.status === 403 ? [] : Promise.reject(e)))
         ]);
         
         const allClasses = academicData.classes || [];

@@ -803,5 +803,12 @@ void main() {
     expect(bn.word('Some unknown value'), 'Some unknown value');
     expect(en.word('Present'), 'Present');
     expect(en.dayShort('Monday'), 'Mon');
+    // Network errors raised by the app itself are shown in Bangla too.
+    expect(
+      bn.word(
+        'Cannot reach the school server. Check your internet connection and try again.',
+      ),
+      isNot(contains('Cannot reach')),
+    );
   });
 }

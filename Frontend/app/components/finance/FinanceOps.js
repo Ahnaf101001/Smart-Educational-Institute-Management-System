@@ -15,7 +15,7 @@ function InvoiceTools() {
   const [classId, setClassId] = useState("");
   const [frequency, setFrequency] = useState("Monthly");
   const [busy, setBusy] = useState("");
-  useEffect(() => { resource("/classes").all().then(setClasses); }, []);
+  useEffect(() => { resource("/classes").all().then(setClasses).catch(() => setClasses([])); }, []);
   async function run(kind) {
     setBusy(kind);
     try {
@@ -48,7 +48,7 @@ function DiscountRequest() {
   const [form, setForm] = useState({ studentId: "", feeHeadId: "", discountType: "Sibling", mode: "Percent", value: 10, reason: "", validFrom: "", validTo: "" });
   useEffect(() => {
     resource("/students").all({ status: "Active" }).then(setStudents);
-    resource("/fee-heads").all().then(setHeads);
+    resource("/fee-heads").all().then(setHeads).catch(() => setHeads([]));
     http.get("/fees/discounts/sibling-candidates").then(setCandidates).catch(() => {});
   }, []);
   async function submit() {
@@ -199,7 +199,7 @@ function CombinedCollect() {
   const [dues, setDues] = useState(null);
   const [sel, setSel] = useState(new Set());
   const [form, setForm] = useState({ amount: "", paymentMethod: "Cash", referenceNo: "" });
-  useEffect(() => { resource("/guardians").all().then(setGuardians); }, []);
+  useEffect(() => { resource("/guardians").all().then(setGuardians).catch(() => setGuardians([])); }, []);
   useEffect(() => {
     if (!gid) return;
     http.get(`/fees/guardian/${gid}/dues`).then((d) => { setDues(d); setSel(new Set(d.items.map((i) => i.invoiceId))); }).catch((e) => toast.error(e));

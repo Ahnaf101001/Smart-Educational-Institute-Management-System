@@ -204,9 +204,9 @@ function Promotion() {
   const [sel, setSel] = useState({ classId: "", examId: "", targetYearId: "" });
   const [preview, setPreview] = useState(null);
   useEffect(() => {
-    resource("/classes").all().then(setClasses);
-    resource("/exams").all().then(setExams);
-    resource("/academic-years").all().then(setYears);
+    resource("/classes").all().then(setClasses).catch(() => setClasses([]));
+    resource("/exams").all().then(setExams).catch(() => setExams([]));
+    resource("/academic-years").all().then(setYears).catch(() => setYears([]));
   }, []);
   async function load() {
     try { setPreview(await http.get("/students/promotion/preview", { classId: sel.classId, examId: sel.examId })); } catch (e) { toast.error(e); }
@@ -259,7 +259,7 @@ function RollAssign() {
   const [classes, setClasses] = useState([]);
   const [exams, setExams] = useState([]);
   const [sel, setSel] = useState({ classId: "", section: "", method: "alphabetical", examId: "", startFrom: 1 });
-  useEffect(() => { resource("/classes").all().then(setClasses); resource("/exams").all().then(setExams); }, []);
+  useEffect(() => { resource("/classes").all().then(setClasses).catch(() => setClasses([])); resource("/exams").all().then(setExams).catch(() => setExams([])); }, []);
   const cls = classes.find((c) => c.id === sel.classId);
   async function run() {
     try { const d = await http.post("/students/assign-rolls", sel); toast.success(`${d.assigned} roll numbers assigned without duplicates`); } catch (e) { toast.error(e); }

@@ -113,6 +113,9 @@ function createCrudRouter(resourceName) {
   router.use((req, res, next) => {
     const action = METHOD_ACTION[req.method] || "view";
     if (config.selfService && req.method !== "DELETE" && req.user?.linkedType) return next();
+    // Read-only access for roles whose work depends on this list (e.g. marks entry needs the
+    // exam list). Writes still require the resource's own module permission.
+    if (req.method === "GET" && (config.alsoReadableBy || []).some((m) => hasPermission(req.user, m, "view"))) return next();
     if (moduleKey && !hasPermission(req.user, moduleKey, action)) {
       return next(httpError(403, `You do not have '${action}' permission for ${config.label || resourceName}.`));
     }

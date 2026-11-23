@@ -203,7 +203,8 @@ export function BranchDashboard() {
           </div>
         </Card>
       )}
-      <div className="mt-4"><ResourceManager embedded config={BRANCH_TRANSFERS} /></div>
+      {/* Transfer history is branch data; roles without Branch access only see the summary. */}
+      {can(user, "branches", "view") && <div className="mt-4"><ResourceManager embedded config={BRANCH_TRANSFERS} /></div>}
     </div>
   );
 }

@@ -207,6 +207,8 @@ module.exports = {
   },
   shifts: {
     table: "shifts", module: "academic", label: "Shift",
+    // Student records and ID cards show the shift.
+    alsoReadableBy: ["students", "idcards"],
     search: ["name"], filters: ["status"], writable: ["name", "start_time", "end_time", "status"], required: ["name"],
   },
   studentGroups: {
@@ -219,6 +221,8 @@ module.exports = {
   },
   classes: {
     table: "classes", module: "academic", label: "Class",
+    // Fee collection, student records and ID cards pick a class; reading the list is enough.
+    alsoReadableBy: ["fees", "students", "idcards"],
     search: ["id", "name", "level", "name_bn"], filters: ["status", "level", "institution_type", "branch_id"],
     writable: ["id", "name", "name_bn", "level", "sections", "students", "teacher_id", "status", "institution_type",
       "sort_order", "shift", "branch_id", "grade_scale_id", "has_groups"],
@@ -244,6 +248,8 @@ module.exports = {
   },
   academicYears: {
     table: "academic_years", module: "academic", label: "Academic session",
+    // Fee and student pages filter by session.
+    alsoReadableBy: ["fees", "students"],
     search: ["id", "name"], filters: ["status", "is_current"],
     writable: ["id", "name", "start_date", "end_date", "sessions", "status", "is_current", "calendar_type"],
     required: ["name", "start_date", "end_date"],
@@ -301,6 +307,9 @@ module.exports = {
   },
   exams: {
     table: "exams", module: "exams", label: "Exam",
+    // Teachers enter marks and view results per exam, and promotion import picks an exam,
+    // so these roles may read (not change) the exam list.
+    alsoReadableBy: ["marks", "results", "students"],
     search: ["id", "name", "status", "exam_type"], filters: ["status", "academic_year_id", "exam_type", "result_status"],
     writable: ["id", "name", "academic_year_id", "start_date", "end_date", "status", "details", "exam_type",
       "class_ids", "grade_scale_id", "weightage", "marks_entry_start", "marks_entry_end", "tie_break_rule", "combined_from"],
@@ -323,6 +332,8 @@ module.exports = {
   },
   gradeScales: {
     table: "grade_scales", module: "settings", label: "Grade scale",
+    // Exam setup and results need the grading scale.
+    alsoReadableBy: ["exams", "results"],
     search: ["name", "template_key"], filters: ["status", "institution_type", "scale_type"],
     writable: ["name", "template_key", "institution_type", "scale_type", "bands", "max_point", "fail_grade",
       "fourth_subject_threshold", "applicable_classes", "is_default", "status"],

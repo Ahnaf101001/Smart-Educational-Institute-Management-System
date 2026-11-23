@@ -80,8 +80,12 @@ export default function ResultWorkflow({ initialTab = "progress" }) {
   const [corr, setCorr] = useState({ studentId: "", subjectId: "", marksObtained: "", graceMarks: "", reason: "", kind: "correction" });
   const [subjects, setSubjects] = useState([]);
 
-  const loadExams = useCallback(() => resource("/exams").all().then((x) => { setExams(x); if (!examId && x[0]) setExamId(x[0].id); }), [examId]);
-  useEffect(() => { loadExams(); resource("/classes").all().then(setClasses); resource("/subjects").all().then(setSubjects); // eslint-disable-next-line react-hooks/exhaustive-deps
+  const loadExams = useCallback(() => resource("/exams").all().then((x) => { setExams(x); if (!examId && x[0]) setExamId(x[0].id); }).catch((e) => toast.error(e)), [examId, toast]);
+  useEffect(() => {
+    loadExams();
+    resource("/classes").all().then(setClasses).catch((e) => toast.error(e));
+    resource("/subjects").all().then(setSubjects).catch((e) => toast.error(e));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => { setTab(initialTab); }, [initialTab]);
   const exam = exams.find((e) => e.id === examId);
@@ -162,7 +166,7 @@ export default function ResultWorkflow({ initialTab = "progress" }) {
                   <StatCard label="Overdue" value={progress.summary.overdue} tone="red" />
                 </div>
                 <Card title="Marks entry progress" subtitle="Who has submitted, who is pending">
-                  <Table dense rows={progress.rows} rowKey="subjectId" columns={[
+                  <Table dense rows={(progress.rows || []).map((r) => ({ ...r, _key: `${r.classId ?? r.className ?? ""}:${r.subjectId}` }))} rowKey="_key" columns={[
                     { key: "className", label: "Class" }, { key: "subjectName", label: "Subject" }, { key: "teacherName", label: "Teacher" },
                     { key: "entered", label: "Entered", render: (r) => `${r.entered}/${r.students}` },
                     { key: "status", label: "Status", render: (r) => <>{r.overdue ? <Badge tone="red">Overdue</Badge> : <Badge>{r.status}</Badge>}</> },
@@ -224,7 +228,7 @@ export default function ResultWorkflow({ initialTab = "progress" }) {
                   ))}</div>
                 </Card>
                 <Card title="Class comparison"><Table dense rows={analytics.classes} rowKey="className" columns={[{ key: "className", label: "Class" }, { key: "students", label: "Students" }, { key: "passRate", label: "Pass %" }, { key: "avgGpa", label: "Avg GPA" }, { key: "aplus", label: "Top grade" }]} /></Card>
-                <Card title="Subject-wise & teacher-wise performance"><Table dense rows={analytics.subjects} rowKey="subjectId" columns={[{ key: "className", label: "Class" }, { key: "subjectName", label: "Subject" }, { key: "teacher", label: "Teacher" }, { key: "students", label: "Students" }, { key: "passRate", label: "Pass %" }, { key: "avgPercent", label: "Avg %" }, { key: "highest", label: "Highest" }]} /></Card>
+                <Card title="Subject-wise & teacher-wise performance"><Table dense rows={(analytics.subjects || []).map((r) => ({ ...r, _key: `${r.classId ?? r.className ?? ""}:${r.subjectId}` }))} rowKey="_key" columns={[{ key: "className", label: "Class" }, { key: "subjectName", label: "Subject" }, { key: "teacher", label: "Teacher" }, { key: "students", label: "Students" }, { key: "passRate", label: "Pass %" }, { key: "avgPercent", label: "Avg %" }, { key: "highest", label: "Highest" }]} /></Card>
                 <Card title="Failed list"><Table dense rows={analytics.failed} rowKey="studentId" columns={[{ key: "name", label: "Student" }, { key: "className", label: "Class" }, { key: "roll", label: "Roll" }, { key: "failedSubjects", label: "Failed in", render: (r) => r.failedSubjects.join(", ") }]} /></Card>
               </div>
             ) : <Spinner />)}

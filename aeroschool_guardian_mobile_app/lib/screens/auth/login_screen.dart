@@ -298,7 +298,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                _error!,
+                                context.l10n.word(_error!),
                                 style: const TextStyle(color: AppColors.danger),
                               ),
                             ),
