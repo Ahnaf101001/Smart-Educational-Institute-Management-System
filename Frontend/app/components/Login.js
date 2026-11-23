@@ -38,7 +38,7 @@ export default function Login({ onLoginSuccess }) {
     } catch (err) { setError(err.message); } finally { setLoading(false); }
   }
 
-  // Quick sign-in with mobile + PIN set after a full login (GA-01).
+  // Quick sign-in with mobile + PIN set after a full login.
   async function pinLogin(e) {
     e.preventDefault();
     try {

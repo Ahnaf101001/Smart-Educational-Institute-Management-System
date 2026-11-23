@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
@@ -67,7 +70,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'notificationPrefs': _prefs,
       });
       if (!mounted) return;
-      showSnack(context, 'Profile updated.');
+      showSnack(context, context.l10n.profileUpdated);
       Navigator.pop(context, true);
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, error: true);
@@ -78,7 +81,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Edit profile')),
+    appBar: AppBar(title: Text(context.l10n.editProfile)),
     body: Form(
       key: _form,
       child: ListView(
@@ -87,57 +90,57 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           TextFormField(
             controller: _alt,
             keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(
-              labelText: 'Alternate mobile',
+            decoration: InputDecoration(
+              labelText: context.l10n.alternateMobile,
               hintText: '01XXXXXXXXX',
-              prefixIcon: Icon(Icons.phone_android),
+              prefixIcon: const Icon(Icons.phone_android),
             ),
             validator: (v) {
               final s = (v ?? '').replaceAll(RegExp(r'\D'), '');
               if (s.isEmpty) return null;
               return RegExp(r'^01[3-9]\d{8}$').hasMatch(s)
                   ? null
-                  : 'Enter a valid Bangladeshi mobile number.';
+                  : context.l10n.enterValidBdMobile;
             },
           ),
           const SizedBox(height: 12),
           TextFormField(
             controller: _occupation,
-            decoration: const InputDecoration(
-              labelText: 'Occupation',
-              prefixIcon: Icon(Icons.work_outline),
+            decoration: InputDecoration(
+              labelText: context.l10n.occupation,
+              prefixIcon: const Icon(Icons.work_outline),
             ),
           ),
           const SizedBox(height: 12),
           TextFormField(
             controller: _emergency,
-            decoration: const InputDecoration(
-              labelText: 'Emergency contact',
-              prefixIcon: Icon(Icons.emergency_outlined),
+            decoration: InputDecoration(
+              labelText: context.l10n.emergencyContact2,
+              prefixIcon: const Icon(Icons.emergency_outlined),
             ),
           ),
           const SizedBox(height: 12),
           TextFormField(
             controller: _address,
             maxLines: 3,
-            decoration: const InputDecoration(
-              labelText: 'Address',
-              prefixIcon: Icon(Icons.home_outlined),
+            decoration: InputDecoration(
+              labelText: context.l10n.address,
+              prefixIcon: const Icon(Icons.home_outlined),
               alignLabelWithHint: true,
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
-            'Notification preferences',
-            style: TextStyle(
+          Text(
+            context.l10n.notificationPreferences,
+            style: const TextStyle(
               fontWeight: FontWeight.w800,
               color: AppColors.navy,
             ),
           ),
           const SizedBox(height: 2),
-          const Text(
-            'Turning a type off stops its SMS and email copies. Every alert still appears in the app, and emergency messages are always sent.',
-            style: TextStyle(color: AppColors.muted, fontSize: 12),
+          Text(
+            context.l10n.turningATypeOffStops,
+            style: const TextStyle(color: AppColors.muted, fontSize: 12),
           ),
           const SizedBox(height: 6),
           Card(
@@ -145,7 +148,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               children: [
                 for (final e in _prefLabels.entries)
                   SwitchListTile(
-                    title: Text(e.value),
+                    title: Text(context.l10n.word(e.value)),
                     value: _prefs[e.key] ?? true,
                     onChanged: (v) => setState(() => _prefs[e.key] = v),
                   ),
@@ -164,7 +167,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       color: Colors.white,
                     ),
                   )
-                : const Text('Save changes'),
+                : Text(context.l10n.saveChanges),
           ),
         ],
       ),

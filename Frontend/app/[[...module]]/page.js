@@ -52,6 +52,7 @@ import { AttendanceHub, CommunicationHub, HrHub, MadrasaHub, SimpleTabsPage, Tra
 import TeacherPortal from "../components/portals/TeacherPortal";
 import GuardianPortal from "../components/portals/GuardianPortal";
 import ResourceManager from "../components/ui/ResourceManager";
+import CommandPalette from "../components/ui/CommandPalette";
 import { CONFIGS } from "../components/modules/configs";
 import {
   AccountSecurity, BoardCenter, BranchDashboard, EXTRA_CONFIGS, FinanceExports, HifzTargets, IntegrationsPage, LearningHub, Moderation, SeatPlan,
@@ -191,7 +192,7 @@ const NAVIGATION = [
       { label: "Moderation", perm: [["communication", "approve"]], render: () => <Moderation /> },
     ],
   },
-  { label: "Library", icon: Library, perm: [["library"]], optional: "library", render: () => <SimpleTabsPage title="Library" icon={Library} subtitle="Catalog, issue/return, due dates and fines (OM-01/02)" tabs={[{ key: "issues", label: "Issue & return", render: () => <ResourceManager embedded config={CONFIGS.libraryIssues} /> }, { key: "books", label: "Book catalog", render: () => <ResourceManager embedded config={CONFIGS.libraryBooks} /> }]} /> },
+  { label: "Library", icon: Library, perm: [["library"]], optional: "library", render: () => <SimpleTabsPage title="Library" icon={Library} subtitle="Catalog, issue/return, due dates and fines" tabs={[{ key: "issues", label: "Issue & return", render: () => <ResourceManager embedded config={CONFIGS.libraryIssues} /> }, { key: "books", label: "Book catalog", render: () => <ResourceManager embedded config={CONFIGS.libraryBooks} /> }]} /> },
   { label: "Inventory & Assets", icon: Package, perm: [["inventory"]], optional: "inventory", render: () => <SimpleTabsPage title="Inventory, Assets & Visitors" icon={Package} tabs={[{ key: "items", label: "Items", render: () => <ResourceManager embedded config={CONFIGS.inventoryItems} /> }, { key: "mv", label: "Stock movements", render: () => <ResourceManager embedded config={CONFIGS.inventoryTransactions} /> }, { key: "sup", label: "Suppliers", render: () => <ResourceManager embedded config={CONFIGS.inventorySuppliers} /> }, { key: "assets", label: "Asset register", render: () => <ResourceManager embedded config={CONFIGS.assets} /> }, { key: "visitors", label: "Visitor log", render: () => <ResourceManager embedded config={CONFIGS.visitors} /> }]} /> },
   { label: "Transport", icon: Bus, perm: [["transport"]], optional: "transport", render: () => <TransportHub /> },
   {
@@ -260,11 +261,23 @@ function optionalVisible(key, settings, profile) {
   return !enabled.includes(`!${key}`);
 }
 
+// Sidebar groups: daily tasks first, setup last. Only the order and headings change –
+// every page, URL and permission filter stays exactly as defined in NAVIGATION.
+const NAV_GROUPS = [
+  ["Daily work", ["Dashboard", "Attendance", "Fees", "Communication", "Approvals"]],
+  ["People", ["Students", "Admission", "Guardians", "Teachers", "Staff", "ID Card Center"]],
+  ["Academics & exams", ["Academic", "Routine", "Exams & Results"]],
+  ["Finance & HR", ["Accounts", "HR & Payroll"]],
+  ["Operations & settings", ["Library", "Inventory & Assets", "Transport", "Madrasa", "Reports", "Settings"]],
+];
+const GROUP_OF = Object.fromEntries(NAV_GROUPS.flatMap(([g, labels], gi) => labels.map((l, li) => [l, { group: g, order: gi * 100 + li }])));
+
 function useVisibleNavigation(user, settings, profile) {
   return useMemo(() => NAVIGATION
     .filter((i) => allowed(user, i.perm) && optionalVisible(i.optional, settings, profile))
-    .map((i) => ({ ...i, children: i.children?.filter((c) => allowed(user, c.perm) && (!c.show || c.show(user)) && optionalVisible(c.optional, settings, profile)) }))
-    .filter((i) => !i.children || i.children.length), [user, settings, profile]);
+    .map((i) => ({ ...i, group: GROUP_OF[i.label]?.group || "Operations & settings", children: i.children?.filter((c) => allowed(user, c.perm) && (!c.show || c.show(user)) && optionalVisible(c.optional, settings, profile)) }))
+    .filter((i) => !i.children || i.children.length)
+    .sort((a, b) => (GROUP_OF[a.label]?.order ?? 999) - (GROUP_OF[b.label]?.order ?? 999)), [user, settings, profile]);
 }
 
 function Sidebar({ isOpen, close, collapsed, toggleCollapsed, active, navigateTo, expanded, setExpanded, user, items, t, profile, badges }) {
@@ -295,13 +308,18 @@ function Sidebar({ isOpen, close, collapsed, toggleCollapsed, active, navigateTo
         </div>
         {collapsed && <button aria-label="Expand menu" className="mx-auto mt-2 hidden rounded-lg p-2 text-[#79bcff] hover:bg-white/10 lg:block" onClick={toggleCollapsed}><Menu size={19} /></button>}
         <nav className={`sidebar-scroll flex-1 overflow-y-auto py-3 ${collapsed ? "lg:px-2" : "px-3"}`}>
-          {items.map((item) => {
+          {items.map((item, index) => {
             const Icon = item.icon;
             const isActive = active.parent === item.label;
             const isExpanded = expanded.includes(item.label) || isActive;
             const badge = badges[item.label];
+            const newGroup = index === 0 || items[index - 1].group !== item.group;
             return (
               <div className="mb-1" key={item.label}>
+                {newGroup && (
+                  <p className={`px-4 pb-1.5 text-[11px] font-bold uppercase tracking-wider text-[#8fb8ee] ${index ? "pt-4" : "pt-1"} ${collapsed ? "lg:hidden" : ""}`}>{t(item.group)}</p>
+                )}
+                {newGroup && index > 0 && collapsed && <hr className="mx-3 my-2 hidden border-white/10 lg:block" />}
                 <button
                   title={collapsed ? t(item.label) : undefined}
                   className={`flex w-full items-center rounded-[17px] py-2.5 text-left text-[15px] font-semibold transition ${collapsed ? "lg:justify-center lg:px-0" : "gap-3.5 px-4"} ${isActive ? (collapsed ? "bg-white/15" : "border-l-4 border-[#65bcff] bg-white/15 pl-3") : "text-[#dceaff] hover:bg-white/10 hover:text-white"}`}
@@ -344,7 +362,7 @@ function Sidebar({ isOpen, close, collapsed, toggleCollapsed, active, navigateTo
   );
 }
 
-function Topbar({ openMenu, pageTitle, dark, setDark, onLogout, user, navigateTo, t, lang, setLang, digits, approvalsCount }) {
+function Topbar({ openMenu, pageTitle, dark, setDark, onLogout, user, navigateTo, t, lang, setLang, digits, approvalsCount, openSearch }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -363,24 +381,25 @@ function Topbar({ openMenu, pageTitle, dark, setDark, onLogout, user, navigateTo
   const unread = notifications.filter((n) => !n.readAt).length + approvalsCount;
 
   return (
-    <header className="sticky top-0 z-30 flex h-[84px] items-center border-b border-slate-200 bg-white px-4 lg:px-7" ref={profileRef}>
-      <button aria-label="Open navigation" className="mr-3 rounded-xl border border-slate-200 p-2.5 text-slate-600 lg:hidden" onClick={openMenu}><Menu size={22} /></button>
-      <div className="min-w-0 lg:w-[300px]">
-        <h2 className="truncate text-lg font-bold text-slate-900 lg:text-xl">{t(pageTitle)}</h2>
-        <p className="mt-0.5 hidden text-sm text-slate-500 sm:block" suppressHydrationWarning>{digits(formattedDate)} · {toBanglaDate(new Date(), lang)} · {toHijriDate(new Date(), lang)}</p>
+    <header className="sticky top-0 z-30 flex h-16 items-center border-b border-slate-200 bg-white px-3 sm:px-4 lg:px-7" ref={profileRef}>
+      <button aria-label="Open navigation" className="mr-2 rounded-xl border border-slate-200 p-2 text-slate-600 lg:hidden" onClick={openMenu}><Menu size={20} /></button>
+      <div className="min-w-0 flex-1 md:flex-none lg:w-[340px]">
+        <h2 className="truncate text-base font-bold text-slate-900 sm:text-lg">{t(pageTitle)}</h2>
+        <p className="hidden truncate text-xs text-slate-500 sm:block" suppressHydrationWarning title={toHijriDate(new Date(), lang)}>{digits(formattedDate)} · {toBanglaDate(new Date(), lang)}</p>
       </div>
-      <label className="ml-4 hidden h-12 w-[320px] items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-4 xl:flex">
-        <Search size={20} className="shrink-0 text-slate-500" />
-        <input className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400" placeholder={lang === "bn" ? "শিক্ষার্থী খুঁজুন…" : "Find a student (Enter)…"}
-          onKeyDown={(e) => { if (e.key === "Enter" && can(user, "students")) navigateTo("Students", "Student 360"); }} />
-      </label>
-      <div className="ml-auto flex items-center gap-1 sm:gap-2">
-        <button className="flex h-11 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100" onClick={() => setLang(lang === "bn" ? "en" : "bn")} title="Language / ভাষা">
-          <Globe2 size={20} />{lang === "bn" ? "বাংলা" : "EN"}
+      <button type="button" onClick={() => openSearch("")} className="ml-4 hidden h-10 w-[300px] items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-3 text-left text-sm text-slate-400 hover:border-blue-300 md:flex">
+        <Search size={18} className="shrink-0 text-slate-500" />
+        <span className="flex-1 truncate">{t("Search pages and students…")}</span>
+        <kbd className="rounded border border-slate-200 bg-white px-1.5 text-[10px] font-semibold text-slate-500">Ctrl K</kbd>
+      </button>
+      <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-2">
+        <button aria-label={t("Search")} className="grid size-10 place-items-center rounded-xl text-slate-600 hover:bg-slate-100 md:hidden" onClick={() => openSearch("")}><Search size={20} /></button>
+        <button className="flex h-10 items-center gap-1.5 rounded-xl px-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:px-3" onClick={() => setLang(lang === "bn" ? "en" : "bn")} title="Language / ভাষা">
+          <Globe2 size={19} /><span className="hidden sm:inline">{lang === "bn" ? "বাংলা" : "EN"}</span>
         </button>
-        <button aria-label="Toggle dark mode" className="grid size-11 place-items-center rounded-xl text-slate-600 hover:bg-slate-100" onClick={() => setDark((v) => !v)}><Moon size={21} fill={dark ? "currentColor" : "none"} /></button>
+        <button aria-label="Toggle dark mode" className="hidden size-10 place-items-center rounded-xl text-slate-600 hover:bg-slate-100 sm:grid" onClick={() => setDark((v) => !v)}><Moon size={20} fill={dark ? "currentColor" : "none"} /></button>
         <div className="relative">
-          <button aria-label="Notifications" className="relative grid size-11 place-items-center rounded-xl text-slate-600 hover:bg-slate-100" onClick={() => { setNotifOpen((v) => !v); setProfileOpen(false); }}>
+          <button aria-label="Notifications" className="relative grid size-10 place-items-center rounded-xl text-slate-600 hover:bg-slate-100" onClick={() => { setNotifOpen((v) => !v); setProfileOpen(false); }}>
             <Bell size={21} />{unread > 0 && <span className="absolute right-0.5 top-0.5 grid min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">{unread > 99 ? "99+" : unread}</span>}
           </button>
           <AnimatePresence>
@@ -450,13 +469,25 @@ export default function Home() {
     digits: (v) => (lang === "bn" || settings.digitSystem === "bn" ? toBnDigits(v) : String(v ?? "")),
   }), [lang, setLang, settings.digitSystem]);
 
-  const navigateTo = useCallback((parent, child) => {
+  const [search, setSearch] = useState({ open: false, query: "" });
+  const navigateTo = useCallback((parent, child, query) => {
     const item = NAVIGATION.find((i) => i.label === parent);
     const target = child ?? (item?.children && parent !== "Dashboard" ? item.children[0].label : null);
     const next = getRoutePath(parent, target);
-    router.push(next);
+    router.push(query ? `${next}?${query}` : next);
     setCurrentPath(next);
   }, [router]);
+
+  // Ctrl+K (or Cmd+K) opens the page / student search from anywhere.
+  useEffect(() => {
+    function onKey(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setSearch({ open: true, query: "" }); }
+    }
+    const onOpen = () => setSearch({ open: true, query: "" });
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("edumanage:open-search", onOpen);
+    return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("edumanage:open-search", onOpen); };
+  }, []);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem("edumanage-token");
@@ -497,7 +528,7 @@ export default function Home() {
     return () => clearInterval(iv);
   }, [user]);
 
-  // Session expiry from the API and idle timeout (NFR-13, NFX-04).
+  // Session expiry from the API and idle timeout.
   useEffect(() => {
     const expired = () => handleLogout();
     window.addEventListener("edumanage:session-expired", expired);
@@ -544,6 +575,29 @@ export default function Home() {
     );
   }
 
+  // Student logins have no staff permissions; show a clear next step instead of an empty admin shell.
+  const isStudentOnly = user.linkedType === "Student" || (!items.length && (user.roles || [user.role]).some((r) => String(r).toLowerCase() === "student"));
+  if (isStudentOnly && !user.isAdmin) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-[#f7f8fb] px-4">
+        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+          <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-blue-50 text-blue-600"><UserRound size={28} /></div>
+          <h1 className="mt-4 text-lg font-bold text-slate-900">{lang === "bn" ? `আসসালামু আলাইকুম, ${user.name}` : `Welcome, ${user.name}`}</h1>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            {lang === "bn"
+              ? "শিক্ষার্থীদের উপস্থিতি, ফলাফল, ফি ও নোটিশ অভিভাবক অ্যাপে দেখা যায়। অ্যাপে প্রবেশের জন্য আপনার অভিভাবক বা স্কুল অফিসের সাথে যোগাযোগ করুন।"
+              : "Attendance, results, fees and notices for students are shown in the guardian app. Ask your guardian or the school office for access."}
+          </p>
+          {profile?.phone && <p className="mt-3 text-sm font-semibold text-slate-700">{profile.name} · {profile.phone}</p>}
+          <div className="mt-5 flex justify-center gap-2">
+            <button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" onClick={() => setLang(lang === "bn" ? "en" : "bn")}>{lang === "bn" ? "English" : "বাংলা"}</button>
+            <button className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700" onClick={handleLogout}>{i18n.t("Sign Out")}</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const parentItem = items.find((i) => i.label === active.parent);
   let view = null;
   let title = active.child || active.parent;
@@ -580,9 +634,12 @@ export default function Home() {
           />
           <main className={`min-h-screen min-w-0 bg-[#f7f8fb] transition-[margin,width] duration-300 ${sidebarCollapsed ? "lg:ml-[88px] lg:w-[calc(100%-88px)]" : "lg:ml-[280px] lg:w-[calc(100%-280px)]"}`}>
             <Topbar openMenu={() => setSidebarOpen(true)} pageTitle={title} dark={dark} setDark={setDark} onLogout={handleLogout} user={user}
-              navigateTo={navigateTo} t={i18n.t} lang={lang} setLang={setLang} digits={i18n.digits} approvalsCount={approvalsCount} />
-            <section key={currentPath} className="min-h-[calc(100vh-84px)] p-4 sm:p-5 lg:p-7">{view}</section>
+              navigateTo={navigateTo} t={i18n.t} lang={lang} setLang={setLang} digits={i18n.digits} approvalsCount={approvalsCount}
+              openSearch={(query) => setSearch({ open: true, query })} />
+            <section key={currentPath} className="min-h-[calc(100vh-4rem)] min-w-0 overflow-x-clip p-3 sm:p-5 lg:p-7">{view}</section>
           </main>
+          <CommandPalette open={search.open} initialQuery={search.query} onClose={() => setSearch({ open: false, query: "" })}
+            items={items} t={i18n.t} navigateTo={navigateTo} canSearchStudents={can(user, "students")} />
         </div>
       </UserContext.Provider>
     </I18nContext.Provider>

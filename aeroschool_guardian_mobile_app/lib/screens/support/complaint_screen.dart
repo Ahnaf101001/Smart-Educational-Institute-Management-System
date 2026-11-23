@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../core/format.dart';
@@ -28,7 +31,7 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
     final service = context.read<GuardianService>();
     final children = context.watch<FamilyProvider>().children;
     return Scaffold(
-      appBar: AppBar(title: const Text('Complaints & Feedback')),
+      appBar: AppBar(title: Text(context.l10n.complaintsFeedback2)),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           final sent = await showModalBottomSheet<bool>(
@@ -41,7 +44,7 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
           if (sent == true && mounted) setState(() => _version++);
         },
         icon: const Icon(Icons.add_comment_outlined),
-        label: const Text('New'),
+        label: Text(context.l10n.newLabel),
       ),
       body: AsyncView<List<Complaint>>(
         key: ValueKey(_version),
@@ -50,10 +53,10 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
           onRefresh: reload,
           child: list.isEmpty
               ? ListView(
-                  children: const [
+                  children: [
                     EmptyView(
-                      title: 'Nothing submitted yet',
-                      subtitle: 'Send a complaint or feedback to the school with the New button.',
+                      title: context.l10n.nothingSubmittedYet,
+                      subtitle: context.l10n.sendAComplaintOrFeedback,
                       icon: Icons.forum_outlined,
                     ),
                   ],
@@ -111,7 +114,9 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                                   color: AppColors.surfaceTint,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: Text('School response: ${c.response}'),
+                                child: Text(
+                                  context.l10n.schoolResponse(c.response ?? ''),
+                                ),
                               ),
                             ],
                           ],
@@ -198,9 +203,15 @@ class _ComplaintFormState extends State<_ComplaintForm> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'Complaint', label: Text('Complaint')),
-                  ButtonSegment(value: 'Feedback', label: Text('Feedback')),
+                segments: [
+                  ButtonSegment(
+                    value: 'Complaint',
+                    label: Text(context.l10n.complaint),
+                  ),
+                  ButtonSegment(
+                    value: 'Feedback',
+                    label: Text(context.l10n.modFeedback),
+                  ),
                 ],
                 showSelectedIcon: false,
                 selected: {_kind},
@@ -210,11 +221,11 @@ class _ComplaintFormState extends State<_ComplaintForm> {
               DropdownButtonFormField<String?>(
                 isExpanded: true,
                 initialValue: _studentId,
-                decoration: const InputDecoration(labelText: 'About'),
+                decoration: InputDecoration(labelText: context.l10n.about),
                 items: [
-                  const DropdownMenuItem<String?>(
+                  DropdownMenuItem<String?>(
                     value: null,
-                    child: Text('General (not about one child)'),
+                    child: Text(context.l10n.generalNotAboutOneChild),
                   ),
                   for (final c in children)
                     DropdownMenuItem<String?>(value: c.id, child: Text(c.name)),
@@ -226,10 +237,13 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                 DropdownButtonFormField<String>(
                   isExpanded: true,
                   initialValue: _category,
-                  decoration: const InputDecoration(labelText: 'Category'),
+                  decoration: InputDecoration(labelText: context.l10n.category),
                   items: [
                     for (final c in _categories)
-                      DropdownMenuItem(value: c, child: Text(c)),
+                      DropdownMenuItem(
+                        value: c,
+                        child: Text(context.l10n.word(c)),
+                      ),
                   ],
                   onChanged: (v) => setState(() => _category = v ?? 'Other'),
                 ),
@@ -237,20 +251,21 @@ class _ComplaintFormState extends State<_ComplaintForm> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _subject,
-                decoration: const InputDecoration(labelText: 'Subject'),
-                validator: (v) =>
-                    (v ?? '').trim().length < 3 ? 'Enter a subject.' : null,
+                decoration: InputDecoration(labelText: context.l10n.subject),
+                validator: (v) => (v ?? '').trim().length < 3
+                    ? context.l10n.enterSubject
+                    : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _description,
                 maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Details',
+                decoration: InputDecoration(
+                  labelText: context.l10n.details,
                   alignLabelWithHint: true,
                 ),
                 validator: (v) => (v ?? '').trim().length < 5
-                    ? 'Please add some details.'
+                    ? context.l10n.addDetails
                     : null,
               ),
               const SizedBox(height: 16),
@@ -265,7 +280,13 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                           color: Colors.white,
                         ),
                       )
-                    : Text('Send $_kind'),
+                    : Text(
+                        context.l10n.sendKind(
+                          _kind == 'Feedback'
+                              ? context.l10n.modFeedback
+                              : context.l10n.complaint,
+                        ),
+                      ),
               ),
             ],
           ),

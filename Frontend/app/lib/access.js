@@ -3,7 +3,7 @@
 import { createContext, useContext } from "react";
 
 // UI-side permission check. The server enforces every permission as well
-// (NFX-07: hiding UI is never the only control).
+//.
 export function can(user, module, action = "view") {
   if (!user) return false;
   if (user.isAdmin) return true;

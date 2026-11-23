@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -51,14 +54,14 @@ class ChildDashboardScreen extends StatelessWidget {
           }
           if (family.overview == null) {
             return ErrorView(
-              message: family.error ?? 'Could not load your children.',
+              message: family.error ?? context.l10n.couldNotLoadChildren,
               onRetry: family.load,
             );
           }
           if (child == null) {
-            return const EmptyView(
-              title: 'No linked students',
-              subtitle: 'Ask the school office to link your children to this account.',
+            return EmptyView(
+              title: context.l10n.noLinkedStudents,
+              subtitle: context.l10n.askTheSchoolOfficeTo,
               icon: Icons.link_off,
             );
           }
@@ -128,14 +131,10 @@ class ChildDashboardScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 _TodayCard(child: child),
-                SectionTitle(AppLocalizations.of(context).modules),
+                // Everyday tasks first; everything else stays one tap away under "More".
+                SectionTitle(context.l10n.everyday),
                 _ModuleGrid(
                   items: [
-                    _Module(
-                      AppLocalizations.of(context).modProfile,
-                      Icons.badge_outlined,
-                      () => _open(context, StudentProfileScreen(child: child)),
-                    ),
                     _Module(
                       AppLocalizations.of(context).modAttendance,
                       Icons.fact_check_outlined,
@@ -165,14 +164,6 @@ class ChildDashboardScreen extends StatelessWidget {
                       () => _open(context, AcademicsScreen(child: child)),
                     ),
                     _Module(
-                      AppLocalizations.of(context).modCalendar,
-                      Icons.event_note_outlined,
-                      () => _open(
-                        context,
-                        AcademicsScreen(child: child, initialTab: 2),
-                      ),
-                    ),
-                    _Module(
                       AppLocalizations.of(context).modNotices,
                       Icons.campaign_outlined,
                       () => _open(
@@ -181,6 +172,24 @@ class ChildDashboardScreen extends StatelessWidget {
                           studentId: child.id,
                           studentName: child.name,
                         ),
+                      ),
+                    ),
+                  ],
+                ),
+                SectionTitle(context.l10n.more),
+                _ModuleGrid(
+                  items: [
+                    _Module(
+                      AppLocalizations.of(context).modProfile,
+                      Icons.badge_outlined,
+                      () => _open(context, StudentProfileScreen(child: child)),
+                    ),
+                    _Module(
+                      AppLocalizations.of(context).modCalendar,
+                      Icons.event_note_outlined,
+                      () => _open(
+                        context,
+                        AcademicsScreen(child: child, initialTab: 2),
                       ),
                     ),
                     _Module(
@@ -276,7 +285,7 @@ class _TodayCard extends StatelessWidget {
                     color: AppColors.success,
                   ),
                   const SizedBox(width: 4),
-                  Text('Entry ${Fmt.time(child.todayInTime)}'),
+                  Text(context.l10n.entryAt(Fmt.time(child.todayInTime))),
                 ],
               ),
               Row(
@@ -289,7 +298,11 @@ class _TodayCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Exit ${child.todayOutTime == null ? '—' : Fmt.time(child.todayOutTime)}',
+                    context.l10n.exitAt(
+                      child.todayOutTime == null
+                          ? '—'
+                          : Fmt.time(child.todayOutTime),
+                    ),
                   ),
                 ],
               ),
@@ -304,7 +317,10 @@ class _TodayCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Next exam: ${child.nextExamSubject ?? ''} – ${child.nextExamName}',
+                  context.l10n.nextExam(
+                    child.nextExamSubject ?? '',
+                    child.nextExamName ?? '',
+                  ),
                 ),
               ),
               Text(
@@ -324,7 +340,11 @@ class _TodayCard extends StatelessWidget {
                 color: AppColors.navy,
               ),
               const SizedBox(width: 8),
-              Expanded(child: Text('Class teacher: ${child.classTeacher}')),
+              Expanded(
+                child: Text(
+                  context.l10n.classTeacherName(child.classTeacher ?? ''),
+                ),
+              ),
             ],
           ),
         ],

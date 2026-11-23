@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -10,6 +13,7 @@ import '../../models/family.dart';
 import '../../providers/family_provider.dart';
 import '../../widgets/async_view.dart';
 import '../../widgets/common.dart';
+import '../fees/fees_screen.dart';
 import '../notices/notice_detail_screen.dart';
 
 /// Part A – Family Overview: guardian profile, total children, child-wise
@@ -41,11 +45,11 @@ class FamilyDashboardScreen extends StatelessWidget {
       body: Builder(
         builder: (context) {
           if (o == null && family.loading) {
-            return const LoadingView(message: 'Loading your family overview…');
+            return LoadingView(message: context.l10n.loadingFamilyOverview);
           }
           if (o == null) {
             return ErrorView(
-              message: family.error ?? 'Could not load the dashboard.',
+              message: family.error ?? context.l10n.couldNotLoadDashboard,
               onRetry: family.load,
             );
           }
@@ -155,7 +159,8 @@ class FamilyDashboardScreen extends StatelessWidget {
                                     e.studentName,
                                     if (e.startTime != null)
                                       Fmt.clock(e.startTime),
-                                    if (e.room != null) 'Room ${e.room}',
+                                    if (e.room != null)
+                                      context.l10n.roomNo(e.room ?? ''),
                                   ].join(' • '),
                                 ),
                                 onTap: () => onOpenChild(e.studentId),
@@ -302,7 +307,7 @@ class _GuardianHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${greeting.toUpperCase()}, ${(overview.relation ?? 'PARENT').toUpperCase()}',
+                '${greeting.toUpperCase()}, ${context.l10n.word(overview.relation ?? 'Parent').toUpperCase()}',
                 style: const TextStyle(
                   color: Color(0xFFBFD3EA),
                   fontSize: 11,
@@ -507,8 +512,12 @@ class _AttendanceLine extends StatelessWidget {
               ),
               Text(
                 child.monthTotal == 0
-                    ? 'No records'
-                    : '${child.monthPresent}/${child.monthTotal} days • ${Fmt.percent(pct)}',
+                    ? context.l10n.noRecords
+                    : context.l10n.daysPresentOf(
+                        '${child.monthPresent}',
+                        '${child.monthTotal}',
+                        Fmt.percent(pct),
+                      ),
                 style: const TextStyle(fontSize: 12, color: AppColors.muted),
               ),
             ],
@@ -550,7 +559,7 @@ class _TodayRoutine extends StatelessWidget {
       ),
       subtitle: Text(
         child.todayRoutine.isEmpty
-            ? 'No classes scheduled today'
+            ? context.l10n.noClassesToday
             : '${child.todayRoutine.where((r) => !r.isBreak).length} classes today',
       ),
       children: [
@@ -573,7 +582,7 @@ class _TodayRoutine extends StatelessWidget {
                 : Text(
                     [
                       r.teacher,
-                      if (r.room != null) 'Room ${r.room}',
+                      if (r.room != null) context.l10n.roomNo(r.room ?? ''),
                     ].whereType<String>().join(' • '),
                   ),
           ),
@@ -587,6 +596,15 @@ class _FeeSummary extends StatelessWidget {
 
   final FamilyOverview overview;
 
+  /// Children whose dues this guardian may see and pay (per-child, never merged).
+  List<ChildSummary> get _payable =>
+      overview.children.where((c) => c.canViewFees && c.feeDue > 0).toList();
+
+  static void _pay(BuildContext context, ChildSummary c) => Navigator.push(
+    context,
+    MaterialPageRoute<void>(builder: (_) => FeesScreen(child: c)),
+  );
+
   @override
   Widget build(BuildContext context) => Card(
     child: Padding(
@@ -597,11 +615,11 @@ class _FeeSummary extends StatelessWidget {
             children: [
               // _Mini is already an Expanded.
               _Mini(
-                label: 'This month billed',
+                label: context.l10n.thisMonthBilled,
                 value: Fmt.money(overview.monthFeeTotal),
               ),
               _Mini(
-                label: 'Total outstanding',
+                label: context.l10n.totalOutstanding,
                 value: Fmt.money(overview.totalDue),
                 danger: overview.totalDue > 0,
               ),
@@ -609,20 +627,25 @@ class _FeeSummary extends StatelessWidget {
           ),
           const Divider(height: 24),
           // Per-student breakdown: one child's dues are never merged with another's.
-          for (final c in overview.children)
+          for (final c in overview.children) ...[
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(
                 children: [
                   Expanded(child: Text(c.name)),
                   if (!c.canViewFees)
-                    const Text(
-                      'Not shared',
-                      style: TextStyle(color: AppColors.muted, fontSize: 12),
+                    Text(
+                      context.l10n.notShared,
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 12,
+                      ),
                     )
                   else
                     Text(
-                      c.feeDue > 0 ? '${Fmt.money(c.feeDue)} due' : 'No dues',
+                      c.feeDue > 0
+                          ? context.l10n.amountDue(Fmt.money(c.feeDue))
+                          : context.l10n.noDues,
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         color: c.feeDue > 0
@@ -633,6 +656,34 @@ class _FeeSummary extends StatelessWidget {
                 ],
               ),
             ),
+            // With several children owing, each pays from their own line.
+            if (_payable.length > 1 && _payable.contains(c))
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+                  onPressed: () => _pay(context, c),
+                  icon: const Icon(Icons.payments_outlined, size: 18),
+                  label: Text(context.l10n.payNow2),
+                ),
+              ),
+          ],
+          if (_payable.length == 1) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                ),
+                onPressed: () => _pay(context, _payable.first),
+                icon: const Icon(Icons.payments_outlined),
+                label: Text(
+                  context.l10n.payNow(Fmt.money(_payable.first.feeDue)),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     ),

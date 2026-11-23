@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../core/format.dart';
@@ -22,7 +25,7 @@ class ReceiptScreen extends StatelessWidget {
       await pdf.share(bytes, 'receipt-${r.receiptNo}.pdf');
     } catch (_) {
       if (context.mounted) {
-        showSnack(context, 'Could not create the receipt PDF.', error: true);
+        showSnack(context, context.l10n.couldNotCreateReceipt, error: true);
       }
     }
   }
@@ -31,7 +34,7 @@ class ReceiptScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final service = context.read<GuardianService>();
     return Scaffold(
-      appBar: AppBar(title: Text('Receipt $receiptNo')),
+      appBar: AppBar(title: Text(context.l10n.receiptTitle(receiptNo))),
       body: AsyncView<Receipt>(
         load: () => service.receipt(receiptNo),
         builder: (context, r, _) => ListView(
@@ -44,7 +47,7 @@ class ReceiptScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      r.schoolName ?? 'School',
+                      r.schoolName ?? context.l10n.school,
                       style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 17,
@@ -75,23 +78,30 @@ class ReceiptScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    InfoRow(label: 'Receipt no.', value: r.receiptNo),
-                    InfoRow(label: 'Date', value: Fmt.dateTime(r.paidAt)),
+                    InfoRow(label: context.l10n.receiptNo, value: r.receiptNo),
                     InfoRow(
-                      label: 'Student',
+                      label: context.l10n.date,
+                      value: Fmt.dateTime(r.paidAt),
+                    ),
+                    InfoRow(
+                      label: context.l10n.student,
                       value: '${r.studentName} (${r.studentId})',
                     ),
                     InfoRow(
-                      label: 'Class',
+                      label: context.l10n.classLabel,
                       value: [
                         r.className?.split('-').first,
-                        if (r.section != null) 'Section ${r.section}',
-                        if (r.roll != null) 'Roll ${r.roll}',
+                        if (r.section != null)
+                          context.l10n.sectionName(r.section ?? ''),
+                        if (r.roll != null) context.l10n.rollNo('${r.roll}'),
                       ].whereType<String>().join(' • '),
                     ),
-                    InfoRow(label: 'Method', value: r.method),
+                    InfoRow(label: context.l10n.method, value: r.method),
                     if (r.reference != null)
-                      InfoRow(label: 'Reference', value: r.reference),
+                      InfoRow(
+                        label: context.l10n.reference,
+                        value: r.reference,
+                      ),
                     const Divider(height: 24),
                     for (final l in r.lines)
                       Padding(
@@ -115,10 +125,10 @@ class ReceiptScreen extends StatelessWidget {
                     const Divider(height: 24),
                     Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Total paid',
-                            style: TextStyle(fontWeight: FontWeight.w800),
+                            context.l10n.totalPaid2,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
                           ),
                         ),
                         Text(
@@ -139,7 +149,7 @@ class ReceiptScreen extends StatelessWidget {
             FilledButton.icon(
               onPressed: () => _download(context, r),
               icon: const Icon(Icons.download_rounded),
-              label: const Text('Download receipt (PDF)'),
+              label: Text(context.l10n.downloadReceiptPdf),
             ),
           ],
         ),

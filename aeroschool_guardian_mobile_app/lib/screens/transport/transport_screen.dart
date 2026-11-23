@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../core/format.dart';
@@ -26,7 +29,11 @@ class TransportScreen extends StatelessWidget {
     final service = context.read<GuardianService>();
     final files = context.read<FileService>();
     return Scaffold(
-      appBar: AppBar(title: Text('Transport – ${child.name}')),
+      appBar: AppBar(
+        title: Text(
+          context.l10n.titleForChild(context.l10n.modTransport, child.name),
+        ),
+      ),
       body: AsyncView<StudentExtras>(
         load: () => service.extras(child.id),
         builder: (context, x, reload) {
@@ -37,28 +44,30 @@ class TransportScreen extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               children: [
                 if (t == null)
-                  const Card(
+                  Card(
                     child: EmptyView(
-                      title: 'No school transport assigned',
-                      subtitle:
-                          'Contact the school office to request a bus seat.',
+                      title: context.l10n.noSchoolTransportAssigned,
+                      subtitle: context.l10n.contactTheSchoolOfficeTo,
                       icon: Icons.directions_bus_outlined,
                     ),
                   )
                 else ...[
                   SectionCard(
-                    title: 'Assigned Bus',
+                    title: context.l10n.assignedBus,
                     icon: Icons.directions_bus_rounded,
                     child: Column(
                       children: [
                         InfoRow(
-                          label: 'Bus / vehicle',
+                          label: context.l10n.busVehicle,
                           value: t.registrationNo,
                         ),
-                        InfoRow(label: 'Route', value: t.routeName),
-                        InfoRow(label: 'Pickup location', value: t.stopName),
+                        InfoRow(label: context.l10n.route, value: t.routeName),
                         InfoRow(
-                          label: 'Drop-off location',
+                          label: context.l10n.pickupLocation,
+                          value: t.stopName,
+                        ),
+                        InfoRow(
+                          label: context.l10n.dropOffLocation,
                           value: t.dropoffStop ?? t.stopName,
                         ),
                       ],
@@ -66,19 +75,19 @@ class TransportScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   SectionCard(
-                    title: 'Transport Schedule',
+                    title: context.l10n.transportSchedule,
                     icon: Icons.schedule_rounded,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         InfoRow(
-                          label: 'Morning departure',
+                          label: context.l10n.morningDeparture,
                           value: t.morningDeparture == null
                               ? null
                               : Fmt.clock(t.morningDeparture),
                         ),
                         InfoRow(
-                          label: 'Evening departure',
+                          label: context.l10n.eveningDeparture,
                           value: t.eveningDeparture == null
                               ? null
                               : Fmt.clock(t.eveningDeparture),
@@ -134,13 +143,13 @@ class TransportScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   SectionCard(
-                    title: 'Bus Driver',
+                    title: context.l10n.busDriver,
                     icon: Icons.badge_outlined,
                     child: Column(
                       children: [
-                        InfoRow(label: 'Name', value: t.driverName),
+                        InfoRow(label: context.l10n.name, value: t.driverName),
                         InfoRow(
-                          label: 'Phone',
+                          label: context.l10n.phone,
                           value: t.driverPhone,
                           onTap: t.driverPhone == null
                               ? null
@@ -152,9 +161,9 @@ class TransportScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   _LiveBusCard(studentId: child.id, initial: t),
                   const SizedBox(height: 12),
-                  const AccessNotice(
+                  AccessNotice(
                     icon: Icons.notifications_active_outlined,
-                    message: 'You get a notification when the bus reaches your stop (when the bus has GPS or the transport desk confirms arrival).',
+                    message: context.l10n.youGetANotificationWhen,
                   ),
                 ],
               ],
@@ -226,17 +235,17 @@ class _LiveBusCardState extends State<_LiveBusCard> {
     final files = context.read<FileService>();
     final loc = _loc;
     return SectionCard(
-      title: 'Live Bus Location',
+      title: context.l10n.liveBusLocation,
       icon: Icons.gps_fixed_rounded,
       action: IconButton(
         onPressed: _refresh,
         icon: const Icon(Icons.refresh),
-        tooltip: 'Refresh location',
+        tooltip: context.l10n.refreshLocation,
       ),
       child: loc == null
-          ? const Text(
-              'GPS tracking is not available for this bus yet.',
-              style: TextStyle(color: AppColors.muted),
+          ? Text(
+              context.l10n.gpsTrackingIsNotAvailable,
+              style: const TextStyle(color: AppColors.muted),
             )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,7 +262,9 @@ class _LiveBusCardState extends State<_LiveBusCard> {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'Updated ${Fmt.relative(loc.recordedAt)} • refreshes every 15 s',
+                        context.l10n.updatedRefresh(
+                          Fmt.relative(loc.recordedAt),
+                        ),
                         style: const TextStyle(
                           color: AppColors.muted,
                           fontSize: 12,
@@ -264,14 +275,14 @@ class _LiveBusCardState extends State<_LiveBusCard> {
                 ),
                 if (loc.speed != null)
                   Text(
-                    'Speed: ${loc.speed!.round()} km/h',
+                    context.l10n.speedKmh('${loc.speed!.round()}'),
                     style: const TextStyle(fontSize: 12),
                   ),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
                   onPressed: () => files.map(loc.latitude, loc.longitude),
                   icon: const Icon(Icons.map_outlined),
-                  label: const Text('Open in Maps'),
+                  label: Text(context.l10n.openInMaps),
                 ),
               ],
             ),
@@ -327,7 +338,7 @@ class _OsmTileMap extends StatelessWidget {
                     errorBuilder: (_, _, _) => Container(
                       color: AppColors.surfaceTint,
                       alignment: Alignment.center,
-                      child: const Text('Map unavailable'),
+                      child: Text(context.l10n.mapUnavailable),
                     ),
                   ),
                 ),

@@ -25,7 +25,7 @@ function InvoiceTools() {
     } catch (e) { toast.error(e); } finally { setBusy(""); }
   }
   return (
-    <Card title="Invoices, late fines & reminders" subtitle="Monthly/term invoices auto-generate on the configured day; you can also run them here (FE-04/07/14).">
+    <Card title="Invoices, late fines & reminders" subtitle="Monthly/term invoices auto-generate on the configured day; you can also run them here.">
       <div className="grid gap-3 md:grid-cols-4">
         <Field label="Billing month"><Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} /></Field>
         <Field label="Frequency"><Select value={frequency} onChange={(e) => setFrequency(e.target.value)} options={["Monthly", "Term", "Yearly", "One-time"]} /></Field>
@@ -56,7 +56,7 @@ function DiscountRequest() {
   }
   return (
     <div className="grid gap-5 xl:grid-cols-2">
-      <Card title="Request discount / scholarship / waiver" subtitle="Student-specific adjustments go through approval with a mandatory reason (FE-03, FIN-05).">
+      <Card title="Request discount / scholarship / waiver" subtitle="Student-specific adjustments go through approval with a mandatory reason.">
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Student" className="sm:col-span-2"><Select value={form.studentId} onChange={(e) => setForm({ ...form, studentId: e.target.value })} options={students.map((s) => ({ value: s.id, label: `${s.name} – ${s.id} (${s.className})` }))} placeholder="Select student" /></Field>
           <Field label="Type"><Select value={form.discountType} onChange={(e) => setForm({ ...form, discountType: e.target.value })} options={["Sibling", "Scholarship", "Waiver", "Staff Child", "Orphan", "Merit", "Need Based", "Lillah", "Freedom Fighter", "Other"]} /></Field>
@@ -69,7 +69,7 @@ function DiscountRequest() {
         </div>
         <Button className="mt-3" icon={HandCoins} disabled={!form.studentId || !form.reason} onClick={submit}>Submit for approval</Button>
       </Card>
-      <Card title="Eligible siblings" subtitle="Guardians with more than one active student (FE-06)">
+      <Card title="Eligible siblings" subtitle="Guardians with more than one active student">
         <div className="max-h-[460px] space-y-2 overflow-auto">
           {candidates.map((g) => (
             <div key={g.guardianId} className="rounded-xl border border-slate-100 p-3 text-sm">
@@ -104,7 +104,7 @@ function CashClosing() {
   }
   return (
     <div className="space-y-5">
-      <Card title="Daily cashier closing" subtitle="Opening + today's cash collection vs counted cash; handover and mismatch alert (FE-16, FIN-13).">
+      <Card title="Daily cashier closing" subtitle="Opening + today's cash collection vs counted cash; handover and mismatch alert.">
         <div className="grid gap-3 md:grid-cols-5">
           <Field label="Date"><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
           <StatCard label="Opening" value={money(preview?.openingBalance)} />
@@ -163,7 +163,7 @@ function ReceiptsAdmin() {
     ) },
   ];
   return (
-    <Card title="Money receipts" subtitle="Serial receipts, print / reprint, cancellation and refund through approval (FE-13/15)">
+    <Card title="Money receipts" subtitle="Serial receipts, print / reprint, cancellation and refund through approval">
       <div className="mb-3 grid gap-2 sm:grid-cols-4">
         <Input type="date" value={filters.from} onChange={(e) => setFilters({ ...filters, from: e.target.value })} />
         <Input type="date" value={filters.to} onChange={(e) => setFilters({ ...filters, to: e.target.value })} />
@@ -215,7 +215,7 @@ function CombinedCollect() {
     } catch (e) { toast.error(e); }
   }
   return (
-    <Card title="Guardian combined payment" subtitle="One payment for all children; the system splits it student-wise by invoice (FIN-09, scenario: guardian with two children).">
+    <Card title="Guardian combined payment" subtitle="One payment for all children; the system splits it student-wise by invoice.">
       <Field label="Guardian" className="max-w-md"><Select value={gid} onChange={(e) => setGid(e.target.value)} options={guardians.map((g) => ({ value: g.id, label: `${g.name} – ${g.mobile}` }))} placeholder="Select guardian" /></Field>
       {dues && (
         <div className="mt-4 space-y-3">
@@ -348,7 +348,7 @@ function IncomeExpense() {
           </div>
         )}
       </Card>
-      <Card title="Bank balances & reconciliation" subtitle="Book vs reconciled balance (ACC-05)">
+      <Card title="Bank balances & reconciliation" subtitle="Book vs reconciled balance">
         <Table dense rows={banks} columns={[{ key: "bankName", label: "Bank" }, { key: "accountName", label: "Account" }, { key: "bookBalance", label: "Book balance", render: (x) => money(x.bookBalance) }, { key: "reconciledBalance", label: "Reconciled", render: (x) => money(x.reconciledBalance) }, { key: "unreconciled", label: "Unreconciled txns" }]} />
       </Card>
     </div>
@@ -360,7 +360,7 @@ export function AccountBooks({ initialTab = "cashbook" }) {
   useEffect(() => { setTab(initialTab); }, [initialTab]);
   return (
     <div>
-      <PageHeader title="Account Books & Financial Reports" icon={Landmark} subtitle="Chart of accounts, vouchers, cash book, ledger, trial balance, income–expense and bank reconciliation (ACC-01..07)." />
+      <PageHeader title="Account Books & Financial Reports" icon={Landmark} subtitle="Chart of accounts, vouchers, cash book, ledger, trial balance, income–expense and bank reconciliation." />
       <Tabs value={tab} onChange={setTab} tabs={[
         { key: "cashbook", label: "Cash Book" }, { key: "trial", label: "Ledger & Trial Balance" }, { key: "ie", label: "Income–Expense & Bank" },
         { key: "heads", label: "Chart of Accounts" }, { key: "vouchers", label: "Vouchers" }, { key: "bank", label: "Bank Accounts" },

@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../core/format.dart';
@@ -27,7 +30,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     final service = context.read<GuardianService>();
     final family = context.watch<FamilyProvider>();
     return Scaffold(
-      appBar: AppBar(title: const Text('Teacher Messages')),
+      appBar: AppBar(title: Text(context.l10n.teacherMessages2)),
       body: AsyncView<List<Conversation>>(
         key: ValueKey(_version),
         load: service.conversations,
@@ -35,10 +38,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
           onRefresh: reload,
           child: list.isEmpty
               ? ListView(
-                  children: const [
+                  children: [
                     EmptyView(
-                      title: 'No messages yet',
-                      subtitle: 'Open a child → Teachers and tap "Message" to contact a teacher.',
+                      title: context.l10n.noMessagesYet,
+                      subtitle: context.l10n.openAChildTeachersAnd,
                       icon: Icons.forum_outlined,
                     ),
                   ],
@@ -54,7 +57,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                         : family.childById(c.studentId!);
                     final teacherName = c.senderType == 'Teacher'
                         ? c.senderName
-                        : 'Teacher';
+                        : context.l10n.word('Teacher');
                     return Card(
                       child: ListTile(
                         leading: PersonAvatar(name: teacherName),
@@ -78,7 +81,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                           ],
                         ),
                         subtitle: Text(
-                          '${child != null ? '${child.name} • ' : ''}${c.senderType == 'Guardian' ? 'You: ' : ''}${c.body}\n${Fmt.relative(c.createdAt)}',
+                          '${child != null ? '${child.name} • ' : ''}${c.senderType == 'Guardian' ? context.l10n.youPrefix : ''}${c.body}\n${Fmt.relative(c.createdAt)}',
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -131,7 +134,7 @@ class ConversationScreen extends StatefulWidget {
 
 class _ConversationScreenState extends State<ConversationScreen> {
   final _text = TextEditingController();
-  List<ChatMessage> _messages = const [];
+  List<ChatMessage> _messages = [];
   bool _loading = true;
   bool _sending = false;
   String? _error;
@@ -207,7 +210,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
           ),
           if (widget.studentName != null)
             Text(
-              'About ${widget.studentName}',
+              context.l10n.aboutName(widget.studentName ?? ''),
               style: const TextStyle(fontSize: 12, color: Color(0xFFBFD3EA)),
             ),
         ],
@@ -221,9 +224,9 @@ class _ConversationScreenState extends State<ConversationScreen> {
               : _error != null
               ? ErrorView(message: _error!, onRetry: _load)
               : _messages.isEmpty
-              ? const EmptyView(
-                  title: 'Start the conversation',
-                  subtitle: 'Messages are delivered to the teacher during school hours.',
+              ? EmptyView(
+                  title: context.l10n.startTheConversation,
+                  subtitle: context.l10n.messagesAreDeliveredToThe,
                   icon: Icons.chat_bubble_outline,
                 )
               : ListView.builder(
@@ -295,8 +298,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
                       minLines: 1,
                       maxLines: 4,
                       maxLength: 2000,
-                      decoration: const InputDecoration(
-                        hintText: 'Write a message…',
+                      decoration: InputDecoration(
+                        hintText: context.l10n.writeAMessage,
                         counterText: '',
                         isDense: true,
                       ),

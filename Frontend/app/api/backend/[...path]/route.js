@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 // Thin reverse proxy to the API. It never injects credentials: the previous
 // version logged in as the admin for any request without a token, which gave
 // anonymous visitors full access. Authorization now always comes from the
-// browser session (NFR-02 / NFX-07).
+// browser session.
 const backendUrl = process.env.BACKEND_API_URL || "http://localhost:4000/api/v1";
 
 const FORWARD_REQUEST_HEADERS = [

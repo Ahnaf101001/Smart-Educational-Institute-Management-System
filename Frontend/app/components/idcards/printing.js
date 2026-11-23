@@ -8,7 +8,7 @@ export const PAGE_SIZES = {
   CR80: { w: null, h: null, label: "PVC card printer (one card per page)" },
 };
 
-// How many cards fit on a page (IDC-20).
+// How many cards fit on a page.
 export function computeLayout(template, layout) {
   const cw = Number(template.widthMm);
   const ch = Number(template.heightMm);
@@ -103,7 +103,7 @@ async function waitForImages(root) {
   await new Promise((r) => setTimeout(r, 400));
 }
 
-// Generates a PDF where every card is placed at its exact mm position (NFR-15).
+// Generates a PDF where every card is placed at its exact mm position.
 export async function generateCardsPdf(rootEl, { cards, template, layout, fileName = "id-cards.pdf", onProgress }) {
   const [{ jsPDF }, html2canvas] = await Promise.all([import("jspdf"), import("html2canvas").then((m) => m.default)]);
   await waitForImages(rootEl);

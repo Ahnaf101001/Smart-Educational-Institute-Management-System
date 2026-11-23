@@ -80,7 +80,7 @@ function Logo({ src, size = 8, color = "#fff", bg = "transparent" }) {
   );
 }
 
-// Movable / styleable field wrapper (IDC-09: position, font, size, colour, alignment, spacing).
+// Movable / styleable field wrapper.
 function F({ id, ctx, children, style }) {
   const { cfg, editable, onOffset, pxPerMm, selected, onSelect } = ctx;
   const off = cfg.offsets?.[id] || { x: 0, y: 0 };
@@ -128,7 +128,7 @@ function formatDate(v) {
   return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-// Detail rows shown on a card, filtered by the template's field visibility (IDC-08).
+// Detail rows shown on a card, filtered by the template's field visibility.
 export function detailRows(audience, data, fields = {}, card = {}) {
   if (audience === "Student") {
     return [
@@ -435,7 +435,7 @@ const FRONTS = {
   ),
 };
 
-// ------------------------------------------------------------------ back side (IDC-10/11)
+// ------------------------------------------------------------------ back side
 function Back({ c, b, ctx, inst, landscape, qrText, fontFamily }) {
   const rules = (b.rules || []).filter(Boolean);
   return (

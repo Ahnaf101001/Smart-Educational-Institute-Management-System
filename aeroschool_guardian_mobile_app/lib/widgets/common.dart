@@ -1,6 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../config/app_config.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/l10n_ext.dart';
 import '../core/format.dart';
 import '../core/theme.dart';
 
@@ -248,7 +250,7 @@ class StatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        label,
+        AppLocalizations.of(context).word(label),
         style: TextStyle(color: c, fontWeight: FontWeight.w700, fontSize: 12),
       ),
     );

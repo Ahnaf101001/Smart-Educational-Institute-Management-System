@@ -39,7 +39,7 @@ function StaffAttendance() {
   }
   const counts = Object.values(marks).reduce((a, m) => ({ ...a, [m.status]: (a[m.status] || 0) + 1 }), {});
   return (
-    <Card title="Teacher & staff attendance" subtitle="In/out time, late and early leave (HR-05, AT-10). Device check-ins appear automatically."
+    <Card title="Teacher & staff attendance" subtitle="In/out time, late and early leave. Device check-ins appear automatically."
       actions={<><Input type="date" className="!h-9 !w-auto" value={date} onChange={(e) => setDate(e.target.value)} /><Button size="sm" icon={Save} loading={saving} onClick={save}>Save</Button></>}>
       <div className="mb-3 flex flex-wrap gap-2">{Object.entries(counts).map(([k, v]) => <Badge key={k}>{`${k}: ${v}`}</Badge>)}</div>
       <Table dense rowKey="employeeId" rows={rows} columns={[
@@ -76,7 +76,7 @@ function LeaveApply() {
   const applies = form.applicantType === "Student" ? "Student" : "Staff";
   return (
     <div className="grid gap-5 xl:grid-cols-2">
-      <Card title="Apply for leave" subtitle="Student leave → Class Teacher; staff leave → Principal (AT-06, HR-04). Approved student leave marks attendance as Leave.">
+      <Card title="Apply for leave" subtitle="Student leave → Class Teacher; staff leave → Principal. Approved student leave marks attendance as Leave.">
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Applicant type"><Select value={form.applicantType} onChange={(e) => setForm({ ...form, applicantType: e.target.value, leaveTypeId: "" })} options={["Student", "Teacher", "Staff"]} /></Field>
           <Field label="Applicant ID"><Input value={form.applicantId} onChange={(e) => setForm({ ...form, applicantId: e.target.value.trim() })} placeholder="STU-… / TCH-… / STF-…" /></Field>
@@ -113,7 +113,7 @@ function MonthlyRegister() {
   const days = data ? Array.from({ length: data.daysInMonth }, (_, i) => i + 1) : [];
   const short = { Present: "P", Absent: "A", Late: "L", Leave: "Lv" };
   return (
-    <Card title="Monthly attendance register" subtitle="Student-wise daily status and percentage (AT-08)" actions={data && <Button size="sm" variant="secondary" onClick={() => exportRows("xlsx", { title: `Attendance ${sel.className} ${sel.month}`, columns: [{ key: "roll", label: "Roll" }, { key: "name", label: "Name" }, ...days.map((d) => ({ key: `d${d}`, label: String(d), exportValue: (r) => short[r.days[d]] || "" })), { key: "present", label: "Present" }, { key: "absent", label: "Absent" }, { key: "percentage", label: "%" }], rows: data.students })}>Excel</Button>}>
+    <Card title="Monthly attendance register" subtitle="Student-wise daily status and percentage" actions={data && <Button size="sm" variant="secondary" onClick={() => exportRows("xlsx", { title: `Attendance ${sel.className} ${sel.month}`, columns: [{ key: "roll", label: "Roll" }, { key: "name", label: "Name" }, ...days.map((d) => ({ key: `d${d}`, label: String(d), exportValue: (r) => short[r.days[d]] || "" })), { key: "present", label: "Present" }, { key: "absent", label: "Absent" }, { key: "percentage", label: "%" }], rows: data.students })}>Excel</Button>}>
       <div className="mb-3 grid max-w-lg grid-cols-2 gap-2">
         <Select value={sel.className} onChange={(e) => setSel({ ...sel, className: e.target.value })} options={classes} placeholder="Select class-section" />
         <Input type="month" value={sel.month} onChange={(e) => setSel({ ...sel, month: e.target.value })} />
@@ -155,7 +155,7 @@ function LateAbsent() {
         <Card title="Late arrivals & absences">
           <Table dense rows={rows} columns={[{ key: "className", label: "Class" }, { key: "roll", label: "Roll" }, { key: "studentName", label: "Student" }, { key: "status", label: "Status", render: (r) => <Badge>{r.status}</Badge> }, { key: "inTime", label: "In", render: (r) => (r.inTime ? new Date(r.inTime).toTimeString().slice(0, 5) : "—") }, { key: "notifiedAt", label: "Guardian notified", render: (r) => (r.notifiedAt ? "Yes" : "No") }]} />
         </Card>
-        <Card title={`Consecutive absence alerts (≥ ${streaks?.threshold || 3} days)`} subtitle="Class teacher & Principal are alerted automatically (AT-07)">
+        <Card title={`Consecutive absence alerts (≥ ${streaks?.threshold || 3} days)`} subtitle="Class teacher & Principal are alerted automatically">
           <Table dense rows={streaks?.students || []} rowKey="studentId" empty="No students on alert." columns={[{ key: "name", label: "Student" }, { key: "className", label: "Class" }, { key: "streak", label: "Days" }, { key: "parentContact", label: "Guardian" }]} />
         </Card>
       </div>
@@ -256,7 +256,7 @@ function PayrollRun() {
   }
   const total = rows.reduce((s, r) => s + Number(r.netPay || 0), 0);
   return (
-    <Card title="Monthly payroll" subtitle="Generated from salary structures with absence/unpaid-leave and advance deductions (HR-07, HRX-06/07)"
+    <Card title="Monthly payroll" subtitle="Generated from salary structures with absence/unpaid-leave and advance deductions"
       actions={<><Input type="month" className="!h-9 !w-auto" value={month} onChange={(e) => setMonth(e.target.value)} /><Button size="sm" onClick={() => act("generate")}>Generate</Button><Button size="sm" variant="secondary" onClick={() => act("approve")}>Request approval</Button><Button size="sm" variant="success" onClick={() => act("pay")}>Pay all pending</Button></>}>
       <p className="mb-3 text-sm text-slate-600">{rows.length} employees · net {money(total)}</p>
       <Table dense rows={rows} columns={[
@@ -349,7 +349,7 @@ function HifzEntry() {
   const colors = { "Not Started": "bg-slate-100 text-slate-400", Ongoing: "bg-amber-100 text-amber-700", Done: "bg-emerald-500 text-white", Revised: "bg-emerald-700 text-white" };
   return (
     <div className="grid gap-5 xl:grid-cols-[380px_1fr]">
-      <Card title="Daily Hifz / Nazera entry" subtitle={offlineCount ? `${offlineCount} entr${offlineCount === 1 ? "y" : "ies"} waiting to sync (offline)` : "Sabak, Sabqi, Amukhta, mistakes, tajweed, comment (QM-13/14)"}>
+      <Card title="Daily Hifz / Nazera entry" subtitle={offlineCount ? `${offlineCount} entr${offlineCount === 1 ? "y" : "ies"} waiting to sync (offline)` : "Sabak, Sabqi, Amukhta, mistakes, tajweed, comment"}>
         <div className="space-y-3">
           <Field label="Halaqa"><Select value={halaqaId} onChange={(e) => setHalaqaId(e.target.value)} options={halaqas.map((h) => ({ value: h.id, label: h.name }))} placeholder="Select halaqa" /></Field>
           <Field label="Student"><Select value={studentId} onChange={(e) => setStudentId(e.target.value)} options={(halaqaId ? members.map((m) => m.studentId) : Object.keys(students)).map((id) => ({ value: id, label: students[id]?.name ? `${students[id].name} (${id})` : id }))} placeholder="Select student" /></Field>
@@ -405,7 +405,7 @@ function SalahAttendance() {
   }
   return (
     <div className="space-y-5">
-      <Card title="Salah attendance (5 wakt)" subtitle="Jamaat / alone / missed (QM-06). Guardians see a weekly summary."
+      <Card title="Salah attendance (5 wakt)" subtitle="Jamaat / alone / missed. Guardians see a weekly summary."
         actions={<><Input type="date" className="!h-9 !w-auto" value={date} onChange={(e) => setDate(e.target.value)} /><Select className="!h-9 !w-auto" value={wakt} onChange={(e) => setWakt(e.target.value)} options={["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"]} /><Select className="!h-9 !w-auto" value={className} onChange={(e) => setClassName(e.target.value)} options={classes.map((c) => c.name)} placeholder="All classes" /><Button size="sm" icon={Save} onClick={save}>Save</Button></>}>
         <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
           {students.map((s) => (
@@ -523,9 +523,9 @@ export function Conversations() {
     } catch (e) { toast.error(e); }
   }
   return (
-    <Card title="Guardian–teacher messages" subtitle="Controlled messaging: guardians can only reach their child's teachers (CM-05, COM-04).">
-      <div className="grid min-h-[400px] gap-4 md:grid-cols-[260px_1fr]">
-        <div className="space-y-1 border-r border-slate-100 pr-2">
+    <Card title="Guardian–teacher messages" subtitle="Controlled messaging: guardians can only reach their child's teachers.">
+      <div className="grid gap-4 md:min-h-[400px] md:grid-cols-[260px_1fr]">
+        <div className="min-w-0 space-y-1 border-b border-slate-100 pb-3 md:border-b-0 md:border-r md:pb-0 md:pr-2">
           {!threads.length && <p className="text-sm text-slate-500">No conversations yet.</p>}
           {threads.map((t) => (
             <button key={t.threadKey} type="button" onClick={() => setActive(t)} className={`w-full rounded-xl px-3 py-2 text-left text-sm ${active?.threadKey === t.threadKey ? "bg-blue-50" : "hover:bg-slate-50"}`}>

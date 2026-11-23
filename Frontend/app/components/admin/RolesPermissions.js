@@ -79,7 +79,7 @@ function RoleMatrix() {
           ))}
         </div>
       </Card>
-      <Card title={`${draft.displayName || draft.name} – permission matrix`} subtitle="Module × Action. Server enforces every permission (NFX-07). Users with several roles get the union (RP-05)."
+      <Card title={`${draft.displayName || draft.name} – permission matrix`} subtitle="Module × Action. Server enforces every permission. Users with several roles get the union."
         actions={(
           <>
             {can(user, "users", "create") && <Button size="sm" variant="secondary" icon={Copy} onClick={() => createRole(draft)}>Clone</Button>}
@@ -90,7 +90,7 @@ function RoleMatrix() {
         <div className="mb-4 grid gap-3 md:grid-cols-3">
           <Field label="Display name (e.g. Muhtamim, Head Teacher)"><Input disabled={!editable} value={draft.displayName || ""} onChange={(e) => setDraft({ ...draft, displayName: e.target.value })} /></Field>
           <Field label="Description" className="md:col-span-2"><Input disabled={!editable} value={draft.description || ""} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></Field>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="accent-blue-600" disabled={!editable} checked={Boolean(draft.canViewSensitive)} onChange={(e) => setDraft({ ...draft, canViewSensitive: e.target.checked })} /> Can see sensitive fields (guardian phone, NID, salary) unmasked (RP-06)</label>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="accent-blue-600" disabled={!editable} checked={Boolean(draft.canViewSensitive)} onChange={(e) => setDraft({ ...draft, canViewSensitive: e.target.checked })} /> Can see sensitive fields (guardian phone, NID, salary) unmasked</label>
           <Field label="Allowed networks / IPs (optional)" hint="Comma separated, e.g. 192.168.1.*, 103.20.10.5 or 10.0.0.0/24. Users whose every role is restricted can sign in only from these addresses (v1 RP-11)." className="md:col-span-2">
             <Input disabled={!editable} value={(draft.allowedIps || []).join(", ")} onChange={(e) => setDraft({ ...draft, allowedIps: e.target.value.split(",").map((v) => v.trim()).filter(Boolean) })} placeholder="Leave empty for no restriction" />
           </Field>
@@ -125,7 +125,7 @@ function RoleMatrix() {
 function usersConfig(roleNames) {
   return {
     title: "Users", singular: "User", endpoint: "/users", module: "users", icon: UserCog,
-    subtitle: "Login accounts. Assign one or more roles, link to a teacher/staff/guardian profile and limit class scope (RP-04/05). Deactivating ends all sessions (RP-08).",
+    subtitle: "Login accounts. Assign one or more roles, link to a teacher/staff/guardian profile and limit class scope. Deactivating ends all sessions.",
     columns: [{ key: "name", label: "Name" }, { key: "email", label: "Email / login" }, { key: "phone", label: "Mobile" },
       { key: "role", label: "Primary role", type: "badge" }, { key: "roles", label: "Roles", type: "list" }, { key: "linkedId", label: "Linked profile", render: (r) => (r.linkedId ? `${r.linkedType}: ${r.linkedId}` : "—") },
       { key: "twoFactorEnabled", label: "2FA", type: "boolean" }, { key: "lastLoginAt", label: "Last login", type: "datetime" }, { key: "status", label: "Status", type: "badge" }],

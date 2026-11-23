@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../core/format.dart';
@@ -41,7 +44,7 @@ class ResultDetailScreen extends StatelessWidget {
       );
     } catch (_) {
       if (context.mounted) {
-        showSnack(context, 'Could not create the marksheet PDF.', error: true);
+        showSnack(context, context.l10n.couldNotCreateMarksheet, error: true);
       }
     }
   }
@@ -54,7 +57,7 @@ class ResultDetailScreen extends StatelessWidget {
         title: Text(r.examName),
         actions: [
           IconButton(
-            tooltip: 'Download marksheet',
+            tooltip: context.l10n.downloadMarksheet,
             onPressed: () => _download(context),
             icon: const Icon(Icons.download_rounded),
           ),
@@ -86,13 +89,16 @@ class ResultDetailScreen extends StatelessWidget {
                         label: 'GPA',
                         value: r.gpa?.toStringAsFixed(2) ?? '—',
                       ),
-                      _Big(label: 'Grade', value: r.grade ?? '—'),
+                      _Big(label: context.l10n.grade, value: r.grade ?? '—'),
                       _Big(
-                        label: 'Percentage',
+                        label: context.l10n.percentage,
                         value: Fmt.percent(r.percentage),
                       ),
                       if (r.classPosition != null)
-                        _Big(label: 'Position', value: '${r.classPosition}'),
+                        _Big(
+                          label: context.l10n.position,
+                          value: '${r.classPosition}',
+                        ),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -101,20 +107,21 @@ class ResultDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-          const SectionTitle('Subject-wise Marks'),
+          SectionTitle(context.l10n.subjectWiseMarks),
           Card(
             child: Column(
               children: [
                 for (final s in r.subjects)
                   ListTile(
                     title: Text(
-                      s.subject + (s.isFourth ? ' (4th subject)' : ''),
+                      s.subject +
+                          (s.isFourth ? context.l10n.fourthSubject : ''),
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     subtitle: Text(
                       s.absent
-                          ? 'Absent'
-                          : '${s.obtained} / ${s.fullMarks}${s.point != null ? ' • Point ${s.point!.toStringAsFixed(2)}' : ''}',
+                          ? context.l10n.word('Absent')
+                          : '${s.obtained} / ${s.fullMarks}${s.point != null ? context.l10n.pointValue(s.point!.toStringAsFixed(2)) : ''}',
                     ),
                     trailing: StatusChip(
                       s.grade,
@@ -126,23 +133,32 @@ class ResultDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           SectionCard(
-            title: 'Summary',
+            title: context.l10n.summary,
             icon: Icons.summarize_outlined,
             child: Column(
               children: [
                 InfoRow(
-                  label: 'Total marks',
+                  label: context.l10n.totalMarks,
                   value: '${r.totalMarks ?? '—'} / ${r.maxMarks ?? '—'}',
                 ),
-                InfoRow(label: 'Failed subjects', value: '${r.failedSubjects}'),
+                InfoRow(
+                  label: context.l10n.failedSubjects,
+                  value: '${r.failedSubjects}',
+                ),
                 if (r.sectionPosition != null)
                   InfoRow(
-                    label: 'Section position',
+                    label: context.l10n.sectionPosition,
                     value: '${r.sectionPosition}',
                   ),
-                InfoRow(label: 'Published', value: Fmt.date(r.publishedAt)),
+                InfoRow(
+                  label: context.l10n.published,
+                  value: Fmt.date(r.publishedAt),
+                ),
                 if (r.teacherComment != null)
-                  InfoRow(label: 'Teacher comment', value: r.teacherComment),
+                  InfoRow(
+                    label: context.l10n.teacherComment,
+                    value: r.teacherComment,
+                  ),
               ],
             ),
           ),
@@ -150,7 +166,7 @@ class ResultDetailScreen extends StatelessWidget {
           FilledButton.icon(
             onPressed: () => _download(context),
             icon: const Icon(Icons.picture_as_pdf_outlined),
-            label: const Text('Download marksheet (PDF)'),
+            label: Text(context.l10n.downloadMarksheetPdf),
           ),
         ],
       ),

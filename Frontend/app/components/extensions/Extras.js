@@ -57,7 +57,7 @@ function useLoad(fn, deps) {
   return { data, loading, reload: load, setData };
 }
 
-// ----------------------------------------------------------------- progress chart (EX-25)
+// ----------------------------------------------------------------- progress chart
 export function ProgressChart({ points = [], metric = "gpa" }) {
   const values = points.filter((p) => p[metric] !== null && p[metric] !== undefined);
   if (values.length < 1) return <EmptyState title="No published results yet." />;
@@ -87,7 +87,7 @@ export function ProgressChart({ points = [], metric = "gpa" }) {
   );
 }
 
-// ----------------------------------------------------------------- transcript (EX-19 / EX-26)
+// ----------------------------------------------------------------- transcript
 export function TranscriptCard({ studentId }) {
   const { data, loading } = useLoad(() => http.get(`/x/students/${studentId}/transcript`), [studentId]);
   const [metric, setMetric] = useState("gpa");
@@ -107,7 +107,7 @@ export function TranscriptCard({ studentId }) {
     w.print();
   };
   return (
-    <Card title="Transcript & progress" subtitle="Term-to-term graph and full academic history (EX-19, EX-25)" actions={<div className="flex gap-2"><Select className="!h-8 !w-auto" value={metric} onChange={(e) => setMetric(e.target.value)} options={[{ value: "gpa", label: "GPA" }, { value: "percentage", label: "Percentage" }]} /><Button size="sm" variant="secondary" icon={Printer} onClick={print}>Transcript</Button></div>}>
+    <Card title="Transcript & progress" subtitle="Term-to-term graph and full academic history" actions={<div className="flex gap-2"><Select className="!h-8 !w-auto" value={metric} onChange={(e) => setMetric(e.target.value)} options={[{ value: "gpa", label: "GPA" }, { value: "percentage", label: "Percentage" }]} /><Button size="sm" variant="secondary" icon={Printer} onClick={print}>Transcript</Button></div>}>
       <ProgressChart points={data.progress} metric={metric} />
       {data.boardResults.length > 0 && (
         <div className="mt-3"><Table dense rows={data.boardResults} columns={[{ key: "examLevel", label: "Public exam" }, { key: "passingYear", label: "Year" }, { key: "board", label: "Board" }, { key: "gpa", label: "GPA" }, { key: "grade", label: "Grade" }]} /></div>
@@ -126,7 +126,7 @@ export function TranscriptCard({ studentId }) {
   );
 }
 
-// ----------------------------------------------------------------- narrative editor (EM-06)
+// ----------------------------------------------------------------- narrative editor
 export function NarrativeModal({ result, onClose, onSaved }) {
   const toast = useToast();
   const [comment, setComment] = useState(result?.teacherComment || "");
@@ -154,7 +154,7 @@ export function NarrativeModal({ result, onClose, onSaved }) {
   );
 }
 
-// ----------------------------------------------------------------- branches (PC-12, PC-13)
+// ----------------------------------------------------------------- branches
 const BRANCH_TRANSFERS = {
   title: "Transfer history", singular: "Transfer", endpoint: "/branch-transfers", module: "branches", create: false, edit: false, delete: false,
   columns: [{ key: "personType", label: "Type" }, { key: "personId", label: "Person" }, { key: "fromBranchId", label: "From" }, { key: "toBranchId", label: "To" }, { key: "effectiveDate", label: "Effective", type: "date" }, { key: "reason", label: "Reason" }, { key: "createdBy", label: "By" }],
@@ -208,7 +208,7 @@ export function BranchDashboard() {
   );
 }
 
-// ----------------------------------------------------------------- seat plan (EX-03 v3 / EX-04 v1)
+// ----------------------------------------------------------------- seat plan
 export function SeatPlan() {
   const toast = useToast();
   const { data: exams } = useLoad(() => http.get("/exams", { limit: 200 }), []);
@@ -228,7 +228,7 @@ export function SeatPlan() {
   }, [plan]);
   return (
     <div>
-      <PageHeader title="Seat Plan & Invigilation" icon={LayoutGrid} subtitle="Auto seat plan by room capacity with class mixing; invigilator duty comes from the exam routine (EX-03, v1 EX-04/06)." actions={plan?.seats?.length > 0 && <Button variant="secondary" icon={Printer} onClick={() => window.print()}>Print</Button>} />
+      <PageHeader title="Seat Plan & Invigilation" icon={LayoutGrid} subtitle="Auto seat plan by room capacity with class mixing; invigilator duty comes from the exam routine." actions={plan?.seats?.length > 0 && <Button variant="secondary" icon={Printer} onClick={() => window.print()}>Print</Button>} />
       <Card className="print:hidden">
         <div className="grid gap-3 md:grid-cols-3">
           <Field label="Exam"><Select value={examId} onChange={(e) => setExamId(e.target.value)} options={(exams || []).map((x) => ({ value: x.id, label: x.name }))} placeholder="Choose exam" /></Field>
@@ -265,7 +265,7 @@ export function SeatPlan() {
   );
 }
 
-// ----------------------------------------------------------------- board & government (BM-05..09, AM-03, QM-04, EM-02..04)
+// ----------------------------------------------------------------- board & government
 const BOARDS = ["Dhaka", "Chattogram", "Rajshahi", "Cumilla", "Jashore", "Barishal", "Sylhet", "Dinajpur", "Mymensingh", "BMEB", "IAU", "Befaq", "Haiatul Ulya", "CAIE", "Edexcel"];
 const LEVELS = ["JSC", "SSC", "HSC", "Dakhil", "Alim", "Fazil", "Kamil", "Mutawassitah", "Sanabia Ulya", "Fazilat", "Takmil", "O Level", "AS Level", "A Level"];
 const BOARD_REG = {
@@ -323,7 +323,7 @@ function BoardTools() {
   };
   return (
     <div className="space-y-4">
-      <Card title="Registration / form fill-up export" subtitle="CSV with the fields the boards ask for; adjust columns to the board's latest template before upload (BM-06, AM-03, QM-04, EM-03)">
+      <Card title="Registration / form fill-up export" subtitle="CSV with the fields the boards ask for; adjust columns to the board's latest template before upload">
         <div className="grid gap-3 md:grid-cols-4">
           <Field label="Board"><Select value={exp.board} onChange={(e) => setExp({ ...exp, board: e.target.value })} options={BOARDS} placeholder="All" /></Field>
           <Field label="Exam"><Select value={exp.level} onChange={(e) => setExp({ ...exp, level: e.target.value })} options={LEVELS} placeholder="All" /></Field>
@@ -333,11 +333,11 @@ function BoardTools() {
           </div>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button size="sm" variant="secondary" icon={FileSpreadsheet} onClick={() => downloadFile("/x/board/banbeis?format=csv", "banbeis.csv").catch((e) => toast.error(e))}>BANBEIS / EMIS summary (BM-09)</Button>
-          <Button size="sm" variant="secondary" icon={FileSpreadsheet} onClick={() => downloadFile("/x/board/stipend/export", "stipend.csv").catch((e) => toast.error(e))}>Stipend beneficiary list (BM-08)</Button>
+          <Button size="sm" variant="secondary" icon={FileSpreadsheet} onClick={() => downloadFile("/x/board/banbeis?format=csv", "banbeis.csv").catch((e) => toast.error(e))}>BANBEIS / EMIS summary</Button>
+          <Button size="sm" variant="secondary" icon={FileSpreadsheet} onClick={() => downloadFile("/x/board/stipend/export", "stipend.csv").catch((e) => toast.error(e))}>Stipend beneficiary list</Button>
         </div>
       </Card>
-      <Card title="Form fill-up eligibility" subtitle="Students who failed the test / pre-test exam are blocked unless an authorised override is ticked (BM-05)">
+      <Card title="Form fill-up eligibility" subtitle="Students who failed the test / pre-test exam are blocked unless an authorised override is ticked">
         <div className="grid gap-3 md:grid-cols-4">
           <Field label="Test exam"><Select value={ff.examId} onChange={(e) => setFf({ ...ff, examId: e.target.value })} options={(exams || []).map((x) => ({ value: x.id, label: x.name }))} placeholder="Choose" /></Field>
           <Field label="Exam level"><Select value={ff.level} onChange={(e) => setFf({ ...ff, level: e.target.value })} options={LEVELS} placeholder="All" /></Field>
@@ -350,7 +350,7 @@ function BoardTools() {
           { key: "o", label: "Override", render: (r) => !r.eligible && <input type="checkbox" className="accent-blue-600" checked={overrides.includes(r.studentId)} onChange={(e) => setOverrides(e.target.checked ? [...overrides, r.studentId] : overrides.filter((x) => x !== r.studentId))} /> },
         ]} /></div>}
       </Card>
-      <Card title="Import board results" subtitle="Paste CSV: studentId or registrationNo/rollNo, examLevel, passingYear, board, gpa, grade. Check first, then import (BM-07)">
+      <Card title="Import board results" subtitle="Paste CSV: studentId or registrationNo/rollNo, examLevel, passingYear, board, gpa, grade. Check first, then import">
         <Textarea rows={5} value={importText} onChange={(e) => setImportText(e.target.value)} placeholder={"registrationNo,examLevel,passingYear,board,gpa,grade\nR-12345,SSC,2027,Dhaka,5.00,A+"} />
         <div className="mt-2 flex gap-2">
           <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold"><Upload size={14} /> Load file<input type="file" accept=".csv,text/csv" className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if (f) setImportText(await f.text()); }} /></label>
@@ -377,7 +377,7 @@ export function BoardCenter() {
   );
 }
 
-// ----------------------------------------------------------------- homework submissions (AC-12)
+// ----------------------------------------------------------------- homework submissions
 export function HomeworkTracker() {
   const toast = useToast();
   const { data: homework } = useLoad(() => http.get("/homework", { limit: 200 }), []);
@@ -410,7 +410,7 @@ export function HomeworkTracker() {
   );
 }
 
-// ----------------------------------------------------------------- quizzes (ONL-03 / OC-05) and coursework (EM-05)
+// ----------------------------------------------------------------- quizzes and coursework
 function QuizEditor({ quiz, onClose, onSaved }) {
   const toast = useToast();
   const [form, setForm] = useState(() => ({ title: "", classId: "", subjectId: "", durationMinutes: 20, opensAt: "", closesAt: "", status: "Draft", questions: [], ...(quiz || {}) }));
@@ -485,7 +485,7 @@ export function LearningHub() {
   const { data: quizzes, reload } = useLoad(() => http.get("/quizzes", { limit: 200 }), []);
   return (
     <div>
-      <PageHeader title="Quizzes, Coursework & Homework" icon={BookOpenCheck} subtitle="Online MCQ quizzes with auto marking, coursework / project tracking and homework submission status (ONL-03, EM-05, AC-12)." />
+      <PageHeader title="Quizzes, Coursework & Homework" icon={BookOpenCheck} subtitle="Online MCQ quizzes with auto marking, coursework / project tracking and homework submission status." />
       <Tabs value={tab} onChange={setTab} tabs={[{ key: "quizzes", label: "Quizzes" }, { key: "attempts", label: "Quiz results" }, { key: "homework", label: "Homework status" }, { key: "coursework", label: "Coursework" }, { key: "cwsub", label: "Coursework tracking" }, { key: "live", label: "Live class attendance" }]} />
       {tab === "quizzes" && (
         <Card title="Quizzes" actions={can(user, "online_classes", "create") && <Button size="sm" onClick={() => setEditing({})}>New quiz</Button>}>
@@ -507,7 +507,7 @@ export function LearningHub() {
   );
 }
 
-// ----------------------------------------------------------------- integrations (NF-20/22, OM-11, NFR-16)
+// ----------------------------------------------------------------- integrations
 const WEBHOOKS = {
   title: "Webhooks", singular: "Webhook", endpoint: "/webhooks", module: "settings",
   subtitle: "POSTs every matching event as JSON signed with X-Signature: sha256=HMAC(secret, body). Events look like fee_payments.create, results.publish, admissions.update or * for all.",
@@ -585,7 +585,7 @@ export function IntegrationsPage() {
   );
 }
 
-// ----------------------------------------------------------------- approval rules (RP-15/16)
+// ----------------------------------------------------------------- approval rules
 export const APPROVAL_RULES = {
   title: "Approval rules", singular: "Rule", endpoint: "/approval-rules", module: "approvals",
   subtitle: "Multi-level, amount-based chains (v1 RP-15/16). The rule with the highest minimum amount that a request reaches is used. Each level needs a permission module with Approve or a named role.",
@@ -596,7 +596,7 @@ export const APPROVAL_RULES = {
     { key: "status", label: "Status", type: "select", options: ["Active", "Inactive"], default: "Active" }],
 };
 
-// ----------------------------------------------------------------- finance exports (FE-26/FIN-18, HR-08)
+// ----------------------------------------------------------------- finance exports
 export function FinanceExports() {
   const toast = useToast();
   const [range, setRange] = useState({ from: `${new Date().getFullYear()}-01-01`, to: today() });
@@ -605,7 +605,7 @@ export function FinanceExports() {
   return (
     <div className="space-y-4">
       <PageHeader title="Accounting & Payroll Exports" icon={FileSpreadsheet} subtitle="Tally import XML / Excel CSV of approved vouchers and the salary bank advice sheet." />
-      <Card title="Accounting software export" subtitle="Approved, non-reversed income and expense entries (FE-26, FIN-18)">
+      <Card title="Accounting software export" subtitle="Approved, non-reversed income and expense entries">
         <div className="grid gap-3 md:grid-cols-4">
           <Field label="From"><Input type="date" value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} /></Field>
           <Field label="To"><Input type="date" value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} /></Field>
@@ -625,7 +625,7 @@ export function FinanceExports() {
   );
 }
 
-// ----------------------------------------------------------------- hifz targets (QM-16, QM-20)
+// ----------------------------------------------------------------- hifz targets
 const HIFZ_TARGETS = {
   title: "Monthly hifz targets", singular: "Target", endpoint: "/hifz-targets", module: "madrasa",
   columns: [{ key: "studentId", label: "Student" }, { key: "targetMonth", label: "Month" }, { key: "targetPages", label: "Target pages" }, { key: "note", label: "Note" }],
@@ -668,7 +668,7 @@ export function Moderation() {
   );
 }
 
-// ----------------------------------------------------------------- account security (GA-01/05, CM-05, AT-10, CM-09)
+// ----------------------------------------------------------------- account security
 const PREF_EVENTS = [["Absent", "Absence alerts"], ["Late", "Late arrival"], ["EntryExit", "Entry / exit"], ["Result", "Results"], ["FeeReminder", "Fee reminders"], ["Payment", "Payment receipts"], ["Notice", "Notices"], ["Homework", "Homework"]];
 export function AccountSecurity({ guardian = false }) {
   const { user } = useUser();
@@ -716,7 +716,7 @@ export function AccountSecurity({ guardian = false }) {
         </Card>
       )}
       {guardian && prefs && (
-        <Card title="Notification preferences" subtitle="Choose channels and alerts. Emergency notices and OTP are always sent (CM-09).">
+        <Card title="Notification preferences" subtitle="Choose channels and alerts. Emergency notices and OTP are always sent.">
           <div className="flex flex-wrap gap-4">
             {[["sms", "SMS"], ["push", "App notification"], ["email", "E-mail"], ["whatsapp", "WhatsApp"]].map(([k, label]) => (
               <label key={k} className="flex items-center gap-2 text-sm"><input type="checkbox" className="accent-blue-600" checked={prefs[k] !== false} onChange={(e) => savePrefs({ ...prefs, [k]: e.target.checked })} /> {label}</label>
@@ -729,10 +729,10 @@ export function AccountSecurity({ guardian = false }) {
           </div>
         </Card>
       )}
-      <Card title="Quick sign-in PIN" subtitle="After signing in once with password or OTP, use mobile + PIN (GA-01)">
+      <Card title="Quick sign-in PIN" subtitle="After signing in once with password or OTP, use mobile + PIN">
         <div className="flex gap-2"><Input type="password" inputMode="numeric" maxLength={6} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} placeholder="4–6 digits" className="!w-40" /><Button onClick={savePin} disabled={pin.length < 4}>Save PIN</Button></div>
       </Card>
-      <Card title="Signed-in devices" subtitle="Sign out a lost or old device (GA-05)">
+      <Card title="Signed-in devices" subtitle="Sign out a lost or old device">
         <Table dense rows={sessions || []} empty="No active devices." columns={[
           { key: "userAgent", label: "Device", render: (s) => <span className="flex items-center gap-2"><MonitorSmartphone size={14} /><span className="line-clamp-1 max-w-xs">{s.userAgent || "Unknown"}</span>{s.current && <Badge tone="green">This device</Badge>}</span> },
           { key: "method", label: "Sign-in" }, { key: "ip", label: "IP" }, { key: "lastSeenAt", label: "Last active", render: (s) => formatDateTime(s.lastSeenAt) },
@@ -774,7 +774,7 @@ export function GuardianLearning({ studentId }) {
   return (
     <div className="space-y-4">
       <TranscriptCard studentId={studentId} />
-      <Card title="Online classes" subtitle="Joining records attendance (OC-02)">
+      <Card title="Online classes" subtitle="Joining records attendance">
         <Table dense rows={data?.onlineClasses || []} empty="No online classes." columns={[{ key: "title", label: "Class" }, { key: "subjectName", label: "Subject" }, { key: "scheduledAt", label: "When", render: (c) => formatDateTime(c.scheduledAt) },
           { key: "a", label: "", render: (c) => <div className="flex gap-1">{c.hasLink && c.status !== "Completed" && <Button size="sm" icon={Video} onClick={() => join(c)}>Join</Button>}{c.recordingUrl && <a className="text-xs font-semibold text-blue-600" href={c.recordingUrl} target="_blank" rel="noreferrer">Recording</a>}{c.attended && <Badge tone="green">Attended</Badge>}</div> }]} />
       </Card>
@@ -804,14 +804,14 @@ export function GuardianLearning({ studentId }) {
 export const EXTRA_CONFIGS = {
   housePoints: {
     title: "House Points", singular: "Award", endpoint: "/house-points", module: "academic",
-    subtitle: "Points roll up to the house total automatically (EM-07).",
+    subtitle: "Points roll up to the house total automatically.",
     columns: [{ key: "awardedOn", label: "Date", type: "date" }, { key: "clubId", label: "House" }, { key: "studentId", label: "Student" }, { key: "points", label: "Points" }, { key: "reason", label: "Reason" }],
     fields: [rel("club", "clubId", "House / club", { required: true }), rel("student", "studentId", "Student (optional)"), { key: "points", label: "Points (negative to deduct)", type: "number", required: true, default: 5 },
       { key: "reason", label: "Reason", wide: true }, { key: "awardedOn", label: "Date", type: "date", default: today() }],
   },
   dailyLogs: {
     title: "Pre-school Daily Log", singular: "Log", endpoint: "/daily-logs", module: "students",
-    subtitle: "Meal, nap, activity and photo shared with guardians (EM-10).",
+    subtitle: "Meal, nap, activity and photo shared with guardians.",
     columns: [{ key: "logDate", label: "Date", type: "date" }, { key: "studentId", label: "Child" }, { key: "meal", label: "Meal" }, { key: "nap", label: "Nap" }, { key: "activity", label: "Activity" }, { key: "mood", label: "Mood" }],
     fields: [rel("student", "studentId", "Child", { required: true }), { key: "logDate", label: "Date", type: "date", default: today() }, { key: "meal", label: "Meal" }, { key: "nap", label: "Nap" },
       { key: "mood", label: "Mood", type: "select", options: ["Happy", "Calm", "Tired", "Upset", "Unwell"] }, { key: "activity", label: "Activity", type: "textarea", wide: true }, { key: "photoUrl", label: "Photo URL", wide: true }, { key: "note", label: "Note", wide: true }],
@@ -825,7 +825,7 @@ export const EXTRA_CONFIGS = {
   },
   studentGroupHistory: {
     title: "Group change history", singular: "Change", endpoint: "/student-group-history", module: "students", create: false, edit: false, delete: false,
-    subtitle: "Science / Humanities / Business Studies changes are recorded automatically (ACA-02, BM-01).",
+    subtitle: "Science / Humanities / Business Studies changes are recorded automatically.",
     columns: [{ key: "changedAt", label: "When", type: "datetime" }, { key: "studentId", label: "Student" }, { key: "fromGroup", label: "From" }, { key: "toGroup", label: "To" }], fields: [],
   },
   approvalRules: APPROVAL_RULES,

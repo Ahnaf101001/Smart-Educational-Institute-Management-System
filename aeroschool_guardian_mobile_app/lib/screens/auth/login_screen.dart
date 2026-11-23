@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -110,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                s?.name ?? 'Contact School',
+                s?.name ?? context.l10n.loginContactSchool,
                 style: const TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 17,
@@ -125,9 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               const SizedBox(height: 12),
-              const Text(
-                'Guardian accounts are created by the school. Contact the office for login details or if your account is inactive.',
-              ),
+              Text(context.l10n.guardianAccountsAreCreatedBy),
               const SizedBox(height: 8),
               if (s?.phone != null)
                 ListTile(
@@ -144,9 +145,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   onTap: () => files.email(s.email!),
                 ),
               if (s == null || (s.phone == null && s.email == null))
-                const Text(
-                  'Please visit the school office.',
-                  style: TextStyle(color: AppColors.muted),
+                Text(
+                  context.l10n.pleaseVisitTheSchoolOffice,
+                  style: const TextStyle(color: AppColors.muted),
                 ),
             ],
           ),
@@ -233,7 +234,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         labelText: AppLocalizations.of(context).loginPassword,
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
-                          tooltip: _obscure ? 'Show password' : 'Hide password',
+                          tooltip: _obscure
+                              ? context.l10n.showPassword
+                              : context.l10n.hidePassword,
                           icon: Icon(
                             _obscure
                                 ? Icons.visibility_outlined
@@ -305,7 +308,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       if (_inactive)
                         TextButton(
                           onPressed: _contactSchool,
-                          child: const Text('Contact school'),
+                          child: Text(context.l10n.contactSchool),
                         ),
                     ],
                     const SizedBox(height: 14),

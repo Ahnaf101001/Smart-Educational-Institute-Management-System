@@ -32,6 +32,11 @@ export function Student360() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studentId]);
   useEffect(() => { load(); }, [load]);
+  // Opened from the header search (…/student-360?id=STU-1234): show that student straight away.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("id");
+    if (id) { setQuery(id); setStudentId(id); }
+  }, []);
 
   async function changeStatus(status) {
     const reason = await ask({ title: `Change status to ${status}`, placeholder: "Reason (kept in status history)" });
@@ -144,7 +149,7 @@ export function Student360() {
                 <div className="mt-3 rounded-xl bg-blue-50 p-3 text-sm text-blue-800"><b>Siblings:</b> {profile.siblings.map((x) => `${x.name} (${x.className})`).join(", ")}</div>
               )}
             </Card>
-            <Card title="Enrollment history" subtitle="Each session keeps its own class, roll and result (ACA-07)">
+            <Card title="Enrollment history" subtitle="Each session keeps its own class, roll and result">
               <Table dense rows={profile.enrollments} columns={[{ key: "sessionName", label: "Session" }, { key: "className", label: "Class" }, { key: "section", label: "Sec." }, { key: "roll", label: "Roll" }, { key: "status", label: "Status", render: (r) => <Badge>{r.status}</Badge> }, { key: "effectiveDate", label: "From", render: (r) => formatDate(r.effectiveDate) }]} />
             </Card>
             <Card title="Results">
@@ -216,7 +221,7 @@ function Promotion() {
     } catch (e) { toast.error(e); }
   }
   return (
-    <Card title="Session promotion" subtitle="Preview pass/fail decision, next class, new roll and section, then submit for approval (ST-07, ACA-06). Previous session history stays intact.">
+    <Card title="Session promotion" subtitle="Preview pass/fail decision, next class, new roll and section, then submit for approval. Previous session history stays intact.">
       <div className="grid gap-3 md:grid-cols-4">
         <Field label="Current class"><Select value={sel.classId} onChange={(e) => setSel({ ...sel, classId: e.target.value })} options={classes.map((c) => ({ value: c.id, label: c.name }))} placeholder="Select" /></Field>
         <Field label="Based on exam result"><Select value={sel.examId} onChange={(e) => setSel({ ...sel, examId: e.target.value })} options={exams.map((x) => ({ value: x.id, label: x.name }))} placeholder="(no result rule)" /></Field>
@@ -260,7 +265,7 @@ function RollAssign() {
     try { const d = await http.post("/students/assign-rolls", sel); toast.success(`${d.assigned} roll numbers assigned without duplicates`); } catch (e) { toast.error(e); }
   }
   return (
-    <Card title="Roll assignment" subtitle="Manual, merit-based (by exam position) or alphabetical; duplicate rolls are prevented (ST-04).">
+    <Card title="Roll assignment" subtitle="Manual, merit-based (by exam position) or alphabetical; duplicate rolls are prevented.">
       <div className="grid gap-3 md:grid-cols-5">
         <Field label="Class"><Select value={sel.classId} onChange={(e) => setSel({ ...sel, classId: e.target.value })} options={classes.map((c) => ({ value: c.id, label: c.name }))} placeholder="Select" /></Field>
         <Field label="Section"><Select value={sel.section} onChange={(e) => setSel({ ...sel, section: e.target.value })} options={cls?.sections || []} placeholder="All" /></Field>
@@ -301,7 +306,7 @@ function Importer() {
     XLSX.writeFile(wb, "student-import-template.xlsx");
   }
   return (
-    <Card title="Excel / CSV import" subtitle="Preview with validation, duplicate detection and row-level error report before anything is saved (SYS-06, NFX-09)."
+    <Card title="Excel / CSV import" subtitle="Preview with validation, duplicate detection and row-level error report before anything is saved."
       actions={<Button size="sm" variant="secondary" onClick={template}>Download template</Button>}>
       <label className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center hover:border-blue-400">
         <FileUp className="text-blue-500" />

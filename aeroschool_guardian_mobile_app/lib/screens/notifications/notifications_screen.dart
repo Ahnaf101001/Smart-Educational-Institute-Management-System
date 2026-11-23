@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -69,7 +72,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       appBar: AppBar(
         title: Text(
           isChildView
-              ? 'Notices – ${widget.studentName ?? ''}'
+              ? context.l10n.titleForChild(
+                  context.l10n.modNotices,
+                  widget.studentName ?? '',
+                )
               : AppLocalizations.of(context).notificationsTitle,
         ),
         actions: [
@@ -144,7 +150,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         Padding(
                           padding: const EdgeInsets.only(right: 6),
                           child: FilterChip(
-                            label: Text(t),
+                            label: Text(context.l10n.word(t)),
                             selected: _type == t,
                             onSelected: (_) => setState(() => _type = t),
                           ),
@@ -168,10 +174,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   onRefresh: _load,
                   child: items.isEmpty
                       ? ListView(
-                          children: const [
+                          children: [
                             EmptyView(
-                              title: 'No notifications',
-                              subtitle: 'Attendance, exam, fee and school alerts will appear here.',
+                              title: context.l10n.noNotifications,
+                              subtitle: context.l10n.attendanceExamFeeAndSchool,
                               icon: Icons.notifications_none_rounded,
                             ),
                           ],

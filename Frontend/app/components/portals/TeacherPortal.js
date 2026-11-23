@@ -5,6 +5,9 @@ import { BookOpen, CalendarClock, ClipboardCheck, FileSpreadsheet, LogIn, LogOut
 import { http, portalApi } from "../../lib/api";
 import { Badge, Button, Card, EmptyState, PageHeader, Spinner, StatCard, Table, formatDate, money, useToast } from "../ui/kit";
 import { PhotoAvatar } from "../ui/PhotoUpload";
+import QuickActions from "../ui/QuickActions";
+
+const roomLabel = (room) => (!room ? "—" : /^room\b/i.test(room) ? room : `Room ${room}`);
 
 export default function TeacherPortal({ onNavigate }) {
   const toast = useToast();
@@ -26,15 +29,14 @@ export default function TeacherPortal({ onNavigate }) {
     <div>
       <PageHeader title={`Assalamu alaikum, ${t.name || ""}`} icon={Sun} subtitle={`${t.designation || "Teacher"} · ${data.day}`}
         actions={<><Button variant="success" icon={LogIn} onClick={() => checkin("IN")}>Check in</Button><Button variant="secondary" icon={LogOut} onClick={() => checkin("OUT")}>Check out</Button></>} />
-      <div className="mb-5 flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4">
-        <PhotoAvatar src={t.photoUrl} name={t.name} className="size-16" rounded="rounded-2xl" textClass="text-lg" />
-        <div className="min-w-0 text-sm">
-          <p className="font-bold text-slate-900">{t.name}</p>
-          <p className="text-slate-500">{[t.designation, t.department].filter(Boolean).join(" · ") || "Teacher"}</p>
-          {!t.photoUrl && <p className="mt-1 text-xs font-medium text-amber-700">No ID card photo yet – ask the school office to add one.</p>}
+      {!t.photoUrl && (
+        <div className="mb-4 flex items-center gap-3 rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+          <PhotoAvatar src={t.photoUrl} name={t.name} className="size-8" textClass="text-[10px]" />
+          No ID card photo yet – ask the school office to add one.
         </div>
-      </div>
-      <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      )}
+      <QuickActions onNavigate={onNavigate} only={["Take attendance", "Enter marks", "Send a notice", "Find a student"]} />
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatCard label="Classes today" value={data.routine.length} icon={CalendarClock} />
         <StatCard label="Attendance pending" value={data.attendancePending.length} icon={ClipboardCheck} tone={data.attendancePending.length ? "amber" : "green"} />
         <StatCard label="Marks pending" value={data.marksPending.length} icon={FileSpreadsheet} tone={data.marksPending.length ? "red" : "green"} />
@@ -45,7 +47,7 @@ export default function TeacherPortal({ onNavigate }) {
           {!data.routine.length ? <EmptyState title="No classes scheduled today." /> : (
             <div className="space-y-2">{data.routine.map((r) => (
               <div key={r.id} className="flex items-center justify-between rounded-xl border border-slate-100 px-4 py-3">
-                <div><p className="font-semibold">{r.subjectName || r.label}</p><p className="text-xs text-slate-500">{r.className}-{r.section} · Room {r.roomNo || "—"}</p></div>
+                <div><p className="font-semibold">{r.subjectName || r.label}</p><p className="text-xs text-slate-500">{r.className}-{r.section} · {roomLabel(r.roomNo)}</p></div>
                 <Badge tone="blue">{r.periodCode}{r.startTime ? ` · ${String(r.startTime).slice(0, 5)}` : ""}</Badge>
               </div>
             ))}</div>

@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../core/format.dart';
@@ -36,7 +39,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final monthKey = Fmt.month(_month);
     final isCurrent = monthKey == Fmt.month(DateTime.now());
     return Scaffold(
-      appBar: AppBar(title: Text('Attendance – ${widget.child.name}')),
+      appBar: AppBar(
+        title: Text(
+          context.l10n.titleForChild(
+            context.l10n.modAttendance,
+            widget.child.name,
+          ),
+        ),
+      ),
       body: Column(
         children: [
           Material(
@@ -73,15 +83,15 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     _Summary(report: r),
                     const SizedBox(height: 12),
                     SectionCard(
-                      title: 'Monthly Calendar',
+                      title: context.l10n.monthlyCalendar,
                       icon: Icons.calendar_month_outlined,
                       child: _MonthGrid(month: _month, records: r.records),
                     ),
-                    const SectionTitle('Daily Attendance'),
+                    SectionTitle(context.l10n.dailyAttendance),
                     Card(
                       child: r.records.isEmpty
-                          ? const EmptyView(
-                              title: 'No attendance recorded this month',
+                          ? EmptyView(
+                              title: context.l10n.noAttendanceRecordedThisMonth,
                               icon: Icons.event_busy_outlined,
                             )
                           : Column(
@@ -113,17 +123,17 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                             rec.outTime == null
                                         ? null
                                         : Text(
-                                            'Entry ${Fmt.time(rec.inTime)} • Exit ${rec.outTime == null ? '—' : Fmt.time(rec.outTime)}',
+                                            '${context.l10n.entryAt(Fmt.time(rec.inTime))} • ${context.l10n.exitAt(rec.outTime == null ? '—' : Fmt.time(rec.outTime))}',
                                           ),
                                     trailing: StatusChip(rec.status),
                                   ),
                               ],
                             ),
                     ),
-                    const SectionTitle('Attendance History'),
+                    SectionTitle(context.l10n.attendanceHistory),
                     Card(
                       child: r.history.isEmpty
-                          ? const EmptyView(title: 'No history yet')
+                          ? EmptyView(title: context.l10n.noHistoryYet)
                           : Column(
                               children: [
                                 for (final h in r.history)
@@ -180,10 +190,10 @@ class _Summary extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Attendance percentage',
-                  style: TextStyle(color: AppColors.muted),
+                  context.l10n.attendancePercentage,
+                  style: const TextStyle(color: AppColors.muted),
                 ),
               ),
               Text(
@@ -213,12 +223,32 @@ class _Summary extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _pill('Present', report.present, AppColors.success),
-              _pill('Absent', report.absent, AppColors.danger),
-              _pill('Late', report.late, AppColors.warning),
-              _pill('Leave', report.leave, const Color(0xFF7C3AED)),
-              _pill('Early leave', report.earlyLeave, AppColors.info),
-              _pill('School days', report.total, AppColors.navy),
+              _pill(
+                context.l10n.word('Present'),
+                report.present,
+                AppColors.success,
+              ),
+              _pill(
+                context.l10n.word('Absent'),
+                report.absent,
+                AppColors.danger,
+              ),
+              _pill(context.l10n.word('Late'), report.late, AppColors.warning),
+              _pill(
+                context.l10n.word('Leave'),
+                report.leave,
+                const Color(0xFF7C3AED),
+              ),
+              _pill(
+                context.l10n.word('Early leave'),
+                report.earlyLeave,
+                AppColors.info,
+              ),
+              _pill(
+                context.l10n.word('School days'),
+                report.total,
+                AppColors.navy,
+              ),
             ],
           ),
         ],
@@ -323,7 +353,10 @@ class _MonthGrid extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 4),
-                  Text(s, style: const TextStyle(fontSize: 12)),
+                  Text(
+                    context.l10n.word(s),
+                    style: const TextStyle(fontSize: 12),
+                  ),
                 ],
               ),
           ],

@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FileSpreadsheet, Lock, Save, Send, Unlock, Upload } from "lucide-react";
-import { http, resource } from "../../lib/api";
+import { http, portalApi, resource } from "../../lib/api";
+import { useUser } from "../../lib/access";
 import { Badge, Button, Card, EmptyState, Field, PageHeader, Select, Spinner, useToast, usePrompt } from "../ui/kit";
 
 export default function MarksEntryPro() {
@@ -17,10 +18,23 @@ export default function MarksEntryPro() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Teachers: their open marks sheets as one-tap shortcuts; a single open sheet is pre-selected
+  // and the class list is limited to their own assignments. The server still enforces scope.
+  const { user } = useUser();
+  const isTeacher = user?.linkedType === "Teacher";
+  const [mine, setMine] = useState({ pending: [], classIds: null });
   useEffect(() => {
     resource("/exams").all().then(setExams).catch(() => {});
     resource("/classes").all().then(setClasses).catch(() => {});
-  }, []);
+    if (!isTeacher) return;
+    portalApi.teacherToday().then((d) => {
+      const pending = d.marksPending || [];
+      const classIds = (d.assignments || []).map((a) => a.classId);
+      setMine({ pending, classIds: classIds.length ? new Set(classIds) : null });
+      if (pending.length === 1) setSel((s) => (s.examId ? s : { examId: pending[0].examId, classId: pending[0].classId, subjectId: pending[0].subjectId, section: "" }));
+    }).catch(() => {});
+  }, [isTeacher]);
+  const classOptions = mine.classIds ? classes.filter((c) => mine.classIds.has(c.id)) : classes;
   useEffect(() => {
     if (!sel.classId) { setSubjects([]); return; }
     resource("/class-subjects").all({ classId: sel.classId }).then(async (maps) => {
@@ -68,7 +82,7 @@ export default function MarksEntryPro() {
   async function save(submit) {
     if (Object.keys(errors).length) { toast.error("Fix marks above full marks first."); return; }
     if (submit) {
-      const ok = await ask({ title: "Submit and lock marks?", message: "After submission you cannot edit without Principal approval (EX-10).", input: false });
+      const ok = await ask({ title: "Submit and lock marks?", message: "After submission you cannot edit without Principal approval.", input: false });
       if (!ok) return;
     }
     setSaving(true);
@@ -123,11 +137,28 @@ export default function MarksEntryPro() {
 
   return (
     <div>
-      <PageHeader title="Marks Entry" icon={FileSpreadsheet} subtitle="Roll-wise grid with Written/CQ/MCQ/Practical components, absent/exempt, Excel upload, draft → submit & lock (EX-03..10, TA-04)." />
+      <PageHeader title="Marks Entry" icon={FileSpreadsheet} subtitle="Pick the exam, class and subject, type the marks, save a draft, then submit to lock." />
+      {mine.pending.length > 0 && (
+        <div className="mb-4">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">Your open marks sheets</p>
+          <div className="flex flex-wrap gap-2">
+            {mine.pending.map((p) => {
+              const on = sel.examId === p.examId && sel.classId === p.classId && sel.subjectId === p.subjectId;
+              return (
+                <button key={`${p.examId}-${p.classId}-${p.subjectId}`} type="button" onClick={() => setSel({ examId: p.examId, classId: p.classId, subjectId: p.subjectId, section: "" })}
+                  className={`rounded-xl border px-3 py-2 text-left text-sm ${on ? "border-blue-500 bg-blue-50" : "border-slate-200 bg-white hover:border-blue-300"}`}>
+                  <b className="block text-slate-800">{p.subjectName} · {p.className}</b>
+                  <span className="text-xs text-slate-500">{p.examName}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
       <Card>
-        <div className="grid gap-3 md:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
           <Field label="Exam"><Select value={sel.examId} onChange={(e) => setSel({ ...sel, examId: e.target.value })} options={exams.map((x) => ({ value: x.id, label: `${x.name} · ${x.resultStatus}` }))} placeholder="Select exam" /></Field>
-          <Field label="Class"><Select value={sel.classId} onChange={(e) => setSel({ ...sel, classId: e.target.value, subjectId: "", section: "" })} options={classes.map((c) => ({ value: c.id, label: c.name }))} placeholder="Select class" /></Field>
+          <Field label="Class"><Select value={sel.classId} onChange={(e) => setSel({ ...sel, classId: e.target.value, subjectId: "", section: "" })} options={classOptions.map((c) => ({ value: c.id, label: c.name }))} placeholder="Select class" /></Field>
           <Field label="Section"><Select value={sel.section} onChange={(e) => setSel({ ...sel, section: e.target.value })} options={cls?.sections || []} placeholder="All sections" /></Field>
           <Field label="Subject"><Select value={sel.subjectId} onChange={(e) => setSel({ ...sel, subjectId: e.target.value })} options={subjects.map((s) => ({ value: s.id, label: `${s.name} (${s.code})` }))} placeholder="Select subject" /></Field>
         </div>

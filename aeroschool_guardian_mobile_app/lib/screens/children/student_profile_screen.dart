@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../core/format.dart';
@@ -61,7 +64,10 @@ class StudentProfileScreen extends StatelessWidget {
                         children: [
                           StatusChip('ID ${p.id}', color: AppColors.navy),
                           if (p.roll != null)
-                            StatusChip('Roll ${p.roll}', color: AppColors.blue),
+                            StatusChip(
+                              context.l10n.rollNo('${p.roll}'),
+                              color: AppColors.blue,
+                            ),
                           if (p.status != null) StatusChip(p.status!),
                         ],
                       ),
@@ -71,86 +77,104 @@ class StudentProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               SectionCard(
-                title: 'Academic',
+                title: context.l10n.academic,
                 icon: Icons.school_outlined,
                 child: Column(
                   children: [
                     InfoRow(
-                      label: 'Class',
+                      label: context.l10n.classLabel,
                       value: p.className.split('-').first,
                     ),
-                    InfoRow(label: 'Section', value: p.section),
-                    InfoRow(label: 'Shift', value: p.shift),
+                    InfoRow(label: context.l10n.section, value: p.section),
+                    InfoRow(label: context.l10n.shift, value: p.shift),
                     if (p.groupName != null)
-                      InfoRow(label: 'Group', value: p.groupName),
+                      InfoRow(label: context.l10n.group, value: p.groupName),
                     if (p.version != null)
-                      InfoRow(label: 'Version', value: p.version),
-                    InfoRow(label: 'Session', value: p.sessionName),
+                      InfoRow(label: context.l10n.version, value: p.version),
+                    InfoRow(label: context.l10n.session, value: p.sessionName),
                   ],
                 ),
               ),
               const SizedBox(height: 12),
               SectionCard(
-                title: 'Admission Information',
+                title: context.l10n.admissionInformation,
                 icon: Icons.how_to_reg_outlined,
                 child: Column(
                   children: [
                     InfoRow(
-                      label: 'Admission date',
+                      label: context.l10n.admissionDate,
                       value: p.admissionDate == null
                           ? null
                           : Fmt.date(p.admissionDate),
                     ),
-                    InfoRow(label: 'Previous school', value: p.previousSchool),
+                    InfoRow(
+                      label: context.l10n.previousSchool,
+                      value: p.previousSchool,
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 12),
               SectionCard(
-                title: 'Personal',
+                title: context.l10n.personal,
                 icon: Icons.person_outline,
                 child: Column(
                   children: [
                     InfoRow(
-                      label: 'Date of birth',
+                      label: context.l10n.dateOfBirth,
                       value: p.dateOfBirth == null
                           ? null
                           : Fmt.date(p.dateOfBirth),
                     ),
-                    InfoRow(label: 'Gender', value: p.gender),
+                    InfoRow(label: context.l10n.gender, value: p.gender),
                     if (p.bloodGroup != null)
-                      InfoRow(label: 'Blood group', value: p.bloodGroup),
-                    InfoRow(label: 'Religion', value: p.religion),
-                    InfoRow(label: 'Nationality', value: p.nationality),
-                    InfoRow(label: 'Address', value: p.address),
+                      InfoRow(
+                        label: context.l10n.bloodGroup,
+                        value: p.bloodGroup,
+                      ),
+                    InfoRow(label: context.l10n.religion, value: p.religion),
+                    InfoRow(
+                      label: context.l10n.nationality,
+                      value: p.nationality,
+                    ),
+                    InfoRow(label: context.l10n.address, value: p.address),
                     if (p.allergies != null)
-                      InfoRow(label: 'Allergies', value: p.allergies),
+                      InfoRow(
+                        label: context.l10n.allergies,
+                        value: p.allergies,
+                      ),
                     if (p.medicalNotes != null)
-                      InfoRow(label: 'Medical notes', value: p.medicalNotes),
+                      InfoRow(
+                        label: context.l10n.medicalNotes,
+                        value: p.medicalNotes,
+                      ),
                   ],
                 ),
               ),
               const SizedBox(height: 12),
               SectionCard(
-                title: 'Assigned Class Teacher',
+                title: context.l10n.assignedClassTeacher,
                 icon: Icons.co_present_outlined,
                 child: p.classTeacher == null
-                    ? const Text(
-                        'Not assigned yet',
-                        style: TextStyle(color: AppColors.muted),
+                    ? Text(
+                        context.l10n.notAssignedYet,
+                        style: const TextStyle(color: AppColors.muted),
                       )
                     : Column(
                         children: [
-                          InfoRow(label: 'Name', value: p.classTeacher),
+                          InfoRow(
+                            label: context.l10n.name,
+                            value: p.classTeacher,
+                          ),
                           if (p.classTeacherPhone != null)
                             InfoRow(
-                              label: 'Phone',
+                              label: context.l10n.phone,
                               value: p.classTeacherPhone,
                               onTap: () => files.call(p.classTeacherPhone!),
                             ),
                           if (p.classTeacherEmail != null)
                             InfoRow(
-                              label: 'Email',
+                              label: context.l10n.email,
                               value: p.classTeacherEmail,
                               onTap: () => files.email(p.classTeacherEmail!),
                             ),
@@ -159,18 +183,18 @@ class StudentProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               SectionCard(
-                title: 'Emergency Contact',
+                title: context.l10n.emergencyContact,
                 icon: Icons.emergency_outlined,
                 child: Column(
                   children: [
                     if (p.emergencyName != null) ...[
                       InfoRow(
-                        label: 'Name',
+                        label: context.l10n.name,
                         value:
-                            '${p.emergencyName} (${p.emergencyRelation ?? 'Guardian'})',
+                            '${p.emergencyName} (${context.l10n.word(p.emergencyRelation ?? 'Guardian')})',
                       ),
                       InfoRow(
-                        label: 'Mobile',
+                        label: context.l10n.mobile,
                         value: p.emergencyMobile,
                         onTap: p.emergencyMobile == null
                             ? null

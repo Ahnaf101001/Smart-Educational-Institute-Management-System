@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
@@ -57,7 +60,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       );
       if (!mounted) return;
       if (!widget.forced) {
-        showSnack(context, 'Password changed successfully.');
+        showSnack(context, context.l10n.passwordChangedSuccessfully);
         Navigator.pop(context);
       }
     } on ApiException catch (e) {
@@ -73,15 +76,19 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final askCurrent = !widget.forced || !auth.knowsTemporaryPassword;
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.forced ? 'Set a new password' : 'Change password'),
+        title: Text(
+          widget.forced
+              ? context.l10n.setANewPassword
+              : context.l10n.changePassword,
+        ),
         automaticallyImplyLeading: !widget.forced,
         actions: [
           if (widget.forced)
             TextButton(
               onPressed: () => auth.logout(),
-              child: const Text(
-                'Sign out',
-                style: TextStyle(color: Colors.white),
+              child: Text(
+                context.l10n.signOut,
+                style: const TextStyle(color: Colors.white),
               ),
             ),
         ],
@@ -105,7 +112,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Welcome${auth.user != null ? ', ${auth.user!.name}' : ''}!',
+                        auth.user != null
+                            ? context.l10n.welcomeUser(auth.user!.name)
+                            : context.l10n.welcome,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 18,
@@ -113,10 +122,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      const Text(
-                        'You signed in with a temporary password from the school. Please set your own password to continue to your dashboard.',
+                      Text(
+                        context.l10n.youSignedInWithA,
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: AppColors.muted),
+                        style: const TextStyle(color: AppColors.muted),
                       ),
                       const SizedBox(height: 24),
                     ],
@@ -126,12 +135,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         obscureText: _obscure,
                         decoration: InputDecoration(
                           labelText: widget.forced
-                              ? 'Temporary password'
-                              : 'Current password',
+                              ? context.l10n.temporaryPassword
+                              : context.l10n.currentPassword,
                           prefixIcon: const Icon(Icons.key_outlined),
                         ),
                         validator: (v) => (v ?? '').isEmpty
-                            ? 'Enter your current password.'
+                            ? context.l10n.enterCurrentPassword
                             : null,
                       ),
                       const SizedBox(height: 14),
@@ -140,9 +149,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       controller: _next,
                       obscureText: _obscure,
                       decoration: InputDecoration(
-                        labelText: 'New password',
-                        helperText:
-                            'At least 8 characters with letters and numbers',
+                        labelText: context.l10n.newPassword,
+                        helperText: context.l10n.atLeast8CharactersWith,
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -153,18 +161,22 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                           onPressed: () => setState(() => _obscure = !_obscure),
                         ),
                       ),
-                      validator: validateStrength,
+                      validator: (v) {
+                        final e = validateStrength(v);
+                        return e == null ? null : context.l10n.word(e);
+                      },
                     ),
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: _confirm,
                       obscureText: _obscure,
-                      decoration: const InputDecoration(
-                        labelText: 'Confirm new password',
-                        prefixIcon: Icon(Icons.lock_outline),
+                      decoration: InputDecoration(
+                        labelText: context.l10n.confirmNewPassword,
+                        prefixIcon: const Icon(Icons.lock_outline),
                       ),
-                      validator: (v) =>
-                          v != _next.text ? 'Passwords do not match.' : null,
+                      validator: (v) => v != _next.text
+                          ? context.l10n.passwordsDoNotMatch
+                          : null,
                       onFieldSubmitted: (_) => _submit(),
                     ),
                     if (_error != null)
@@ -189,8 +201,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                             )
                           : Text(
                               widget.forced
-                                  ? 'Save and continue'
-                                  : 'Change password',
+                                  ? context.l10n.saveAndContinue
+                                  : context.l10n.changePassword,
                             ),
                     ),
                   ],

@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../l10n/l10n_ext.dart';
+
 import '../l10n/app_localizations.dart';
 
 import '../core/theme.dart';
@@ -154,7 +156,7 @@ class _AsyncViewState<T> extends State<AsyncView<T>> {
       setState(() {
         _error = e is ApiException
             ? e.message
-            : 'Something went wrong. Please try again.';
+            : context.l10n.somethingWentWrongPleaseTry;
         _loading = false;
       });
     }

@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../core/format.dart';
@@ -36,7 +39,11 @@ class _LeaveScreenState extends State<LeaveScreen> {
   Widget build(BuildContext context) {
     final service = context.read<GuardianService>();
     return Scaffold(
-      appBar: AppBar(title: Text('Leave – ${widget.child.name}')),
+      appBar: AppBar(
+        title: Text(
+          context.l10n.titleForChild(context.l10n.modLeave, widget.child.name),
+        ),
+      ),
       body: AsyncView<_LeaveData>(
         key: ValueKey(_version),
         load: () => _load(service),
@@ -50,11 +57,11 @@ class _LeaveScreenState extends State<LeaveScreen> {
                 types: d.types,
                 onSubmitted: () => setState(() => _version++),
               ),
-              const SectionTitle('Leave History'),
+              SectionTitle(context.l10n.leaveHistory),
               Card(
                 child: d.history.isEmpty
-                    ? const EmptyView(
-                        title: 'No leave applications yet',
+                    ? EmptyView(
+                        title: context.l10n.noLeaveApplicationsYet,
                         icon: Icons.event_available_outlined,
                       )
                     : Column(
@@ -72,7 +79,9 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                   '${Fmt.date(l.fromDate)} – ${Fmt.date(l.toDate)}',
                                   ?l.reason,
                                   if (l.decisionNote != null)
-                                    'School: ${l.decisionNote}',
+                                    context.l10n.schoolNote(
+                                      l.decisionNote ?? '',
+                                    ),
                                 ].join('\n'),
                               ),
                               isThreeLine:
@@ -154,7 +163,7 @@ class _LeaveFormState extends State<_LeaveForm> {
         reason: _reason.text.trim(),
       );
       if (!mounted) return;
-      showSnack(context, 'Leave application sent to the school.');
+      showSnack(context, context.l10n.leaveSent);
       _reason.clear();
       widget.onSubmitted();
     } on ApiException catch (e) {
@@ -168,7 +177,7 @@ class _LeaveFormState extends State<_LeaveForm> {
   Widget build(BuildContext context) {
     final days = _to.difference(_from).inDays + 1;
     return SectionCard(
-      title: 'New Leave Application',
+      title: context.l10n.newLeaveApplication,
       icon: Icons.edit_note_rounded,
       child: Form(
         key: _form,
@@ -176,7 +185,7 @@ class _LeaveFormState extends State<_LeaveForm> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'For ${widget.child.name} (${widget.child.classLine})',
+              context.l10n.forChild(widget.child.name, widget.child.classLine),
               style: const TextStyle(color: AppColors.muted),
             ),
             const SizedBox(height: 12),
@@ -184,7 +193,7 @@ class _LeaveFormState extends State<_LeaveForm> {
               DropdownButtonFormField<String>(
                 isExpanded: true,
                 initialValue: _typeId,
-                decoration: const InputDecoration(labelText: 'Leave type'),
+                decoration: InputDecoration(labelText: context.l10n.leaveType),
                 items: [
                   for (final t in widget.types)
                     DropdownMenuItem(value: t.id, child: Text(t.name)),
@@ -198,7 +207,7 @@ class _LeaveFormState extends State<_LeaveForm> {
                   child: OutlinedButton.icon(
                     onPressed: () => _pick(true),
                     icon: const Icon(Icons.event),
-                    label: Text('From ${Fmt.shortDate(_from)}'),
+                    label: Text(context.l10n.dateFrom(Fmt.shortDate(_from))),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -206,7 +215,7 @@ class _LeaveFormState extends State<_LeaveForm> {
                   child: OutlinedButton.icon(
                     onPressed: () => _pick(false),
                     icon: const Icon(Icons.event),
-                    label: Text('To ${Fmt.shortDate(_to)}'),
+                    label: Text(context.l10n.dateTo(Fmt.shortDate(_to))),
                   ),
                 ),
               ],
@@ -221,12 +230,12 @@ class _LeaveFormState extends State<_LeaveForm> {
             TextFormField(
               controller: _reason,
               maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Reason',
+              decoration: InputDecoration(
+                labelText: context.l10n.reason,
                 alignLabelWithHint: true,
               ),
               validator: (v) => (v ?? '').trim().length < 5
-                  ? 'Please describe the reason.'
+                  ? context.l10n.describeReason
                   : null,
             ),
             const SizedBox(height: 14),
@@ -241,7 +250,7 @@ class _LeaveFormState extends State<_LeaveForm> {
                         color: Colors.white,
                       ),
                     )
-                  : const Text('Submit application'),
+                  : Text(context.l10n.submitApplication),
             ),
           ],
         ),

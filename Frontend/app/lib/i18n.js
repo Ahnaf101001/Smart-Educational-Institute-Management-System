@@ -29,6 +29,17 @@ const BN = {
   "Export": "এক্সপোর্ট", "Print": "প্রিন্ট", "Loading": "লোড হচ্ছে", "Sign Out": "সাইন আউট", "My Profile": "আমার প্রোফাইল",
   "Help & Support": "সহায়তা", "Status": "অবস্থা", "Actions": "কার্যক্রম", "Approve": "অনুমোদন", "Reject": "প্রত্যাখ্যান",
   "No records found.": "কোনো তথ্য পাওয়া যায়নি।", "Guardian Portal": "অভিভাবক পোর্টাল", "Teacher Portal": "শিক্ষক পোর্টাল",
+  // Navigation groups, quick actions and search (UI simplification, Nov 2026).
+  "Daily work": "দৈনন্দিন কাজ", "People": "মানুষ", "Academics & exams": "একাডেমিক ও পরীক্ষা", "Finance & HR": "হিসাব ও এইচআর",
+  "Operations & settings": "পরিচালনা ও সেটিংস", "Quick actions": "দ্রুত কাজ", "Take attendance": "উপস্থিতি নিন",
+  "Collect a fee": "ফি আদায় করুন", "Send a notice": "নোটিশ পাঠান", "Find a student": "শিক্ষার্থী খুঁজুন", "Enter marks": "নম্বর দিন",
+  "Add a student": "শিক্ষার্থী যোগ করুন", "Search pages and students…": "পেজ বা শিক্ষার্থী খুঁজুন…", "Pages": "পেজ",
+  "No matches.": "কিছু পাওয়া যায়নি।", "Charts": "চার্ট", "Special Schedules": "বিশেষ রুটিন", "Substitutes": "বদলি শিক্ষক",
+  "Subject Mapping": "বিষয় বিন্যাস", "Quizzes & Coursework": "কুইজ ও কোর্সওয়ার্ক",
+  "Seat Plan": "আসন বিন্যাস", "Textbooks & Clubs": "পাঠ্যবই ও ক্লাব", "Board & Stipend": "বোর্ড ও উপবৃত্তি",
+  "Report Library": "রিপোর্ট লাইব্রেরি", "General": "সাধারণ", "Approval Rules": "অনুমোদনের নিয়ম", "Integrations & API": "ইন্টিগ্রেশন ও এপিআই",
+  "My Account & Devices": "আমার অ্যাকাউন্ট ও ডিভাইস", "Exports": "এক্সপোর্ট", "Moderation": "মডারেশন", "Hifz Targets": "হিফজ লক্ষ্য",
+  "Class Routine": "ক্লাস রুটিন", "Fee Collection": "ফি আদায়", "Institution overview": "প্রতিষ্ঠানের সারসংক্ষেপ",
 };
 
 export const DICTIONARIES = { bn: BN, en: {} };

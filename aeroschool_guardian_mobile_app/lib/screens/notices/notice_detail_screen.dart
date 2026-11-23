@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../core/format.dart';
@@ -14,7 +17,7 @@ class NoticeDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('School Notice')),
+    appBar: AppBar(title: Text(context.l10n.schoolNotice)),
     body: ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -31,7 +34,10 @@ class NoticeDetailScreen extends StatelessWidget {
                     if (notice.category != null)
                       StatusChip(notice.category!, color: AppColors.info),
                     if (notice.isUrgent)
-                      const StatusChip('Important', color: AppColors.danger),
+                      StatusChip(
+                        context.l10n.important,
+                        color: AppColors.danger,
+                      ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -59,7 +65,7 @@ class NoticeDetailScreen extends StatelessWidget {
                       PersonAvatar.resolve(notice.attachmentUrl)!,
                     ),
                     icon: const Icon(Icons.attach_file),
-                    label: const Text('Open attachment'),
+                    label: Text(context.l10n.openAttachment),
                   ),
                 ],
               ],

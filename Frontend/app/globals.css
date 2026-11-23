@@ -46,6 +46,13 @@ select {
   border-radius: 20px;
   background: #fff;
   box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08);
+  /* Lets wide tables scroll inside the card instead of stretching grid/flex layouts on phones. */
+  min-width: 0;
+}
+
+/* Grid children default to min-width:auto, which lets one wide table widen a whole page. */
+.grid > * {
+  min-width: 0;
 }
 
 .dashboard-title {

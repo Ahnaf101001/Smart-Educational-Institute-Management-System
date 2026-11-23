@@ -158,7 +158,7 @@ export default function TemplateEditor({ templateId, institute, onBack }) {
             <div className="space-y-3">
               <Field label="Template name"><Input value={meta.name} onChange={(e) => { setMeta({ ...meta, name: e.target.value }); setDirty(true); }} /></Field>
               <Field label="Category"><Select value={meta.category} onChange={(e) => { setMeta({ ...meta, category: e.target.value }); setDirty(true); }} options={["Modern", "Classic", "Minimal", "Colorful", "Formal", "School-branded"]} /></Field>
-              <Field label="Card size (IDC-13)"><Select value={preset} onChange={(e) => applyPreset(e.target.value)} options={SIZE_PRESETS.map((p) => ({ value: p.key, label: p.label }))} /></Field>
+              <Field label="Card size"><Select value={preset} onChange={(e) => applyPreset(e.target.value)} options={SIZE_PRESETS.map((p) => ({ value: p.key, label: p.label }))} /></Field>
               <div className="grid grid-cols-3 gap-2">
                 <Field label="Width mm"><Input type="number" step="0.01" value={dims.widthMm} onChange={(e) => { setDims({ ...dims, widthMm: Number(e.target.value) }); setDirty(true); }} /></Field>
                 <Field label="Height mm"><Input type="number" step="0.01" value={dims.heightMm} onChange={(e) => { setDims({ ...dims, heightMm: Number(e.target.value) }); setDirty(true); }} /></Field>
@@ -166,7 +166,7 @@ export default function TemplateEditor({ templateId, institute, onBack }) {
               </div>
               <p className="text-xs text-slate-500">The layout is designed for its original orientation; changing orientation keeps all fields but may need repositioning.</p>
               <div>
-                <p className="mb-1 text-xs font-semibold text-slate-600">Fields shown on the card (IDC-08)</p>
+                <p className="mb-1 text-xs font-semibold text-slate-600">Fields shown on the card</p>
                 <div className="grid grid-cols-2 gap-1.5">
                   {fieldsList.map(([k, label]) => (
                     <label key={k} className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm hover:bg-slate-50">

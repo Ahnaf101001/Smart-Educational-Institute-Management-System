@@ -56,7 +56,7 @@ function ProfileTab() {
   }
   return (
     <div className="grid gap-5 xl:grid-cols-[1fr_360px]">
-      <Card title="School profile" subtitle="Set once; reused on every output (SYS-01, SYS-08)">
+      <Card title="School profile" subtitle="Set once; reused on every output">
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Institution name (English)" required><Input value={p.name || ""} onChange={set("name")} /></Field>
           <Field label="প্রতিষ্ঠানের নাম (বাংলা)"><Input value={p.nameBn || ""} onChange={set("nameBn")} /></Field>
@@ -79,7 +79,7 @@ function ProfileTab() {
         </div>
         <div className="mt-4"><Button icon={Save} loading={saving} onClick={() => save()}>Save profile</Button></div>
       </Card>
-      <Card title="Reusable assets" subtitle="Logo, authorised signature and seal (SYS-05)">
+      <Card title="Reusable assets" subtitle="Logo, authorised signature and seal">
         <div className="space-y-3">
           <UploadButton label="School logo" category="logo" value={p.logoUrl} onUploaded={(url) => { setP({ ...p, logoUrl: url }); save({ logoUrl: url }); }} />
           <UploadButton label="Authorised signature" category="signature" value={p.signatureUrl} onUploaded={(url) => { setP({ ...p, signatureUrl: url }); save({ signatureUrl: url }); }} />
@@ -152,7 +152,7 @@ function SessionsTab() {
     <div className="space-y-5">
       <ResourceManager key={version} embedded config={{
         title: "Academic sessions", singular: "Session", endpoint: "/academic-years", module: "academic", delete: false,
-        subtitle: "Create, activate, close and archive sessions (SYS-02, AC-01). Previous sessions stay intact (ACA-07).",
+        subtitle: "Create, activate, close and archive sessions. Previous sessions stay intact.",
         columns: [{ key: "name", label: "Session" }, { key: "startDate", label: "Start", type: "date" }, { key: "endDate", label: "End", type: "date" }, { key: "calendarType", label: "Calendar" },
           { key: "isCurrent", label: "Current", type: "boolean" }, { key: "status", label: "Status", type: "badge" }],
         fields: [{ key: "name", label: "Name", required: true, placeholder: "2026 or 2026-27 or 1447-48" }, { key: "calendarType", label: "Calendar", type: "select", options: ["Gregorian", "Hijri", "Bangla"], default: "Gregorian" },
@@ -192,7 +192,7 @@ function PoliciesTab() {
   const mods = s.enabledModules || [];
   return (
     <div className="grid gap-5 xl:grid-cols-2">
-      <Card title="Language, calendar & formats" subtitle="Bangla default with English option; BDT; Bangladesh date format (SYS-04, NFR-08)">
+      <Card title="Language, calendar & formats" subtitle="Bangla default with English option; BDT; Bangladesh date format">
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Default language"><Select value={s.language} onChange={(e) => set("language", e.target.value)} options={[{ value: "bn", label: "বাংলা" }, { value: "en", label: "English" }]} /></Field>
           <Field label="Digits"><Select value={s.digitSystem} onChange={(e) => set("digitSystem", e.target.value)} options={[{ value: "en", label: "English 0-9" }, { value: "bn", label: "বাংলা ০-৯" }]} /></Field>
@@ -202,14 +202,14 @@ function PoliciesTab() {
           <Field label="Currency"><Input value={s.currency} onChange={(e) => set("currency", e.target.value)} /></Field>
         </div>
       </Card>
-      <Card title="Attendance & notifications" subtitle="Edit window, late cut-off, absence alerts (AT-04/05/07)">
+      <Card title="Attendance & notifications" subtitle="Edit window, late cut-off, absence alerts">
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label="Edit window (days)" hint="0 = same day only"><Input type="number" min="0" value={s.attendanceEditWindowDays} onChange={num("attendanceEditWindowDays")} /></Field>
           <Field label="Late after (HH:MM)"><Input type="time" value={s.attendanceCutoffTime} onChange={(e) => set("attendanceCutoffTime", e.target.value)} /></Field>
           <Field label="Consecutive absence alert"><Input type="number" min="1" value={s.consecutiveAbsenceThreshold} onChange={num("consecutiveAbsenceThreshold")} /></Field>
-          <Field label="Staff: late days = 1 day deduction" hint="0 = no late deduction (AT-11)"><Input type="number" min="0" value={s.lateDaysPerDeduction} onChange={num("lateDaysPerDeduction")} /></Field>
+          <Field label="Staff: late days = 1 day deduction" hint="0 = no late deduction"><Input type="number" min="0" value={s.lateDaysPerDeduction} onChange={num("lateDaysPerDeduction")} /></Field>
           <Field label="Staff: half day counts as (day)"><Input type="number" step="0.25" min="0" max="1" value={s.halfDayCountsAs} onChange={num("halfDayCountsAs")} /></Field>
-          <Field label="SMS failure fallback channel" hint="Used only when an SMS finally fails (COM-07)"><Select value={s.smsFallbackChannel || ""} onChange={(e) => set("smsFallbackChannel", e.target.value || null)} options={["Portal", "Push", "Email", "WhatsApp"]} placeholder="No fallback" /></Field>
+          <Field label="SMS failure fallback channel" hint="Used only when an SMS finally fails"><Select value={s.smsFallbackChannel || ""} onChange={(e) => set("smsFallbackChannel", e.target.value || null)} options={["Portal", "Push", "Email", "WhatsApp"]} placeholder="No fallback" /></Field>
         </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <label className="flex items-center gap-2 text-sm sm:col-span-3"><input type="checkbox" className="accent-blue-600" checked={Boolean(s.teacherQuietHours?.enabled)} onChange={(e) => set("teacherQuietHours", { ...(s.teacherQuietHours || {}), enabled: e.target.checked })} /> Mute guardian messages to teachers outside school hours (v1 CM-05)</label>
@@ -232,17 +232,17 @@ function PoliciesTab() {
           <Field label="Cost per SMS part (৳)"><Input type="number" step="0.01" value={s.smsCostPerPart} onChange={num("smsCostPerPart")} /></Field>
         </div>
       </Card>
-      <Card title="Fees & accounts" subtitle="Invoice schedule, reminders, approval thresholds (FE-07/14, ACC-03)">
+      <Card title="Fees & accounts" subtitle="Invoice schedule, reminders, approval thresholds">
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Generate monthly invoices on day"><Input type="number" min="1" max="28" value={s.invoiceGenerationDay} onChange={num("invoiceGenerationDay")} /></Field>
           <Field label="Send fee reminders on day"><Input type="number" min="1" max="28" value={s.feeReminderDay} onChange={num("feeReminderDay")} /></Field>
           <Field label="Expense approval above (৳)"><Input type="number" value={s.expenseApprovalThreshold} onChange={num("expenseApprovalThreshold")} /></Field>
           <Field label="Committee approval above (৳)" hint="Edit the full chain in Approvals → Approval rules"><Input type="number" value={s.committeeApprovalThreshold} onChange={num("committeeApprovalThreshold")} /></Field>
-          <Field label="Maximum total discount (%)" hint="Cap for scholarship + sibling + waiver (FIN-05)"><Input type="number" min="0" max="100" value={s.maxDiscountPercent} onChange={num("maxDiscountPercent")} /></Field>
+          <Field label="Maximum total discount (%)" hint="Cap for scholarship + sibling + waiver"><Input type="number" min="0" max="100" value={s.maxDiscountPercent} onChange={num("maxDiscountPercent")} /></Field>
           <Field label="Escalate pending approvals after (hours)" hint="Reminder + escalation (v1 RP-18)"><Input type="number" min="1" value={s.approvalEscalationHours} onChange={num("approvalEscalationHours")} /></Field>
         </div>
-        <div className="mt-3">{chk("allowDiscountStacking", "Allow several discounts on one invoice (off = only the largest applies) (FE-09)")}</div>
-        <p className="mt-3 text-xs font-semibold text-slate-600">Online payment gateways (FE-10)</p>
+        <div className="mt-3">{chk("allowDiscountStacking", "Allow several discounts on one invoice (off = only the largest applies)")}</div>
+        <p className="mt-3 text-xs font-semibold text-slate-600">Online payment gateways</p>
         <div className="mt-1 flex flex-wrap gap-4">
           {["cash", "bkash", "nagad", "rocket", "sslcommerz"].map((g) => (
             <label key={g} className="flex items-center gap-2 text-sm capitalize"><input type="checkbox" className="accent-blue-600" checked={Boolean(gw[g])} onChange={(e) => set("paymentGateways", { ...gw, [g]: e.target.checked })} /> {g}</label>
@@ -250,12 +250,12 @@ function PoliciesTab() {
         </div>
         <p className="mt-1 text-xs text-slate-500">Merchant credentials are configured on the server (.env). Without them only the development sandbox is available.</p>
       </Card>
-      <Card title="Exams, results & ID cards" subtitle="Admit card / result block on dues, card numbering & approval (EX-05, §7.4)">
+      <Card title="Exams, results & ID cards" subtitle="Admit card / result block on dues, card numbering & approval">
         <div className="grid gap-2 sm:grid-cols-2">
           {chk("admitCardBlockOnDue", "Block admit card when fees are due")}{chk("resultHideOnDue", "Hide result from guardians when fees are due")}
           {chk("cardPrintRequiresApproval", "ID card printing requires approval")}{chk("requireNewCardEachSession", "New ID card required each session")}
           {chk("publicAdmissionEnabled", "Public online admission portal")}{chk("publicResultEnabled", "Public online result lookup")}
-          {chk("formFillupBlockOnTestFail", "Block board form fill-up when the student failed the test exam (BM-05)")}
+          {chk("formFillupBlockOnTestFail", "Block board form fill-up when the student failed the test exam")}
         </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <Field label="Student card prefix"><Input value={s.cardNumberPrefix} onChange={(e) => set("cardNumberPrefix", e.target.value)} /></Field>
@@ -263,7 +263,7 @@ function PoliciesTab() {
           <Field label="Card validity (months)"><Input type="number" value={s.cardValidityMonths} onChange={num("cardValidityMonths")} /></Field>
         </div>
       </Card>
-      <Card title="Security" subtitle="Session timeout, lockout, maker–checker exception (NFR-13, §26)">
+      <Card title="Security" subtitle="Session timeout, lockout, maker–checker exception">
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Session timeout (minutes)"><Input type="number" value={s.sessionTimeoutMinutes} onChange={num("sessionTimeoutMinutes")} /></Field>
           <Field label="Lock account after failed logins"><Input type="number" value={s.maxLoginAttempts} onChange={num("maxLoginAttempts")} /></Field>
@@ -314,7 +314,7 @@ function BackupTab() {
   }
   return (
     <div className="space-y-5">
-      <Card title="Data backup & restore drill" subtitle="Daily automatic backups (2 AM) with checksum; run a restore drill to verify integrity without touching live data (NFR-05, NFX-03)."
+      <Card title="Data backup & restore drill" subtitle="Daily automatic backups (2 AM) with checksum; run a restore drill to verify integrity without touching live data."
         actions={<Button icon={Database} loading={busy} onClick={backupNow}>Back up now</Button>}>
         <Table rows={rows} rowKey="file" columns={[
           { key: "file", label: "File" }, { key: "createdAt", label: "Created", render: (r) => formatDateTime(r.createdAt) },

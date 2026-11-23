@@ -2,18 +2,20 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Info, Loader2, X } from "lucide-react";
+import { useI18n } from "../../lib/i18n";
 
 export function cx(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
 export function PageHeader({ title, subtitle, actions, icon: Icon }) {
+  const { t } = useI18n();
   return (
     <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-3">
-        {Icon && <span className="grid size-11 place-items-center rounded-2xl bg-blue-50 text-blue-600"><Icon size={22} /></span>}
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-900">{title}</h1>
+      <div className="flex min-w-0 items-center gap-3">
+        {Icon && <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-600 sm:size-11"><Icon size={21} /></span>}
+        <div className="min-w-0">
+          <h1 className="text-lg font-extrabold text-slate-900 sm:text-xl">{typeof title === "string" ? t(title) : title}</h1>
           {subtitle && <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>}
         </div>
       </div>
@@ -86,11 +88,11 @@ export function Badge({ children, tone }) {
 
 export function StatCard({ label, value, hint, icon: Icon, tone = "blue" }) {
   return (
-    <div className="dashboard-panel flex items-center gap-4 p-4">
-      {Icon && <span className={cx("grid size-12 shrink-0 place-items-center rounded-2xl", TONES[tone])}><Icon size={22} /></span>}
+    <div className="dashboard-panel flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+      {Icon && <span className={cx("hidden size-12 shrink-0 place-items-center rounded-2xl min-[400px]:grid", TONES[tone])}><Icon size={22} /></span>}
       <div className="min-w-0">
-        <p className="truncate text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-        <p className="mt-0.5 truncate text-2xl font-extrabold text-slate-900">{value}</p>
+        <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:text-xs">{label}</p>
+        <p className="mt-0.5 truncate text-xl font-extrabold text-slate-900 sm:text-2xl">{value}</p>
         {hint && <p className="truncate text-xs text-slate-500">{hint}</p>}
       </div>
     </div>
@@ -316,7 +318,7 @@ export async function exportRows(format, { title, columns, rows }) {
     autoTable(doc, { head: [header], body, startY: 23, styles: { fontSize: 8 }, headStyles: { fillColor: [34, 63, 145] } });
     doc.save(`${safe}.pdf`);
   }
-  // Export / print / bulk download actions are audit-logged (NFX-10).
+  // Export / print / bulk download actions are audit-logged.
   import("../../lib/api")
     .then(({ request }) => request("/x/audit/export", { method: "POST", body: JSON.stringify({ resource: title || "export", format, count: rows.length }) }))
     .catch(() => {});

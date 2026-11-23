@@ -5,15 +5,21 @@ import { AlertTriangle, BarChart3, BookOpenCheck, ClipboardCheck, CreditCard, Gr
 import { http } from "../../lib/api";
 import { can, useUser } from "../../lib/access";
 import { Badge, Card, EmptyState, PageHeader, Spinner, StatCard, Table, Tabs, formatDate, money } from "../ui/kit";
+import QuickActions from "../ui/QuickActions";
 
+// Each column is full height with the bar anchored at the bottom, so percentage heights have a
+// reference (previously the bars collapsed to their 3 px minimum). Labels thin out on long series.
 function Bars({ data, valueKey, labelKey, color = "bg-blue-500", format = (v) => v, max }) {
   const top = max || Math.max(1, ...data.map((d) => Number(d[valueKey] || 0)));
+  const every = Math.max(1, Math.ceil(data.length / 8));
   return (
-    <div className="flex h-44 items-end gap-1.5">
-      {data.map((d) => (
-        <div key={d[labelKey]} className="flex flex-1 flex-col items-center gap-1" title={`${d[labelKey]}: ${format(d[valueKey])}`}>
-          <div className={`w-full rounded-t-md ${color}`} style={{ height: `${(Number(d[valueKey] || 0) / top) * 100}%`, minHeight: Number(d[valueKey]) ? 3 : 0 }} />
-          <span className="truncate text-[10px] text-slate-500">{String(d[labelKey]).slice(-5)}</span>
+    <div className="flex h-48 items-stretch gap-0.5 sm:gap-1.5">
+      {data.map((d, i) => (
+        <div key={d[labelKey]} className="flex min-w-0 flex-1 flex-col items-center gap-1" title={`${d[labelKey]}: ${format(d[valueKey])}`}>
+          <div className="flex w-full flex-1 items-end">
+            <div className={`w-full rounded-t-md ${color}`} style={{ height: `${Math.min(100, (Number(d[valueKey] || 0) / top) * 100)}%`, minHeight: Number(d[valueKey]) ? 3 : 0 }} />
+          </div>
+          <span className={`h-3 w-full truncate text-center text-[10px] leading-3 text-slate-500 ${i % every ? "invisible" : ""}`}>{String(d[labelKey]).slice(-5)}</span>
         </div>
       ))}
     </div>
@@ -35,10 +41,11 @@ export default function Overview({ onNavigate, initialTab = "overview" }) {
 
   return (
     <div>
-      <PageHeader title="Institution overview" icon={BarChart3} subtitle={`Role-based summary for ${user?.name || ""} – figures respect your permissions.`} />
+      <PageHeader title="Institution overview" icon={BarChart3} subtitle={`Today at a glance for ${user?.name || ""}`} />
       {can(user, "reports", "view") && <Tabs value={tab} onChange={setTab} tabs={[{ key: "overview", label: "Today" }, { key: "analytics", label: "Advanced analytics" }]} />}
       {tab === "overview" ? (
         <div className="space-y-5">
+          <QuickActions onNavigate={onNavigate} badges={{ Approvals: pending }} />
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard label="Active students" value={c.students ?? 0} hint={`${c.classes ?? 0} classes · ${c.guardians ?? 0} guardians`} icon={GraduationCap} />
             <StatCard label="Teachers & staff" value={(c.teachers ?? 0) + (c.staff ?? 0)} hint={`${data.staffToday?.present ?? 0} present today`} icon={Users} tone="purple" />

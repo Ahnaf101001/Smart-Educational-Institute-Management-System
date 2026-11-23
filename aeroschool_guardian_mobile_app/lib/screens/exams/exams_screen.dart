@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../core/format.dart';
@@ -45,12 +48,14 @@ class ExamsScreen extends StatelessWidget {
       initialIndex: initialTab,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Exams – ${child.name}'),
-          bottom: const TabBar(
+          title: Text(
+            context.l10n.titleForChild(context.l10n.examsTitle, child.name),
+          ),
+          bottom: TabBar(
             tabs: [
-              Tab(text: 'Schedule'),
-              Tab(text: 'Results'),
-              Tab(text: 'Progress'),
+              Tab(text: context.l10n.scheduleTab),
+              Tab(text: context.l10n.resultsTab),
+              Tab(text: context.l10n.progressTab),
             ],
           ),
         ),
@@ -97,9 +102,9 @@ class _ScheduleTab extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           if (items.isEmpty)
-            const Card(
+            Card(
               child: EmptyView(
-                title: 'No upcoming exams scheduled',
+                title: context.l10n.noUpcomingExamsScheduled,
                 icon: Icons.event_available_outlined,
               ),
             ),
@@ -123,7 +128,7 @@ class _ScheduleTab extends StatelessWidget {
                           Fmt.date(s.date),
                           if (s.start != null)
                             '${Fmt.clock(s.start)}${s.end != null ? ' – ${Fmt.clock(s.end)}' : ''}',
-                          if (s.room != null) 'Room ${s.room}',
+                          if (s.room != null) context.l10n.roomNo(s.room ?? ''),
                         ].join(' • '),
                       ),
                       trailing: s.fullMarks == null
@@ -170,9 +175,9 @@ class _ResultsTab extends StatelessWidget {
           const SizedBox(height: 12),
         ],
         if (results.isEmpty && message == null)
-          const Card(
+          Card(
             child: EmptyView(
-              title: 'No results published yet',
+              title: context.l10n.noResultsPublishedYet,
               icon: Icons.emoji_events_outlined,
             ),
           ),
@@ -233,7 +238,7 @@ class _ResultsTab extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              'Published ${Fmt.date(r.publishedAt)}',
+                              context.l10n.publishedOn(Fmt.date(r.publishedAt)),
                               style: const TextStyle(
                                 color: AppColors.muted,
                                 fontSize: 12,
@@ -286,7 +291,7 @@ class _ProgressTab extends StatelessWidget {
       if (context.mounted) {
         showSnack(
           context,
-          'Could not create the progress report.',
+          context.l10n.couldNotCreateProgressReport,
           error: true,
         );
       }
@@ -325,21 +330,20 @@ class _ProgressTab extends StatelessWidget {
             FilledButton.icon(
               onPressed: () => _download(context, ordered),
               icon: const Icon(Icons.picture_as_pdf_outlined),
-              label: const Text('Download progress report (PDF)'),
+              label: Text(context.l10n.downloadProgressReportPdf),
             ),
             const SizedBox(height: 12),
           ],
           if (ordered.isEmpty)
-            const Card(
+            Card(
               child: EmptyView(
-                title:
-                    'Progress report appears after the first published result',
+                title: context.l10n.progressReportAppearsAfterThe,
                 icon: Icons.insights_outlined,
               ),
             )
           else ...[
             SectionCard(
-              title: 'Exam-wise progress',
+              title: context.l10n.examWiseProgress,
               icon: Icons.show_chart,
               child: Column(
                 children: [
@@ -387,7 +391,7 @@ class _ProgressTab extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             SectionCard(
-              title: 'Subject-wise average',
+              title: context.l10n.subjectWiseAverage,
               icon: Icons.subject,
               child: Column(
                 children: [

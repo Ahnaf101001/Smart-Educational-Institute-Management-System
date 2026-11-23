@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
@@ -52,7 +55,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Forgot password')),
+    appBar: AppBar(title: Text(context.l10n.forgotPassword)),
     body: SafeArea(
       child: Center(
         child: SingleChildScrollView(
@@ -70,15 +73,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       const SizedBox(height: 16),
                       Text(_done!, textAlign: TextAlign.center),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Open the link in the email, set a new password, then sign in here.',
+                      Text(
+                        context.l10n.openTheLinkInThe,
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: AppColors.muted),
+                        style: const TextStyle(color: AppColors.muted),
                       ),
                       const SizedBox(height: 24),
                       FilledButton(
                         onPressed: () => Navigator.pop(context),
-                        child: const Text('Back to login'),
+                        child: Text(context.l10n.backToLogin),
                       ),
                     ],
                   )
@@ -87,21 +90,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Text(
-                          'Enter your login email. We will send you a secure link to reset your password.',
-                          style: TextStyle(color: AppColors.muted),
+                        Text(
+                          context.l10n.enterYourLoginEmailWe,
+                          style: const TextStyle(color: AppColors.muted),
                         ),
                         const SizedBox(height: 20),
                         TextFormField(
                           controller: _email,
                           keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(
-                            labelText: 'Login email',
-                            prefixIcon: Icon(Icons.alternate_email),
+                          decoration: InputDecoration(
+                            labelText: context.l10n.loginEmail2,
+                            prefixIcon: const Icon(Icons.alternate_email),
                           ),
                           validator: (v) => (v ?? '').trim().contains('@')
                               ? null
-                              : 'Enter a valid email address.',
+                              : context.l10n.loginInvalidEmail,
                           onFieldSubmitted: (_) => _submit(),
                         ),
                         if (_error != null)
@@ -124,7 +127,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                     color: Colors.white,
                                   ),
                                 )
-                              : const Text('Send reset link'),
+                              : Text(context.l10n.sendResetLink),
                         ),
                       ],
                     ),

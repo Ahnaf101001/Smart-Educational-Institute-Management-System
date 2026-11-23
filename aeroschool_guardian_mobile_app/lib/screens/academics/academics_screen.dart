@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../core/format.dart';
@@ -27,12 +30,14 @@ class AcademicsScreen extends StatelessWidget {
       initialIndex: initialTab,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Academics – ${child.name}'),
-          bottom: const TabBar(
+          title: Text(
+            context.l10n.titleForChild(context.l10n.academicsTitle, child.name),
+          ),
+          bottom: TabBar(
             tabs: [
-              Tab(text: 'Routine'),
-              Tab(text: 'Homework'),
-              Tab(text: 'Calendar'),
+              Tab(text: context.l10n.modRoutine),
+              Tab(text: context.l10n.homework),
+              Tab(text: context.l10n.modCalendar),
             ],
           ),
         ),
@@ -72,7 +77,7 @@ class _RoutineTab extends StatefulWidget {
 }
 
 class _RoutineTabState extends State<_RoutineTab> {
-  late String _day = const [
+  late String _day = [
     'Monday',
     'Tuesday',
     'Wednesday',
@@ -97,9 +102,9 @@ class _RoutineTabState extends State<_RoutineTab> {
         padding: const EdgeInsets.all(16),
         children: [
           SegmentedButton<bool>(
-            segments: const [
-              ButtonSegment(value: false, label: Text('Daily')),
-              ButtonSegment(value: true, label: Text('By subject')),
+            segments: [
+              ButtonSegment(value: false, label: Text(context.l10n.daily)),
+              ButtonSegment(value: true, label: Text(context.l10n.bySubject)),
             ],
             showSelectedIcon: false,
             selected: {_bySubject},
@@ -107,9 +112,9 @@ class _RoutineTabState extends State<_RoutineTab> {
           ),
           const SizedBox(height: 12),
           if (routine.isEmpty)
-            const Card(
+            Card(
               child: EmptyView(
-                title: 'Class routine not published yet',
+                title: context.l10n.classRoutineNotPublishedYet,
                 icon: Icons.schedule,
               ),
             )
@@ -123,7 +128,7 @@ class _RoutineTabState extends State<_RoutineTab> {
                     Padding(
                       padding: const EdgeInsets.only(right: 6),
                       child: ChoiceChip(
-                        label: Text(d.substring(0, 3)),
+                        label: Text(context.l10n.dayShort(d)),
                         selected: d == _day,
                         onSelected: (_) => setState(() => _day = d),
                       ),
@@ -135,7 +140,9 @@ class _RoutineTabState extends State<_RoutineTab> {
             Card(
               child: daySlots.isEmpty
                   ? EmptyView(
-                      title: 'No classes on $_day',
+                      title: context.l10n.noClassesOnDay(
+                        context.l10n.word(_day),
+                      ),
                       icon: Icons.weekend_outlined,
                     )
                   : Column(
@@ -166,7 +173,8 @@ class _RoutineTabState extends State<_RoutineTab> {
                                 : Text(
                                     [
                                       r.teacher,
-                                      if (r.room != null) 'Room ${r.room}',
+                                      if (r.room != null)
+                                        context.l10n.roomNo(r.room ?? ''),
                                     ].whereType<String>().join(' • '),
                                   ),
                           ),
@@ -185,7 +193,9 @@ class _RoutineTabState extends State<_RoutineTab> {
                     children: [
                       if (e.value.first.teacher != null)
                         Text(
-                          'Teacher: ${e.value.first.teacher}',
+                          context.l10n.teacherLabel(
+                            e.value.first.teacher ?? '',
+                          ),
                           style: const TextStyle(color: AppColors.muted),
                         ),
                       const SizedBox(height: 6),
@@ -245,21 +255,23 @@ class _HomeworkTabState extends State<_HomeworkTab> {
             children: [
               for (final f in const ['Pending', 'Submitted', 'Overdue', 'All'])
                 ChoiceChip(
-                  label: Text(f),
+                  label: Text(context.l10n.word(f)),
                   selected: _filter == f,
                   onSelected: (_) => setState(() => _filter = f),
                 ),
             ],
           ),
           if (tests.isNotEmpty) ...[
-            const SectionTitle('Upcoming Class Tests'),
+            SectionTitle(context.l10n.upcomingClassTests),
             for (final t in tests) _HomeworkCard(hw: t),
           ],
-          SectionTitle('Homework & Assignments (${list.length})'),
+          SectionTitle(context.l10n.homeworkAssignmentsCount('${list.length}')),
           if (list.isEmpty)
             Card(
               child: EmptyView(
-                title: 'No ${_filter.toLowerCase()} homework',
+                title: context.l10n.noFilterHomework(
+                  context.l10n.word(_filter).toLowerCase(),
+                ),
                 icon: Icons.task_alt,
               ),
             )
@@ -311,14 +323,17 @@ class _HomeworkCard extends StatelessWidget {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      'Due ${Fmt.date(hw.dueDate)}',
+                      context.l10n.dueOn(Fmt.date(hw.dueDate)),
                       style: const TextStyle(fontSize: 13),
                     ),
                   ),
                   if (hw.totalMarks != null)
                     Flexible(
                       child: Text(
-                        'Marks: ${hw.submissionMarks ?? '—'}/${hw.totalMarks}',
+                        context.l10n.marksOf(
+                          '${hw.submissionMarks ?? '—'}',
+                          '${hw.totalMarks}',
+                        ),
                         style: const TextStyle(fontSize: 13),
                       ),
                     ),
@@ -351,28 +366,37 @@ class _HomeworkCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              InfoRow(label: 'Type', value: hw.kind),
-              InfoRow(label: 'Subject', value: hw.subject),
-              InfoRow(label: 'Assigned', value: Fmt.date(hw.assignedDate)),
-              InfoRow(label: 'Due date', value: Fmt.date(hw.dueDate)),
-              InfoRow(label: 'Submission', value: hw.submissionStatus),
+              InfoRow(label: context.l10n.type, value: hw.kind),
+              InfoRow(label: context.l10n.subject, value: hw.subject),
+              InfoRow(
+                label: context.l10n.assigned,
+                value: Fmt.date(hw.assignedDate),
+              ),
+              InfoRow(label: context.l10n.dueDate, value: Fmt.date(hw.dueDate)),
+              InfoRow(
+                label: context.l10n.submission,
+                value: hw.submissionStatus,
+              ),
               if (hw.submittedAt != null)
                 InfoRow(
-                  label: 'Submitted on',
+                  label: context.l10n.submittedOn,
                   value: Fmt.dateTime(hw.submittedAt),
                 ),
               if (hw.totalMarks != null)
                 InfoRow(
-                  label: 'Marks',
+                  label: context.l10n.marks,
                   value: '${hw.submissionMarks ?? '—'} / ${hw.totalMarks}',
                 ),
               if (hw.submissionRemarks != null)
-                InfoRow(label: 'Teacher remarks', value: hw.submissionRemarks),
+                InfoRow(
+                  label: context.l10n.teacherRemarks,
+                  value: hw.submissionRemarks,
+                ),
               if (hw.description != null) ...[
                 const Divider(height: 24),
-                const Text(
-                  'Assignment details',
-                  style: TextStyle(fontWeight: FontWeight.w700),
+                Text(
+                  context.l10n.assignmentDetails,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 6),
                 SelectableText(hw.description!),
@@ -383,7 +407,7 @@ class _HomeworkCard extends StatelessWidget {
                   onPressed: () =>
                       files.openUrl(PersonAvatar.resolve(hw.attachmentUrl)!),
                   icon: const Icon(Icons.attach_file),
-                  label: const Text('Open attachment'),
+                  label: Text(context.l10n.openAttachment),
                 ),
               ],
             ],
@@ -418,22 +442,22 @@ class _CalendarTab extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const SectionTitle('Holidays'),
+          SectionTitle(context.l10n.holidays),
           Card(
             child: holidays.isEmpty
-                ? const EmptyView(
-                    title: 'No upcoming holidays',
+                ? EmptyView(
+                    title: context.l10n.noUpcomingHolidays,
                     icon: Icons.beach_access_outlined,
                   )
                 : Column(
                     children: [for (final e in holidays) _EventTile(event: e)],
                   ),
           ),
-          const SectionTitle('Academic Calendar'),
+          SectionTitle(context.l10n.academicCalendar),
           Card(
             child: others.isEmpty
-                ? const EmptyView(
-                    title: 'No upcoming events',
+                ? EmptyView(
+                    title: context.l10n.noUpcomingEvents,
                     icon: Icons.event_outlined,
                   )
                 : Column(

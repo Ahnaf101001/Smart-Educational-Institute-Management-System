@@ -52,7 +52,7 @@ export default function Attendance() {
   const [offlineItems, setOfflineItems] = useState([]);
   const [offlineNote, setOfflineNote] = useState("");
 
-  // Sync registers saved while offline as soon as the connection is back (ATT-06).
+  // Sync registers saved while offline as soon as the connection is back.
   useEffect(() => {
     const refresh = () => setOfflineItems(pendingAttendance());
     const sync = async () => {
@@ -191,53 +191,32 @@ export default function Attendance() {
   return (
     <div className="space-y-6">
       {/* Top Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="flex items-center gap-5 rounded-[20px] border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
-            <Users size={24} />
+      <div className="grid grid-cols-4 gap-2 sm:gap-4">
+        {[
+          [Users, "bg-blue-50 text-blue-600", totalStudents, "Students"],
+          [CheckCircle2, "bg-emerald-50 text-emerald-500", presentCount, "Present"],
+          [XCircle, "bg-red-50 text-red-500", absentCount, "Absent"],
+          [Clock, "bg-amber-50 text-amber-500", lateCount, "Late"],
+        ].map(([Icon, tone, value, label]) => (
+          <div key={label} className="flex flex-col items-center gap-1 rounded-2xl border border-slate-200 bg-white p-2.5 text-center shadow-sm sm:flex-row sm:gap-4 sm:p-5 sm:text-left">
+            <div className={`hidden size-12 shrink-0 items-center justify-center rounded-2xl sm:flex ${tone}`}><Icon size={22} /></div>
+            <div>
+              <div className="text-xl font-extrabold text-slate-900 sm:text-2xl">{value}</div>
+              <div className="text-[11px] font-medium text-slate-500 sm:text-sm">{label}</div>
+            </div>
           </div>
-          <div>
-            <div className="text-2xl font-extrabold text-slate-900">{totalStudents}</div>
-            <div className="text-sm font-medium text-slate-500">Total Students</div>
-          </div>
-        </div>
-        <div className="flex items-center gap-5 rounded-[20px] border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-500">
-            <CheckCircle2 size={24} />
-          </div>
-          <div>
-            <div className="text-2xl font-extrabold text-slate-900">{presentCount}</div>
-            <div className="text-sm font-medium text-slate-500">Present</div>
-          </div>
-        </div>
-        <div className="flex items-center gap-5 rounded-[20px] border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-500">
-            <XCircle size={24} />
-          </div>
-          <div>
-            <div className="text-2xl font-extrabold text-slate-900">{absentCount}</div>
-            <div className="text-sm font-medium text-slate-500">Absent</div>
-          </div>
-        </div>
-        <div className="flex items-center gap-5 rounded-[20px] border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-500">
-            <Clock size={24} />
-          </div>
-          <div>
-            <div className="text-2xl font-extrabold text-slate-900">{lateCount}</div>
-            <div className="text-sm font-medium text-slate-500">Late</div>
-          </div>
-        </div>
+        ))}
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         {/* Left Side: Attendance List */}
-        <div className="flex flex-col rounded-[20px] border border-slate-200 bg-white shadow-sm overflow-hidden min-h-[600px]">
+        <div className="flex min-w-0 flex-col overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-sm sm:min-h-[600px]">
           {/* Header Controls */}
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 p-6">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-3 sm:gap-4 sm:p-6">
+            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center sm:gap-3">
               <select
-                className="h-11 rounded-xl border border-slate-200 px-4 pr-8 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500"
+                aria-label="Class"
+                className="h-11 min-w-0 rounded-xl border border-slate-200 px-3 pr-8 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 sm:px-4"
                 value={selectedClass}
                 onChange={(e) => setSelectedClass(e.target.value)}
               >
@@ -249,24 +228,23 @@ export default function Attendance() {
                   ))
                 )}
               </select>
-              <div className="relative">
-                <input
-                  type="date"
-                  className="h-11 w-[160px] rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                />
-              </div>
+              <input
+                type="date"
+                aria-label="Date"
+                className="h-11 min-w-0 rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 sm:w-[160px] sm:px-4"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+              />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center">
               <button
-                className="flex h-10 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-bold text-emerald-600 transition hover:bg-emerald-100"
+                className="flex h-10 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-bold text-emerald-600 transition hover:bg-emerald-100"
                 onClick={() => markAll("Present")}
               >
                 ✓ All Present
               </button>
               <button
-                className="flex h-10 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-bold text-red-600 transition hover:bg-red-100"
+                className="flex h-10 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-bold text-red-600 transition hover:bg-red-100"
                 onClick={() => markAll("Absent")}
               >
                 ✗ All Absent
@@ -276,7 +254,7 @@ export default function Attendance() {
 
           {/* Student List */}
           <div className="flex-1 overflow-y-auto p-2">
-            <div className="min-w-[600px]">
+            <div className="divide-y divide-slate-100 sm:divide-y-0">
               {displayStudents.map((student, index) => {
                 const status = attendance[student.id];
                 const activeStatusObj = statuses.find((s) => s.id === status);
@@ -286,11 +264,11 @@ export default function Attendance() {
                 return (
                   <div
                     key={student.id}
-                    className={`group flex items-center justify-between rounded-xl px-4 py-3 transition-colors ${isAbsent ? "bg-red-50/50" : isLate ? "bg-amber-50/50" : "hover:bg-slate-50"
+                    className={`group flex flex-col gap-2 rounded-xl px-2 py-3 transition-colors sm:flex-row sm:items-center sm:justify-between sm:px-4 ${isAbsent ? "bg-red-50/50" : isLate ? "bg-amber-50/50" : "hover:bg-slate-50"
                       }`}
                   >
-                    <div className="flex items-center gap-4">
-                      <span className="w-8 text-xs font-bold text-slate-400">
+                    <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+                      <span className="w-8 shrink-0 text-xs font-bold text-slate-400">
                         {String(index + 1).padStart(3, "0")}
                       </span>
                       <div
@@ -303,19 +281,21 @@ export default function Attendance() {
                       >
                         {getInitials(student.name)}
                       </div>
-                      <span className="font-bold text-slate-800">
+                      <span className="min-w-0 flex-1 truncate font-bold text-slate-800">
                         {student.name}
                       </span>
+                      {activeStatusObj && <activeStatusObj.icon size={18} className={`shrink-0 sm:hidden ${activeStatusObj.text}`} />}
                     </div>
 
                     <div className="flex items-center gap-6">
-                      <div className="flex items-center gap-2">
+                      <div className="grid w-full grid-cols-5 gap-1 sm:flex sm:w-auto sm:items-center sm:gap-2">
                         {statuses.map((s) => {
                           const isActive = status === s.id;
                           return (
                             <button
                               key={s.id}
-                              className={`h-8 rounded-full px-4 text-xs font-bold transition-all ${isActive
+                              aria-pressed={isActive}
+                              className={`min-h-9 rounded-full px-1 text-[11px] font-bold leading-tight transition-all sm:h-8 sm:min-h-0 sm:px-4 sm:text-xs ${isActive
                                   ? `${s.color} text-white shadow-sm`
                                   : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                                 }`}
@@ -326,7 +306,7 @@ export default function Attendance() {
                           );
                         })}
                       </div>
-                      <div className="w-6 flex justify-center">
+                      <div className="hidden w-6 justify-center sm:flex">
                         {activeStatusObj && (
                           <activeStatusObj.icon
                             size={18}
@@ -341,7 +321,7 @@ export default function Attendance() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 p-5">
+          <div className="sticky bottom-0 flex flex-col gap-3 border-t border-slate-100 bg-slate-50 p-3 sm:static sm:flex-row sm:items-center sm:justify-between sm:bg-slate-50/50 sm:p-5">
             <div className="text-sm font-semibold text-slate-500">
               {presentCount} present · {absentCount} absent · {lateCount} late
               {offlineNote && <p className="mt-1 text-xs font-semibold text-amber-700">{offlineNote}</p>}
@@ -357,7 +337,7 @@ export default function Attendance() {
               )}
             </div>
             <button
-              className="flex h-11 items-center gap-2 rounded-xl bg-blue-600 px-6 font-bold text-white shadow-sm transition hover:bg-blue-700 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 font-bold text-white shadow-sm transition hover:bg-blue-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               disabled={isSaving}
               onClick={async () => {
                 setIsSaving(true);

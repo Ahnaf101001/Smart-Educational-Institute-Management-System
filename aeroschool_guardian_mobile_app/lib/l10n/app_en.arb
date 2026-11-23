@@ -8,12 +8,10 @@
   "edit": "Edit",
   "viewAll": "View all",
   "cancel": "Cancel",
-
   "navHome": "Home",
   "navMyChild": "My Child",
   "navAlerts": "Alerts",
   "navProfile": "Profile",
-
   "loginSchoolFallback": "Your School",
   "loginBrand": "AEROSCHOOL • GUARDIAN APP",
   "loginEmail": "Email address",
@@ -26,7 +24,6 @@
   "loginEnterEmail": "Enter your login email.",
   "loginInvalidEmail": "Enter a valid email address.",
   "loginEnterPassword": "Enter your password.",
-
   "dashTitle": "Guardian Dashboard",
   "greetMorning": "Good morning",
   "greetAfternoon": "Good afternoon",
@@ -36,9 +33,21 @@
   "statTotalDue": "Total Due",
   "statPendingHomework": "Pending Homework",
   "absentCount": "{count} absent",
-  "@absentCount": { "placeholders": { "count": { "type": "int" } } },
+  "@absentCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "myChildren": "My Children ({count})",
-  "@myChildren": { "placeholders": { "count": { "type": "int" } } },
+  "@myChildren": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "noLinkedStudents": "No linked students",
   "noLinkedStudentsHint": "Please contact the school to link your children to this account.",
   "childWiseAttendance": "Child-wise Attendance",
@@ -52,10 +61,15 @@
   "importantNotifications": "Important Notifications",
   "noNotifications": "No notifications",
   "notMarked": "Not marked",
-
   "studentDashboard": "Student Dashboard",
   "selectedStudentDashboard": "{name} — Selected Student Dashboard",
-  "@selectedStudentDashboard": { "placeholders": { "name": { "type": "String" } } },
+  "@selectedStudentDashboard": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "selectYourChild": "SELECT YOUR CHILD",
   "myChildrenTitle": "My Children",
   "attendance": "Attendance",
@@ -83,12 +97,10 @@
   "modTeachers": "Teachers",
   "modDocuments": "Documents",
   "modFeedback": "Feedback",
-
   "notificationsTitle": "Notifications",
   "markAllRead": "Mark all read",
   "teacherMessages": "Teacher messages",
   "allChildren": "All children",
-
   "profileTitle": "My Profile",
   "contactInformation": "Contact Information",
   "otherGuardianContacts": "Other Guardian Contacts",
@@ -104,5 +116,578 @@
   "logoutTitle": "Logout?",
   "logoutAllTitle": "Sign out everywhere?",
   "logoutBody": "You will need your email and password to sign in again.",
-  "logoutAllBody": "You will be signed out on every phone and browser."
+  "logoutAllBody": "You will be signed out on every phone and browser.",
+  "payNow": "Pay {amount} now",
+  "@payNow": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "entryAt": "Entry {time}",
+  "@entryAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "exitAt": "Exit {time}",
+  "@exitAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "nextExam": "Next exam: {subject} – {exam}",
+  "@nextExam": {
+    "placeholders": {
+      "subject": {
+        "type": "String"
+      },
+      "exam": {
+        "type": "String"
+      }
+    }
+  },
+  "classTeacherName": "Class teacher: {name}",
+  "@classTeacherName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "daily": "Daily",
+  "bySubject": "By subject",
+  "classRoutineNotPublishedYet": "Class routine not published yet",
+  "upcomingClassTests": "Upcoming Class Tests",
+  "type": "Type",
+  "subject": "Subject",
+  "assigned": "Assigned",
+  "dueDate": "Due date",
+  "submission": "Submission",
+  "submittedOn": "Submitted on",
+  "marks": "Marks",
+  "teacherRemarks": "Teacher remarks",
+  "assignmentDetails": "Assignment details",
+  "openAttachment": "Open attachment",
+  "holidays": "Holidays",
+  "noUpcomingHolidays": "No upcoming holidays",
+  "academicCalendar": "Academic Calendar",
+  "noUpcomingEvents": "No upcoming events",
+  "monthlyCalendar": "Monthly Calendar",
+  "dailyAttendance": "Daily Attendance",
+  "noAttendanceRecordedThisMonth": "No attendance recorded this month",
+  "attendanceHistory": "Attendance History",
+  "noHistoryYet": "No history yet",
+  "attendancePercentage": "Attendance percentage",
+  "signOut": "Sign out",
+  "youSignedInWithA": "You signed in with a temporary password from the school. Please set your own password to continue to your dashboard.",
+  "newPassword": "New password",
+  "atLeast8CharactersWith": "At least 8 characters with letters and numbers",
+  "confirmNewPassword": "Confirm new password",
+  "forgotPassword": "Forgot password",
+  "openTheLinkInThe": "Open the link in the email, set a new password, then sign in here.",
+  "backToLogin": "Back to login",
+  "enterYourLoginEmailWe": "Enter your login email. We will send you a secure link to reset your password.",
+  "loginEmail2": "Login email",
+  "sendResetLink": "Send reset link",
+  "guardianAccountsAreCreatedBy": "Guardian accounts are created by the school. Contact the office for login details or if your account is inactive.",
+  "pleaseVisitTheSchoolOffice": "Please visit the school office.",
+  "contactSchool": "Contact school",
+  "resetPassword": "Reset password",
+  "yourPasswordHasBeenChanged": "Your password has been changed.",
+  "signInWithYourNew": "Sign in with your new password.",
+  "goToLogin": "Go to login",
+  "chooseANewPasswordFor": "Choose a new password for your guardian account.",
+  "saveNewPassword": "Save new password",
+  "guardianMobileApp": "Guardian Mobile App",
+  "askTheSchoolOfficeTo": "Ask the school office to link your children to this account.",
+  "academic": "Academic",
+  "classLabel": "Class",
+  "section": "Section",
+  "shift": "Shift",
+  "group": "Group",
+  "version": "Version",
+  "session": "Session",
+  "admissionInformation": "Admission Information",
+  "admissionDate": "Admission date",
+  "previousSchool": "Previous school",
+  "personal": "Personal",
+  "dateOfBirth": "Date of birth",
+  "gender": "Gender",
+  "bloodGroup": "Blood group",
+  "religion": "Religion",
+  "nationality": "Nationality",
+  "address": "Address",
+  "allergies": "Allergies",
+  "medicalNotes": "Medical notes",
+  "assignedClassTeacher": "Assigned Class Teacher",
+  "notAssignedYet": "Not assigned yet",
+  "name": "Name",
+  "phone": "Phone",
+  "email": "Email",
+  "emergencyContact": "Emergency Contact",
+  "mobile": "Mobile",
+  "noUpcomingExamsScheduled": "No upcoming exams scheduled",
+  "noResultsPublishedYet": "No results published yet",
+  "downloadProgressReportPdf": "Download progress report (PDF)",
+  "progressReportAppearsAfterThe": "Progress report appears after the first published result",
+  "examWiseProgress": "Exam-wise progress",
+  "subjectWiseAverage": "Subject-wise average",
+  "downloadMarksheet": "Download marksheet",
+  "grade": "Grade",
+  "percentage": "Percentage",
+  "position": "Position",
+  "subjectWiseMarks": "Subject-wise Marks",
+  "summary": "Summary",
+  "totalMarks": "Total marks",
+  "failedSubjects": "Failed subjects",
+  "sectionPosition": "Section position",
+  "published": "Published",
+  "teacherComment": "Teacher comment",
+  "downloadMarksheetPdf": "Download marksheet (PDF)",
+  "choosePaymentMethod": "Choose payment method",
+  "totalPayable": "Total Payable",
+  "previousDue": "Previous Due",
+  "thisMonth2": "This Month",
+  "totalPaid": "Total Paid",
+  "feeReminderSomeFeesAre": "Fee reminder: some fees are past their due date. Please pay to avoid late fines.",
+  "dueByFeeType": "Due by Fee Type",
+  "allFeesArePaid": "All fees are paid",
+  "thankYou": "Thank you!",
+  "overdue": "Overdue",
+  "discountScholarship": "Discount / Scholarship",
+  "payNow2": "Pay Now",
+  "completeYourPayment": "Complete your payment",
+  "finishThePaymentOnThe": "Finish the payment on the gateway page. The app confirms it automatically when you return.",
+  "waitingForConfirmation": "Waiting for confirmation…",
+  "status": "Status: ",
+  "close": "Close",
+  "paymentsReceipts": "Payments & Receipts",
+  "noPaymentsYet": "No payments yet",
+  "paidFees": "Paid Fees",
+  "receiptNo": "Receipt no.",
+  "date": "Date",
+  "student": "Student",
+  "method": "Method",
+  "reference": "Reference",
+  "totalPaid2": "Total paid",
+  "downloadReceiptPdf": "Download receipt (PDF)",
+  "schoolNotice": "School Notice",
+  "important": "Important",
+  "attendanceExamFeeAndSchool": "Attendance, exam, fee and school alerts will appear here.",
+  "editProfile": "Edit profile",
+  "alternateMobile": "Alternate mobile",
+  "occupation": "Occupation",
+  "emergencyContact2": "Emergency contact",
+  "notificationPreferences": "Notification preferences",
+  "turningATypeOffStops": "Turning a type off stops its SMS and email copies. Every alert still appears in the app, and emergency messages are always sent.",
+  "saveChanges": "Save changes",
+  "registeredMobile": "Registered mobile",
+  "loginEmailAndRegisteredMobile": "Login email and registered mobile can only be changed by the school office.",
+  "noOtherGuardiansAreLinked": "No other guardians are linked to your children.",
+  "toAddAGuardianOr": "To add a guardian or change their details, contact the school office.",
+  "school": "School",
+  "website": "Website",
+  "emergency": "Emergency",
+  "complaintsFeedback2": "Complaints & Feedback",
+  "newLabel": "New",
+  "nothingSubmittedYet": "Nothing submitted yet",
+  "sendAComplaintOrFeedback": "Send a complaint or feedback to the school with the New button.",
+  "complaint": "Complaint",
+  "about": "About",
+  "generalNotAboutOneChild": "General (not about one child)",
+  "category": "Category",
+  "details": "Details",
+  "studentDocuments": "Student Documents",
+  "noDocumentsSharedYet": "No documents shared yet",
+  "issuedCertificates": "Issued Certificates",
+  "noCertificatesIssued": "No certificates issued",
+  "otherDownloads": "Other downloads",
+  "feeReceipts": "Fee receipts",
+  "downloadFromFeesPaymentHistory": "Download from Fees → Payment History",
+  "leaveHistory": "Leave History",
+  "noLeaveApplicationsYet": "No leave applications yet",
+  "newLeaveApplication": "New Leave Application",
+  "leaveType": "Leave type",
+  "reason": "Reason",
+  "submitApplication": "Submit application",
+  "teacherMessages2": "Teacher Messages",
+  "noMessagesYet": "No messages yet",
+  "openAChildTeachersAnd": "Open a child → Teachers and tap \"Message\" to contact a teacher.",
+  "startTheConversation": "Start the conversation",
+  "messagesAreDeliveredToThe": "Messages are delivered to the teacher during school hours.",
+  "writeAMessage": "Write a message…",
+  "teachersNotAssignedYet": "Teachers not assigned yet",
+  "classTeacher2": "Class teacher",
+  "message": "Message",
+  "call": "Call",
+  "noSchoolTransportAssigned": "No school transport assigned",
+  "contactTheSchoolOfficeTo": "Contact the school office to request a bus seat.",
+  "assignedBus": "Assigned Bus",
+  "busVehicle": "Bus / vehicle",
+  "route": "Route",
+  "pickupLocation": "Pickup location",
+  "dropOffLocation": "Drop-off location",
+  "transportSchedule": "Transport Schedule",
+  "morningDeparture": "Morning departure",
+  "eveningDeparture": "Evening departure",
+  "busDriver": "Bus Driver",
+  "youGetANotificationWhen": "You get a notification when the bus reaches your stop (when the bus has GPS or the transport desk confirms arrival).",
+  "liveBusLocation": "Live Bus Location",
+  "refreshLocation": "Refresh location",
+  "gpsTrackingIsNotAvailable": "GPS tracking is not available for this bus yet.",
+  "openInMaps": "Open in Maps",
+  "mapUnavailable": "Map unavailable",
+  "somethingWentWrongPleaseTry": "Something went wrong. Please try again.",
+  "titleForChild": "{screen} – {name}",
+  "@titleForChild": {
+    "placeholders": {
+      "screen": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "noClassesOnDay": "No classes on {day}",
+  "@noClassesOnDay": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "noFilterHomework": "No {filter} homework",
+  "@noFilterHomework": {
+    "placeholders": {
+      "filter": {
+        "type": "String"
+      }
+    }
+  },
+  "amountLabel": "Amount: {amount}",
+  "@amountLabel": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "receiptTitle": "Receipt {number}",
+  "@receiptTitle": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "onBehalfOf": "On behalf of {name}",
+  "@onBehalfOf": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "schoolResponse": "School response: {response}",
+  "@schoolResponse": {
+    "placeholders": {
+      "response": {
+        "type": "String"
+      }
+    }
+  },
+  "sendKind": "Send {kind}",
+  "@sendKind": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "dateFrom": "From {date}",
+  "@dateFrom": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "dateTo": "To {date}",
+  "@dateTo": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "everyday": "Everyday",
+  "more": "More",
+  "academicsTitle": "Academics",
+  "examsTitle": "Exams",
+  "roomNo": "Room {room}",
+  "@roomNo": {
+    "placeholders": {
+      "room": {
+        "type": "String"
+      }
+    }
+  },
+  "teacherLabel": "Teacher: {name}",
+  "@teacherLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "homeworkAssignmentsCount": "Homework & Assignments ({count})",
+  "@homeworkAssignmentsCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "dueOn": "Due {date}",
+  "@dueOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "marksOf": "Marks: {got}/{total}",
+  "@marksOf": {
+    "placeholders": {
+      "got": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "passwordChangedSuccessfully": "Password changed successfully.",
+  "setANewPassword": "Set a new password",
+  "welcome": "Welcome!",
+  "welcomeUser": "Welcome, {name}!",
+  "@welcomeUser": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "temporaryPassword": "Temporary password",
+  "currentPassword": "Current password",
+  "enterCurrentPassword": "Enter your current password.",
+  "passwordsDoNotMatch": "Passwords do not match.",
+  "saveAndContinue": "Save and continue",
+  "showPassword": "Show password",
+  "hidePassword": "Hide password",
+  "couldNotLoadChildren": "Could not load your children.",
+  "rollNo": "Roll {roll}",
+  "@rollNo": {
+    "placeholders": {
+      "roll": {
+        "type": "String"
+      }
+    }
+  },
+  "sectionName": "Section {section}",
+  "@sectionName": {
+    "placeholders": {
+      "section": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleTab": "Schedule",
+  "resultsTab": "Results",
+  "progressTab": "Progress",
+  "publishedOn": "Published {date}",
+  "@publishedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotCreateProgressReport": "Could not create the progress report.",
+  "couldNotCreateMarksheet": "Could not create the marksheet PDF.",
+  "fourthSubject": " (4th subject)",
+  "pointValue": " • Point {point}",
+  "@pointValue": {
+    "placeholders": {
+      "point": {
+        "type": "String"
+      }
+    }
+  },
+  "duesAndPay": "Dues & Pay",
+  "paymentHistory": "Payment History",
+  "feeInfoNotShared": "Fee information is not shared with your account.",
+  "onlinePaymentNotEnabled": "Online payment is not enabled by the school yet. Please pay at the school office.",
+  "couldNotOpenPaymentPage": "Could not open the payment page.",
+  "paymentSuccessful": "Payment successful. Your receipt is in Payment History.",
+  "unpaidFeesCount": "Unpaid Fees ({count})",
+  "@unpaidFeesCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "lateFine": "Late fine {amount}",
+  "@lateFine": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "discountAmount": "Discount {amount}",
+  "@discountAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "allFees": "All fees",
+  "stillWaiting": "Still waiting. Tap \"Check status\" after completing the payment.",
+  "gatewayFailed": "The gateway reported a failed payment.",
+  "paymentCancelled": "The payment was cancelled.",
+  "checking": "Checking…",
+  "checkStatus": "Check status",
+  "couldNotCreateReceipt": "Could not create the receipt PDF.",
+  "loadingFamilyOverview": "Loading your family overview…",
+  "couldNotLoadDashboard": "Could not load the dashboard.",
+  "noRecords": "No records",
+  "noClassesToday": "No classes scheduled today",
+  "thisMonthBilled": "This month billed",
+  "totalOutstanding": "Total outstanding",
+  "notShared": "Not shared",
+  "amountDue": "{amount} due",
+  "@amountDue": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "noDues": "No dues",
+  "profileUpdated": "Profile updated.",
+  "enterValidBdMobile": "Enter a valid Bangladeshi mobile number.",
+  "childCount": "{count, plural, =1{1 child} other{{count} children}}",
+  "@childCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "lastLogin": "Last login {time}",
+  "@lastLogin": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "principal": "Principal",
+  "enterSubject": "Enter a subject.",
+  "addDetails": "Please add some details.",
+  "downloadingFile": "Downloading {name}…",
+  "@downloadingFile": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotSaveFile": "Could not save the file.",
+  "issuedCollect": "Issued {date} • Collect the signed copy from the school office",
+  "@issuedCollect": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "schoolNote": "School: {note}",
+  "@schoolNote": {
+    "placeholders": {
+      "note": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveSent": "Leave application sent to the school.",
+  "forChild": "For {name} ({classLine})",
+  "@forChild": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "classLine": {
+        "type": "String"
+      }
+    }
+  },
+  "describeReason": "Please describe the reason.",
+  "youPrefix": "You: ",
+  "aboutName": "About {name}",
+  "@aboutName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "updatedRefresh": "Updated {time} • refreshes every 15 s",
+  "@updatedRefresh": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "speedKmh": "Speed: {speed} km/h",
+  "@speedKmh": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "selectedCount": "{count} selected",
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "daysPresentOf": "{present}/{total} days • {percent}",
+  "@daysPresentOf": {
+    "placeholders": {
+      "present": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  }
 }

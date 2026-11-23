@@ -38,7 +38,7 @@ function AdmitCards({ examId, classes }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classId, examId]);
   return (
-    <Card title="Admit cards" subtitle="Bulk generate & print (EX-05). Students with dues are blocked when the policy is enabled." actions={data && <Button size="sm" icon={Printer} onClick={() => window.print()}>Print</Button>}>
+    <Card title="Admit cards" subtitle="Bulk generate & print. Students with dues are blocked when the policy is enabled." actions={data && <Button size="sm" icon={Printer} onClick={() => window.print()}>Print</Button>}>
       <Field label="Class" className="mb-4 max-w-xs"><Select value={classId} onChange={(e) => setClassId(e.target.value)} options={classes.map((c) => ({ value: c.id, label: c.name }))} placeholder="Select class" /></Field>
       {data && (
         <div className="grid gap-4 md:grid-cols-2 print:grid-cols-2">
@@ -161,7 +161,7 @@ export default function ResultWorkflow({ initialTab = "progress" }) {
                   <StatCard label="Pending" value={progress.summary.pending} tone="amber" />
                   <StatCard label="Overdue" value={progress.summary.overdue} tone="red" />
                 </div>
-                <Card title="Marks entry progress" subtitle="Who has submitted, who is pending (EX-11)">
+                <Card title="Marks entry progress" subtitle="Who has submitted, who is pending">
                   <Table dense rows={progress.rows} rowKey="subjectId" columns={[
                     { key: "className", label: "Class" }, { key: "subjectName", label: "Subject" }, { key: "teacherName", label: "Teacher" },
                     { key: "entered", label: "Entered", render: (r) => `${r.entered}/${r.students}` },
@@ -229,7 +229,7 @@ export default function ResultWorkflow({ initialTab = "progress" }) {
               </div>
             ) : <Spinner />)}
             {tab === "corrections" && (
-              <Card title="Result correction / grace marks" subtitle="Published results change only through approval; the previous version is kept and guardians are notified (EX-16, EX-12).">
+              <Card title="Result correction / grace marks" subtitle="Published results change only through approval; the previous version is kept and guardians are notified.">
                 <div className="grid max-w-3xl gap-3 sm:grid-cols-2">
                   <Field label="Type"><Select value={corr.kind} onChange={(e) => setCorr({ ...corr, kind: e.target.value })} options={[{ value: "correction", label: "Marks correction" }, { value: "grace", label: "Grace marks" }]} /></Field>
                   <Field label="Student ID"><Input value={corr.studentId} onChange={(e) => setCorr({ ...corr, studentId: e.target.value.trim() })} placeholder="STU-…" /></Field>

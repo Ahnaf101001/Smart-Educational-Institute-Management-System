@@ -282,25 +282,15 @@ export default function CollectFee() {
     return (
       <div className="space-y-6 max-w-7xl mx-auto pb-10">
         {/* Top Controls Container */}
-        <div className="rounded-[20px] border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
-            <div>
-              <h2 className="text-xl font-extrabold text-slate-800">Fee Collection</h2>
-              <p className="mt-1 text-sm font-medium text-slate-400">Select a student to collect fees</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="rounded-full bg-orange-50 px-4 py-1.5 text-xs font-bold text-orange-600 border border-orange-100 shadow-sm">
-                {dueCount} Due
-              </div>
-              <div className="rounded-full bg-rose-50 px-4 py-1.5 text-xs font-bold text-rose-600 border border-rose-100 shadow-sm">
-                {overdueCount} Overdue
-              </div>
-            </div>
+        <div className="rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          <div className="mb-4 sm:mb-6">
+            <h2 className="text-lg font-extrabold text-slate-800 sm:text-xl">Fee Collection</h2>
+            <p className="mt-1 text-sm font-medium text-slate-400">Find the student, then tap Collect.</p>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-4 flex-1 max-w-2xl">
-              <div className="flex h-11 flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 shadow-sm focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+          <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+            <div className="flex w-full max-w-2xl flex-col gap-2 sm:flex-1 sm:flex-row sm:gap-4">
+              <div className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 shadow-sm focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
                 <Search size={18} className="text-slate-400" />
                 <input
                   type="text"
@@ -313,7 +303,8 @@ export default function CollectFee() {
               <select
                 value={selectedClass}
                 onChange={(e) => setSelectedClass(e.target.value)}
-                className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm outline-none w-[150px]"
+                aria-label="Class"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm outline-none sm:w-[150px]"
               >
                 {uniqueClasses.map(cls => (
                   <option key={cls} value={cls}>{cls}</option>
@@ -321,14 +312,15 @@ export default function CollectFee() {
               </select>
             </div>
 
-            <div className="flex items-center gap-2">
-              {["All Status", "Due", "Overdue", "Clear"].map(status => (
+            <div className="grid w-full grid-cols-4 gap-1.5 sm:flex sm:w-auto sm:items-center sm:gap-2">
+              {[["All Status", "All", students.length], ["Due", "Due", dueCount], ["Overdue", "Overdue", overdueCount], ["Clear", "Clear", students.filter((s) => s.status === "Clear").length]].map(([status, label, count]) => (
                 <button
                   key={status}
+                  aria-pressed={activeStatus === status}
                   onClick={() => setActiveStatus(status)}
-                  className={`h-11 rounded-xl px-5 text-sm font-bold shadow-sm transition ${activeStatus === status ? "bg-blue-600 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                  className={`h-11 rounded-xl px-1.5 text-xs font-bold shadow-sm transition sm:px-4 sm:text-sm ${activeStatus === status ? "bg-blue-600 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}
                 >
-                  {status}
+                  {label} <span className={activeStatus === status ? "opacity-80" : status === "Overdue" ? "text-rose-600" : status === "Due" ? "text-orange-600" : "text-slate-400"}>{count}</span>
                 </button>
               ))}
             </div>
@@ -337,7 +329,27 @@ export default function CollectFee() {
 
         {/* Students Table */}
         <div className="rounded-[20px] border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
-          <div className="overflow-x-auto">
+          {/* Phones: one tappable card per student */}
+          <ul className="divide-y divide-slate-100 md:hidden">
+            {filteredStudents.map((student, i) => (
+              <li key={i} className="flex items-center gap-3 px-4 py-3">
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${getAvatarColor(student.status)}`}>{getInitials(student.name)}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-bold text-slate-800">{student.name}</div>
+                  <div className="truncate text-[11px] font-medium text-slate-400">{student.class} · Roll {student.roll || "N/A"}</div>
+                  <div className={`text-sm font-extrabold ${student.status === "Overdue" ? "text-rose-600" : student.status === "Due" ? "text-orange-600" : "text-emerald-600"}`}>
+                    {student.status === "Clear" ? "No dues" : `${formatCurrency(student.due)} ${student.status.toLowerCase()}`}
+                  </div>
+                </div>
+                {student.status !== "Clear" && (
+                  <button onClick={() => handleCollectClick(student)} className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-blue-600 px-4 text-xs font-bold text-white shadow-sm">
+                    Collect <ArrowRight size={13} strokeWidth={3} />
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/50">
@@ -388,12 +400,12 @@ export default function CollectFee() {
                 ))}
               </tbody>
             </table>
-            {filteredStudents.length === 0 && (
-              <div className="py-12 text-center text-sm font-semibold text-slate-400">
-                No students found matching your criteria.
-              </div>
-            )}
           </div>
+          {filteredStudents.length === 0 && (
+            <div className="py-12 text-center text-sm font-semibold text-slate-400">
+              No students found matching your criteria.
+            </div>
+          )}
           <div className="border-t border-slate-100 bg-slate-50/30 px-6 py-4">
             <div className="text-xs font-bold text-slate-400">
               Showing {filteredStudents.length} students

@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -84,12 +87,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               ),
                               Text(
-                                '${p.relation ?? 'Guardian'} • ${family.children.length} ${family.children.length == 1 ? 'child' : 'children'}',
+                                '${context.l10n.word(p.relation ?? 'Guardian')} • ${context.l10n.childCount(family.children.length)}',
                                 style: const TextStyle(color: AppColors.muted),
                               ),
                               if (p.lastLoginAt != null)
                                 Text(
-                                  'Last login ${Fmt.dateTime(p.lastLoginAt)}',
+                                  context.l10n.lastLogin(
+                                    Fmt.dateTime(p.lastLoginAt),
+                                  ),
                                   style: const TextStyle(
                                     color: AppColors.muted,
                                     fontSize: 12,
@@ -123,20 +128,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   child: Column(
                     children: [
-                      InfoRow(label: 'Login email', value: p.loginEmail),
-                      InfoRow(label: 'Registered mobile', value: p.mobile),
-                      InfoRow(label: 'Alternate mobile', value: p.altMobile),
-                      InfoRow(label: 'Occupation', value: p.occupation),
                       InfoRow(
-                        label: 'Emergency contact',
+                        label: context.l10n.loginEmail2,
+                        value: p.loginEmail,
+                      ),
+                      InfoRow(
+                        label: context.l10n.registeredMobile,
+                        value: p.mobile,
+                      ),
+                      InfoRow(
+                        label: context.l10n.alternateMobile,
+                        value: p.altMobile,
+                      ),
+                      InfoRow(
+                        label: context.l10n.occupation,
+                        value: p.occupation,
+                      ),
+                      InfoRow(
+                        label: context.l10n.emergencyContact2,
                         value: p.emergencyContact,
                       ),
-                      InfoRow(label: 'Address', value: p.address),
-                      const Padding(
-                        padding: EdgeInsets.only(top: 6),
+                      InfoRow(label: context.l10n.address, value: p.address),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
                         child: Text(
-                          'Login email and registered mobile can only be changed by the school office.',
-                          style: TextStyle(
+                          context.l10n.loginEmailAndRegisteredMobile,
+                          style: const TextStyle(
                             color: AppColors.muted,
                             fontSize: 12,
                           ),
@@ -153,9 +170,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (p.otherGuardians.isEmpty)
-                        const Text(
-                          'No other guardians are linked to your children.',
-                          style: TextStyle(color: AppColors.muted),
+                        Text(
+                          context.l10n.noOtherGuardiansAreLinked,
+                          style: const TextStyle(color: AppColors.muted),
                         )
                       else
                         for (final g in p.otherGuardians)
@@ -178,11 +195,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                       // Workflow §8: only authorised school admins add, link or change guardians.
-                      const Padding(
-                        padding: EdgeInsets.only(top: 6),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
                         child: Text(
-                          'To add a guardian or change their details, contact the school office.',
-                          style: TextStyle(
+                          context.l10n.toAddAGuardianOr,
+                          style: const TextStyle(
                             color: AppColors.muted,
                             fontSize: 12,
                           ),
@@ -197,17 +214,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: Icons.apartment_rounded,
                   child: Column(
                     children: [
-                      InfoRow(label: 'School', value: s.name),
-                      InfoRow(label: 'Address', value: s.address),
+                      InfoRow(label: context.l10n.school, value: s.name),
+                      InfoRow(label: context.l10n.address, value: s.address),
                       InfoRow(
-                        label: 'Phone',
+                        label: context.l10n.phone,
                         value: s.phone,
                         onTap: s.phone == null
                             ? null
                             : () => files.call(s.phone!),
                       ),
                       InfoRow(
-                        label: 'Email',
+                        label: context.l10n.email,
                         value: s.email,
                         onTap: s.email == null
                             ? null
@@ -215,7 +232,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       if (s.website != null)
                         InfoRow(
-                          label: 'Website',
+                          label: context.l10n.website,
                           value: s.website,
                           onTap: () => files.openUrl(
                             s.website!.startsWith('http')
@@ -225,13 +242,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       if (s.emergencyContact != null)
                         InfoRow(
-                          label: 'Emergency',
+                          label: context.l10n.emergency,
                           value: s.emergencyContact,
                           onTap: () => files.call(s.emergencyContact!),
                         ),
                       if (s.principalName != null)
                         InfoRow(
-                          label: s.principalTitle ?? 'Principal',
+                          label: s.principalTitle ?? context.l10n.principal,
                           value: s.principalName,
                         ),
                     ],
@@ -247,7 +264,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           title: Text(
                             AppLocalizations.of(context).leaveApplication,
                           ),
-                          subtitle: Text('On behalf of ${child.name}'),
+                          subtitle: Text(context.l10n.onBehalfOf(child.name)),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () => Navigator.push(
                             context,

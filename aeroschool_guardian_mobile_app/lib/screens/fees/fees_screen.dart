@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../config/app_config.dart';
@@ -40,11 +43,13 @@ class _FeesScreenState extends State<FeesScreen> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Fees – ${widget.child.name}'),
-          bottom: const TabBar(
+          title: Text(
+            context.l10n.titleForChild(context.l10n.modFees, widget.child.name),
+          ),
+          bottom: TabBar(
             tabs: [
-              Tab(text: 'Dues & Pay'),
-              Tab(text: 'Payment History'),
+              Tab(text: context.l10n.duesAndPay),
+              Tab(text: context.l10n.paymentHistory),
             ],
           ),
         ),
@@ -56,9 +61,7 @@ class _FeesScreenState extends State<FeesScreen> {
               return Padding(
                 padding: const EdgeInsets.all(16),
                 child: AccessNotice(
-                  message:
-                      fees.message ??
-                      'Fee information is not shared with your account.',
+                  message: fees.message ?? context.l10n.feeInfoNotShared,
                 ),
               );
             }
@@ -121,11 +124,7 @@ class _DuesTabState extends State<_DuesTab> {
     final fees = widget.fees;
     if (_selected.isEmpty) return;
     if (fees.gateways.isEmpty) {
-      showSnack(
-        context,
-        'Online payment is not enabled by the school yet. Please pay at the school office.',
-        error: true,
-      );
+      showSnack(context, context.l10n.onlinePaymentNotEnabled, error: true);
       return;
     }
     final gateway = fees.gateways.length == 1
@@ -146,7 +145,7 @@ class _DuesTabState extends State<_DuesTab> {
       final opened = await files.openUrl(url);
       if (!mounted) return;
       if (!opened) {
-        showSnack(context, 'Could not open the payment page.', error: true);
+        showSnack(context, context.l10n.couldNotOpenPaymentPage, error: true);
         return;
       }
       await _awaitConfirmation(start.transactionId, start.amount);
@@ -163,17 +162,20 @@ class _DuesTabState extends State<_DuesTab> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Padding(
-                padding: EdgeInsets.only(bottom: 8),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
-                  'Choose payment method',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                  context.l10n.choosePaymentMethod,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
                 ),
               ),
               for (final g in gateways)
                 ListTile(
                   leading: const Icon(Icons.account_balance_wallet_outlined),
-                  title: Text(_gatewayLabel(g)),
+                  title: Text(context.l10n.word(_gatewayLabel(g))),
                   onTap: () => Navigator.pop(ctx, g),
                 ),
               const SizedBox(height: 8),
@@ -209,10 +211,7 @@ class _DuesTabState extends State<_DuesTab> {
     if (paid == true) {
       widget.onPaid();
       if (mounted) {
-        showSnack(
-          context,
-          'Payment successful. Your receipt is in Payment History.',
-        );
+        showSnack(context, context.l10n.paymentSuccessful);
       }
     }
   }
@@ -236,7 +235,7 @@ class _DuesTabState extends State<_DuesTab> {
                 StatGrid(
                   children: [
                     StatTile(
-                      label: 'Total Payable',
+                      label: context.l10n.totalPayable,
                       value: Fmt.money(fees.totalPayable),
                       icon: Icons.account_balance_wallet_outlined,
                       color: fees.totalPayable > 0
@@ -244,18 +243,18 @@ class _DuesTabState extends State<_DuesTab> {
                           : AppColors.success,
                     ),
                     StatTile(
-                      label: 'Previous Due',
+                      label: context.l10n.previousDue,
                       value: Fmt.money(fees.previousDue),
                       icon: Icons.history_rounded,
                       color: AppColors.warning,
                     ),
                     StatTile(
-                      label: 'This Month',
+                      label: context.l10n.thisMonth2,
                       value: Fmt.money(fees.currentMonthDue),
                       icon: Icons.calendar_month_outlined,
                     ),
                     StatTile(
-                      label: 'Total Paid',
+                      label: context.l10n.totalPaid,
                       value: Fmt.money(fees.totalPaid),
                       icon: Icons.verified_outlined,
                       color: AppColors.success,
@@ -264,13 +263,13 @@ class _DuesTabState extends State<_DuesTab> {
                 ),
                 if (open.any((i) => i.isOverdue)) ...[
                   const SizedBox(height: 12),
-                  const AccessNotice(
+                  AccessNotice(
                     icon: Icons.notifications_active_outlined,
-                    message: 'Fee reminder: some fees are past their due date. Please pay to avoid late fines.',
+                    message: context.l10n.feeReminderSomeFeesAre,
                   ),
                 ],
                 if (categories.isNotEmpty) ...[
-                  const SectionTitle('Due by Fee Type'),
+                  SectionTitle(context.l10n.dueByFeeType),
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -286,12 +285,12 @@ class _DuesTabState extends State<_DuesTab> {
                     ),
                   ),
                 ],
-                SectionTitle('Unpaid Fees (${open.length})'),
+                SectionTitle(context.l10n.unpaidFeesCount('${open.length}')),
                 if (open.isEmpty)
-                  const Card(
+                  Card(
                     child: EmptyView(
-                      title: 'All fees are paid',
-                      subtitle: 'Thank you!',
+                      title: context.l10n.allFeesArePaid,
+                      subtitle: context.l10n.thankYou,
                       icon: Icons.verified_rounded,
                     ),
                   )
@@ -318,11 +317,13 @@ class _DuesTabState extends State<_DuesTab> {
                                 if (i.billingMonth != null)
                                   Fmt.monthLabel(Fmt.month(i.billingMonth!)),
                                 if (i.dueDate != null)
-                                  'Due ${Fmt.date(i.dueDate)}',
+                                  context.l10n.dueOn(Fmt.date(i.dueDate)),
                                 if (i.lateFine > 0)
-                                  'Late fine ${Fmt.money(i.lateFine)}',
+                                  context.l10n.lateFine(Fmt.money(i.lateFine)),
                                 if (i.discount > 0)
-                                  'Discount ${Fmt.money(i.discount)}',
+                                  context.l10n.discountAmount(
+                                    Fmt.money(i.discount),
+                                  ),
                               ].join(' • '),
                             ),
                             secondary: Column(
@@ -336,9 +337,9 @@ class _DuesTabState extends State<_DuesTab> {
                                   ),
                                 ),
                                 if (i.isOverdue)
-                                  const Text(
-                                    'Overdue',
-                                    style: TextStyle(
+                                  Text(
+                                    context.l10n.overdue,
+                                    style: const TextStyle(
                                       color: AppColors.danger,
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
@@ -351,7 +352,7 @@ class _DuesTabState extends State<_DuesTab> {
                     ),
                   ),
                 if (fees.discounts.isNotEmpty) ...[
-                  const SectionTitle('Discount / Scholarship'),
+                  SectionTitle(context.l10n.discountScholarship),
                   Card(
                     child: Column(
                       children: [
@@ -369,7 +370,7 @@ class _DuesTabState extends State<_DuesTab> {
                             ),
                             subtitle: Text(
                               [
-                                d.feeHead ?? 'All fees',
+                                d.feeHead ?? context.l10n.allFees,
                                 if (d.validTo != null)
                                   'until ${Fmt.date(d.validTo)}',
                                 ?d.reason,
@@ -401,7 +402,7 @@ class _DuesTabState extends State<_DuesTab> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${_selected.length} selected',
+                          context.l10n.selectedCount('${_selected.length}'),
                           style: const TextStyle(
                             color: AppColors.muted,
                             fontSize: 12,
@@ -417,10 +418,16 @@ class _DuesTabState extends State<_DuesTab> {
                       ],
                     ),
                   ),
-                  FilledButton.icon(
-                    onPressed: _selected.isEmpty ? null : _pay,
-                    icon: const Icon(Icons.lock_outline),
-                    label: const Text('Pay Now'),
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: FilledButton.icon(
+                      onPressed: _selected.isEmpty ? null : _pay,
+                      icon: const Icon(Icons.lock_outline),
+                      label: Text(
+                        context.l10n.payNow2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -469,9 +476,7 @@ class _PaymentConfirmDialogState extends State<_PaymentConfirmDialog> {
       if (DateTime.now().difference(_started) > _pollFor) {
         _timer?.cancel();
         if (mounted) {
-          setState(
-            () => _note = 'Still waiting. Tap "Check status" after completing the payment.',
-          );
+          setState(() => _note = context.l10n.stillWaiting);
         }
         return;
       }
@@ -498,8 +503,8 @@ class _PaymentConfirmDialogState extends State<_PaymentConfirmDialog> {
     if (s == 'failed' || s == 'cancelled') {
       setState(
         () => _note = s == 'failed'
-            ? 'The gateway reported a failed payment.'
-            : 'The payment was cancelled.',
+            ? context.l10n.gatewayFailed
+            : context.l10n.paymentCancelled,
       );
     }
     _check();
@@ -529,16 +534,14 @@ class _PaymentConfirmDialogState extends State<_PaymentConfirmDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Complete your payment'),
+    title: Text(context.l10n.completeYourPayment),
     content: Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Amount: ${Fmt.money(widget.amount)}'),
+        Text(context.l10n.amountLabel(Fmt.money(widget.amount))),
         const SizedBox(height: 8),
-        const Text(
-          'Finish the payment on the gateway page. The app confirms it automatically when you return.',
-        ),
+        Text(context.l10n.finishThePaymentOnThe),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -549,9 +552,9 @@ class _PaymentConfirmDialogState extends State<_PaymentConfirmDialog> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
               const SizedBox(width: 8),
-              const Flexible(child: Text('Waiting for confirmation…')),
+              Flexible(child: Text(context.l10n.waitingForConfirmation)),
             ] else ...[
-              const Text('Status: '),
+              Text(context.l10n.status),
               Flexible(child: StatusChip(_status!)),
             ],
           ],
@@ -569,11 +572,13 @@ class _PaymentConfirmDialogState extends State<_PaymentConfirmDialog> {
     actions: [
       TextButton(
         onPressed: () => Navigator.pop(context, false),
-        child: const Text('Close'),
+        child: Text(context.l10n.close),
       ),
       FilledButton(
         onPressed: _checking ? null : () => _check(),
-        child: Text(_checking ? 'Checking…' : 'Check status'),
+        child: Text(
+          _checking ? context.l10n.checking : context.l10n.checkStatus,
+        ),
       ),
     ],
   );
@@ -593,11 +598,11 @@ class _HistoryTab extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const SectionTitle('Payments & Receipts'),
+          SectionTitle(context.l10n.paymentsReceipts),
           Card(
             child: fees.payments.isEmpty
-                ? const EmptyView(
-                    title: 'No payments yet',
+                ? EmptyView(
+                    title: context.l10n.noPaymentsYet,
                     icon: Icons.receipt_long_outlined,
                   )
                 : Column(
@@ -642,7 +647,7 @@ class _HistoryTab extends StatelessWidget {
                   ),
           ),
           if (paid.isNotEmpty) ...[
-            const SectionTitle('Paid Fees'),
+            SectionTitle(context.l10n.paidFees),
             Card(
               child: Column(
                 children: [

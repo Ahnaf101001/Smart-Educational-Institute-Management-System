@@ -39,7 +39,7 @@ class ReceiptPdfService {
                 children: [
                   pw.Text(
                     r.schoolName ?? 'School',
-                    style: pw.TextStyle(
+                    style: const pw.TextStyle(
                       color: PdfColors.white,
                       fontSize: 15,
                       fontWeight: pw.FontWeight.bold,
@@ -67,7 +67,7 @@ class ReceiptPdfService {
             pw.SizedBox(height: 12),
             pw.Text(
               'PAYMENT RECEIPT',
-              style: pw.TextStyle(
+              style: const pw.TextStyle(
                 fontSize: 13,
                 fontWeight: pw.FontWeight.bold,
                 color: _navy,
@@ -103,7 +103,7 @@ class ReceiptPdfService {
                     ],
                   )
                   .toList(),
-              headerStyle: pw.TextStyle(
+              headerStyle: const pw.TextStyle(
                 fontWeight: pw.FontWeight.bold,
                 color: PdfColors.white,
                 fontSize: 9,
@@ -117,7 +117,7 @@ class ReceiptPdfService {
               alignment: pw.Alignment.centerRight,
               child: pw.Text(
                 'Total paid: ${_plain(r.total)}',
-                style: pw.TextStyle(
+                style: const pw.TextStyle(
                   fontSize: 12,
                   fontWeight: pw.FontWeight.bold,
                 ),
@@ -152,7 +152,7 @@ class ReceiptPdfService {
           children: [
             pw.Text(
               schoolName,
-              style: pw.TextStyle(
+              style: const pw.TextStyle(
                 fontSize: 18,
                 fontWeight: pw.FontWeight.bold,
                 color: _navy,
@@ -181,7 +181,7 @@ class ReceiptPdfService {
                     ],
                   )
                   .toList(),
-              headerStyle: pw.TextStyle(
+              headerStyle: const pw.TextStyle(
                 fontWeight: pw.FontWeight.bold,
                 color: PdfColors.white,
                 fontSize: 10,
@@ -240,7 +240,7 @@ class ReceiptPdfService {
         build: (context) => [
           pw.Text(
             schoolName,
-            style: pw.TextStyle(
+            style: const pw.TextStyle(
               fontSize: 18,
               fontWeight: pw.FontWeight.bold,
               color: _navy,
@@ -257,7 +257,10 @@ class ReceiptPdfService {
           pw.SizedBox(height: 14),
           pw.Text(
             'Exam-wise progress',
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: _navy),
+            style: const pw.TextStyle(
+              fontWeight: pw.FontWeight.bold,
+              color: _navy,
+            ),
           ),
           pw.SizedBox(height: 6),
           pw.TableHelper.fromTextArray(
@@ -285,7 +288,7 @@ class ReceiptPdfService {
                   ],
                 )
                 .toList(),
-            headerStyle: pw.TextStyle(
+            headerStyle: const pw.TextStyle(
               fontWeight: pw.FontWeight.bold,
               color: PdfColors.white,
               fontSize: 9,
@@ -296,7 +299,10 @@ class ReceiptPdfService {
           pw.SizedBox(height: 14),
           pw.Text(
             'Subject-wise average',
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: _navy),
+            style: const pw.TextStyle(
+              fontWeight: pw.FontWeight.bold,
+              color: _navy,
+            ),
           ),
           pw.SizedBox(height: 6),
           pw.TableHelper.fromTextArray(
@@ -312,7 +318,7 @@ class ReceiptPdfService {
                   ],
                 )
                 .toList(),
-            headerStyle: pw.TextStyle(
+            headerStyle: const pw.TextStyle(
               fontWeight: pw.FontWeight.bold,
               color: PdfColors.white,
               fontSize: 9,
@@ -349,7 +355,10 @@ class ReceiptPdfService {
         pw.Expanded(
           child: pw.Text(
             v,
-            style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+            style: const pw.TextStyle(
+              fontSize: 9,
+              fontWeight: pw.FontWeight.bold,
+            ),
           ),
         ),
       ],

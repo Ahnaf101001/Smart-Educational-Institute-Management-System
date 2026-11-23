@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
@@ -54,7 +57,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Reset password')),
+    appBar: AppBar(title: Text(context.l10n.resetPassword)),
     body: SafeArea(
       child: Center(
         child: SingleChildScrollView(
@@ -70,21 +73,21 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         color: AppColors.success,
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Your password has been changed.',
+                      Text(
+                        context.l10n.yourPasswordHasBeenChanged,
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontWeight: FontWeight.w700),
+                        style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 6),
-                      const Text(
-                        'Sign in with your new password.',
+                      Text(
+                        context.l10n.signInWithYourNew,
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: AppColors.muted),
+                        style: const TextStyle(color: AppColors.muted),
                       ),
                       const SizedBox(height: 24),
                       FilledButton(
                         onPressed: () => Navigator.pop(context),
-                        child: const Text('Go to login'),
+                        child: Text(context.l10n.goToLogin),
                       ),
                     ],
                   )
@@ -93,17 +96,17 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Text(
-                          'Choose a new password for your guardian account.',
-                          style: TextStyle(color: AppColors.muted),
+                        Text(
+                          context.l10n.chooseANewPasswordFor,
+                          style: const TextStyle(color: AppColors.muted),
                         ),
                         const SizedBox(height: 20),
                         TextFormField(
                           controller: _next,
                           obscureText: _obscure,
                           decoration: InputDecoration(
-                            labelText: 'New password',
-                            helperText: 'At least 8 characters with letters and numbers',
+                            labelText: context.l10n.newPassword,
+                            helperText: context.l10n.atLeast8CharactersWith,
                             prefixIcon: const Icon(Icons.lock_outline),
                             suffixIcon: IconButton(
                               icon: Icon(
@@ -115,18 +118,23 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                   setState(() => _obscure = !_obscure),
                             ),
                           ),
-                          validator: ChangePasswordScreenValidators.strength,
+                          validator: (v) {
+                            final e = ChangePasswordScreenValidators.strength(
+                              v,
+                            );
+                            return e == null ? null : context.l10n.word(e);
+                          },
                         ),
                         const SizedBox(height: 14),
                         TextFormField(
                           controller: _confirm,
                           obscureText: _obscure,
-                          decoration: const InputDecoration(
-                            labelText: 'Confirm new password',
-                            prefixIcon: Icon(Icons.lock_outline),
+                          decoration: InputDecoration(
+                            labelText: context.l10n.confirmNewPassword,
+                            prefixIcon: const Icon(Icons.lock_outline),
                           ),
                           validator: (v) => v != _next.text
-                              ? 'Passwords do not match.'
+                              ? context.l10n.passwordsDoNotMatch
                               : null,
                           onFieldSubmitted: (_) => _submit(),
                         ),
@@ -150,7 +158,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                     color: Colors.white,
                                   ),
                                 )
-                              : const Text('Save new password'),
+                              : Text(context.l10n.saveNewPassword),
                         ),
                       ],
                     ),

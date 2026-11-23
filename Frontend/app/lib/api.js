@@ -338,7 +338,7 @@ export const transactionsApi = {
   // Entries go through the approval-aware endpoint (expense threshold, Zakat rule).
   create: (data) => request("/accounts/entries", { method: "POST", body: JSON.stringify(data) }).then((p) => p.data.transaction),
   update: (id, data) => update("/transactions", id, data),
-  // Financial records are never deleted (ACC-06): removal posts a reversal entry.
+  // Financial records are never deleted: removal posts a reversal entry.
   remove: (id, reason = "Reversed from entry screen") => request(`/accounts/entries/${id}/reverse`, { method: "POST", body: JSON.stringify({ reason }) }),
 };
 

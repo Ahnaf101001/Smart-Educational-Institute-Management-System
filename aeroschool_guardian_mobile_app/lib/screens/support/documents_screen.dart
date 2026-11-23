@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../core/format.dart';
@@ -27,7 +30,7 @@ class DocumentsScreen extends StatelessWidget {
   Future<void> _download(BuildContext context, StudentDocument d) async {
     final service = context.read<GuardianService>();
     final files = context.read<FileService>();
-    showSnack(context, 'Downloading ${d.fileName}…');
+    showSnack(context, context.l10n.downloadingFile(d.fileName));
     try {
       final bytes = await service.downloadDocument(child.id, d.id);
       await files.shareBytes(bytes, fileName: d.fileName, mimeType: d.mimeType);
@@ -35,7 +38,7 @@ class DocumentsScreen extends StatelessWidget {
       if (context.mounted) showSnack(context, e.message, error: true);
     } catch (_) {
       if (context.mounted) {
-        showSnack(context, 'Could not save the file.', error: true);
+        showSnack(context, context.l10n.couldNotSaveFile, error: true);
       }
     }
   }
@@ -44,7 +47,11 @@ class DocumentsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final service = context.read<GuardianService>();
     return Scaffold(
-      appBar: AppBar(title: Text('Documents – ${child.name}')),
+      appBar: AppBar(
+        title: Text(
+          context.l10n.titleForChild(context.l10n.modDocuments, child.name),
+        ),
+      ),
       body: AsyncView<_Docs>(
         load: () => service.documents(child.id),
         builder: (context, d, reload) => RefreshIndicator(
@@ -52,11 +59,11 @@ class DocumentsScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              const SectionTitle('Student Documents'),
+              SectionTitle(context.l10n.studentDocuments),
               Card(
                 child: d.documents.isEmpty
-                    ? const EmptyView(
-                        title: 'No documents shared yet',
+                    ? EmptyView(
+                        title: context.l10n.noDocumentsSharedYet,
                         icon: Icons.folder_open_outlined,
                       )
                     : Column(
@@ -90,11 +97,11 @@ class DocumentsScreen extends StatelessWidget {
                         ],
                       ),
               ),
-              const SectionTitle('Issued Certificates'),
+              SectionTitle(context.l10n.issuedCertificates),
               Card(
                 child: d.certificates.isEmpty
-                    ? const EmptyView(
-                        title: 'No certificates issued',
+                    ? EmptyView(
+                        title: context.l10n.noCertificatesIssued,
                         icon: Icons.workspace_premium_outlined,
                       )
                     : Column(
@@ -112,21 +119,23 @@ class DocumentsScreen extends StatelessWidget {
                                 ),
                               ),
                               subtitle: Text(
-                                'Issued ${Fmt.date(c.issuedAt)} • Collect the signed copy from the school office',
+                                context.l10n.issuedCollect(
+                                  Fmt.date(c.issuedAt),
+                                ),
                               ),
                             ),
                         ],
                       ),
               ),
-              const SectionTitle('Other downloads'),
+              SectionTitle(context.l10n.otherDownloads),
               Card(
                 child: ListTile(
                   leading: const Icon(
                     Icons.receipt_long_outlined,
                     color: AppColors.navy,
                   ),
-                  title: const Text('Fee receipts'),
-                  subtitle: const Text('Download from Fees → Payment History'),
+                  title: Text(context.l10n.feeReceipts),
+                  subtitle: Text(context.l10n.downloadFromFeesPaymentHistory),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.push(
                     context,

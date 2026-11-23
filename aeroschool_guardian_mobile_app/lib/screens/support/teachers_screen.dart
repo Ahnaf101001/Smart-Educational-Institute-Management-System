@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
@@ -25,16 +28,20 @@ class TeachersScreen extends StatelessWidget {
     final guardianId =
         context.read<FamilyProvider>().overview?.guardianId ?? '';
     return Scaffold(
-      appBar: AppBar(title: Text('Teachers – ${child.name}')),
+      appBar: AppBar(
+        title: Text(
+          context.l10n.titleForChild(context.l10n.modTeachers, child.name),
+        ),
+      ),
       body: AsyncView<StudentExtras>(
         load: () => service.extras(child.id),
         builder: (context, x, reload) => RefreshIndicator(
           onRefresh: reload,
           child: x.teachers.isEmpty
               ? ListView(
-                  children: const [
+                  children: [
                     EmptyView(
-                      title: 'Teachers not assigned yet',
+                      title: context.l10n.teachersNotAssignedYet,
                       icon: Icons.co_present_outlined,
                     ),
                   ],
@@ -65,8 +72,8 @@ class TeachersScreen extends StatelessWidget {
                               ),
                             ),
                             if (t.isClassTeacher)
-                              const StatusChip(
-                                'Class teacher',
+                              StatusChip(
+                                context.l10n.classTeacher2,
                                 color: AppColors.navy,
                               ),
                           ],
@@ -81,7 +88,7 @@ class TeachersScreen extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              tooltip: 'Message',
+                              tooltip: context.l10n.message,
                               icon: const Icon(
                                 Icons.chat_bubble_outline,
                                 color: AppColors.navy,
@@ -106,7 +113,7 @@ class TeachersScreen extends StatelessWidget {
                             // Phone shown only when the school allows it (permission-based contact).
                             if (t.phone != null)
                               IconButton(
-                                tooltip: 'Call',
+                                tooltip: context.l10n.call,
                                 icon: const Icon(
                                   Icons.call_outlined,
                                   color: AppColors.success,

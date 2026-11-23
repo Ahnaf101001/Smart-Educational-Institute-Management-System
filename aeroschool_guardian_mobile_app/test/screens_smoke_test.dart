@@ -32,6 +32,7 @@ import 'package:aeroschool_guardian_mobile_app/screens/support/teachers_screen.d
 import 'package:aeroschool_guardian_mobile_app/screens/transport/transport_screen.dart';
 import 'package:aeroschool_guardian_mobile_app/core/theme.dart';
 import 'package:aeroschool_guardian_mobile_app/l10n/app_localizations.dart';
+import 'package:aeroschool_guardian_mobile_app/l10n/l10n_ext.dart';
 import 'package:aeroschool_guardian_mobile_app/providers/locale_provider.dart';
 import 'package:aeroschool_guardian_mobile_app/services/deep_link_service.dart';
 import 'package:aeroschool_guardian_mobile_app/models/support.dart';
@@ -734,21 +735,73 @@ void main() {
     );
   }
 
-  // Bangla UI (N2): the screens with the most translated text must not overflow either.
-  for (final entry in <String, Widget Function()>{
-    'login (Bangla)': () => const LoginScreen(),
-    'home shell (Bangla)': () => const HomeShell(),
-    'family dashboard (Bangla)': () =>
-        FamilyDashboardScreen(onOpenChild: (_) {}, onOpenNotifications: () {}),
-    'child dashboard (Bangla)': () => const ChildDashboardScreen(),
-    'profile (Bangla)': () => const ProfileScreen(),
-    'notifications (Bangla)': () => const NotificationsScreen(),
-  }.entries) {
-    testWidgets('renders ${entry.key} on a 320px phone without errors', (
+  // Bangla UI (N2): every screen and tab renders in Bangla on a small phone
+  // without overflow, and shows Bangla text instead of the English strings.
+  for (final entry in screens.entries) {
+    testWidgets('renders ${entry.key} in Bangla on a 320px phone', (
       tester,
     ) async {
       await pumpScreen(tester, entry.value(), locale: const Locale('bn'));
       await scrollAll(tester);
     });
   }
+
+  for (final entry in <String, Widget Function()>{
+    'academics': () => AcademicsScreen(child: first()),
+    'exams': () => ExamsScreen(child: first()),
+    'fees': () => FeesScreen(child: first()),
+  }.entries) {
+    testWidgets('renders every ${entry.key} tab in Bangla', (tester) async {
+      await pumpScreen(tester, entry.value(), locale: const Locale('bn'));
+      await visitTabs(tester);
+    });
+  }
+
+  testWidgets('Bangla tabs and fee summary use translated labels', (
+    tester,
+  ) async {
+    final bn = lookupAppLocalizations(const Locale('bn'));
+    final vertical = find
+        .byWidgetPredicate(
+          (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+        )
+        .first;
+    await pumpScreen(
+      tester,
+      FeesScreen(child: first()),
+      locale: const Locale('bn'),
+    );
+    expect(find.text(bn.duesAndPay), findsOneWidget);
+    expect(find.text('Dues & Pay'), findsNothing);
+    expect(find.text('Payment History'), findsNothing);
+
+    await pumpScreen(
+      tester,
+      FamilyDashboardScreen(onOpenChild: (_) {}, onOpenNotifications: () {}),
+      locale: const Locale('bn'),
+    );
+    await tester.scrollUntilVisible(
+      find.text(bn.thisMonthBilled),
+      200,
+      scrollable: vertical,
+    );
+    expect(find.text(bn.totalOutstanding), findsOneWidget);
+    // Several children owe fees in the fixture: each gets its own Pay button.
+    for (var k = 0; k < 10 && find.text(bn.payNow2).evaluate().isEmpty; k++) {
+      await tester.drag(vertical, const Offset(0, -150), warnIfMissed: false);
+      await settle(tester);
+    }
+    expect(find.text(bn.payNow2), findsWidgets);
+    expect(find.text('Total outstanding'), findsNothing);
+  });
+
+  test('data values are translated for display only', () {
+    final bn = lookupAppLocalizations(const Locale('bn'));
+    final en = lookupAppLocalizations(const Locale('en'));
+    expect(bn.word('Present'), 'উপস্থিত');
+    expect(bn.word('Monday'), 'সোমবার');
+    expect(bn.word('Some unknown value'), 'Some unknown value');
+    expect(en.word('Present'), 'Present');
+    expect(en.dayShort('Monday'), 'Mon');
+  });
 }

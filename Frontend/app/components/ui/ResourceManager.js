@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Download, Edit3, FileSpreadsheet, FileText, Plus, Printer, RefreshCw, Search, Trash2 } from "lucide-react";
 import { resource, uploadsApi } from "../../lib/api";
 import PhotoUpload from "./PhotoUpload";
+import RowActions from "./RowActions";
 import { can, useUser } from "../../lib/access";
 import {
   Badge, Button, Card, EmptyState, Field, Input, Modal, PageHeader, Select, Spinner, Textarea,
@@ -335,13 +336,13 @@ export default function ResourceManager({ config, embedded = false, fixedFilters
                   <tr key={r.id} className="bg-white hover:bg-slate-50/60">
                     {columns.map((c) => <td key={c.key || c.label} className={cx("px-4 py-3 align-middle text-slate-700", c.cellClass)}>{c.cell(r)}</td>)}
                     <td className="px-4 py-3 text-right print:hidden">
-                      <div className="flex justify-end gap-1">
-                        {(config.rowActions ? config.rowActions(r, ctx) : []).filter((a) => a && a.show !== false).map((a) => (
-                          <Button key={a.label} size="sm" variant={a.variant || "secondary"} icon={a.icon} onClick={() => a.onClick(r, ctx)} title={a.label}>{a.compact ? null : a.label}</Button>
-                        ))}
-                        {allowEdit && (!config.canEditRow || config.canEditRow(r)) && <Button size="sm" variant="ghost" icon={Edit3} onClick={() => openEdit(r)} title="Edit" />}
-                        {allowDelete && (!config.canDeleteRow || config.canDeleteRow(r)) && <Button size="sm" variant="ghost" icon={Trash2} className="text-rose-600" onClick={() => removeRow(r)} title={config.deleteLabel || "Delete"} />}
-                      </div>
+                      <RowActions
+                        actions={[
+                          ...(config.rowActions ? config.rowActions(r, ctx) : []).filter((a) => a && a.show !== false).map((a) => ({ ...a, run: () => a.onClick(r, ctx) })),
+                          ...(allowEdit && (!config.canEditRow || config.canEditRow(r)) ? [{ label: "Edit", icon: Edit3, run: () => openEdit(r), ghost: true }] : []),
+                          ...(allowDelete && (!config.canDeleteRow || config.canDeleteRow(r)) ? [{ label: config.deleteLabel || "Delete", icon: Trash2, run: () => removeRow(r), ghost: true, danger: true }] : []),
+                        ]}
+                      />
                     </td>
                   </tr>
                 ))}

@@ -94,7 +94,7 @@ export default function GenerateCards({ institute, initialHolderType = "Student"
 
   return (
     <div className="space-y-5">
-      <Card title="1 · Choose people" subtitle="Filter by session, class, section, shift, status or roll range (IDC-16/17)">
+      <Card title="1 · Choose people" subtitle="Filter by session, class, section, shift, status or roll range">
         <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-8">
           <Field label="Card for"><Select value={holderType} onChange={(e) => setHolderType(e.target.value)} options={["Student", "Teacher", "Staff"]} /></Field>
           {holderType === "Student" && (
@@ -149,7 +149,7 @@ export default function GenerateCards({ institute, initialHolderType = "Student"
         </div>
       </Card>
 
-      <Card title="2 · Template & validation" subtitle="Missing photos / required fields stop bulk generation – no silent blank cards (IDC-18, §7.4)">
+      <Card title="2 · Template & validation" subtitle="Missing photos / required fields stop bulk generation – no silent blank cards">
         <div className="grid gap-5 lg:grid-cols-[1fr_auto]">
           <div className="space-y-3">
             <Field label="Template"><Select value={templateId} onChange={(e) => { setTemplateId(e.target.value); setReport(null); }} options={templates.map((t) => ({ value: t.id, label: `${t.name} (${t.category}, v${t.version})${t.isDefault ? " – default" : ""}` }))} /></Field>

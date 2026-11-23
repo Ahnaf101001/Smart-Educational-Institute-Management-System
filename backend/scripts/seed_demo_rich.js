@@ -85,12 +85,21 @@ async function main() {
     }
     teacherBySubject[subj] = t.id;
   }
-  // Class teachers (Class 6: Shahana Parvin, Class 7: Md. Kamrul Hasan; others round-robin).
+  // Class teachers: Class 7 Md. Kamrul Hasan, Class 6 Shahana Parvin; every other class gets one of the
+  // remaining six teachers (so the two demo class teachers have exactly one class each).
   const allClasses = (await query("SELECT id FROM classes ORDER BY sort_order")).rows.map((r) => r.id);
-  const order = Object.values(teacherBySubject);
-  for (const [i, cid] of allClasses.entries()) {
-    const tid = cid === C7 ? teacherBySubject.math : cid === C6 ? teacherBySubject.ban1 : order[i % order.length];
+  const others = Object.entries(teacherBySubject).filter(([s]) => !["math", "ban1"].includes(s)).map(([, id]) => id);
+  let k = 0;
+  for (const cid of allClasses) {
+    const tid = cid === C7 ? teacherBySubject.math : cid === C6 ? teacherBySubject.ban1 : others[k++ % others.length];
     await api("PATCH", `/classes/${cid}`, { teacherId: tid }, admin);
+  }
+  // Subject–teacher assignments for 6-A and 7-A (drives "My classes", marks scope and teacher shortcuts).
+  for (const cid of [C6, C7]) {
+    for (const subj of CORE) {
+      if (await exists("SELECT 1 FROM class_assignments WHERE class_id = $1 AND section = 'A' AND subject_id = $2", [cid, SUB[subj]])) continue;
+      await api("POST", "/assignments", { classId: cid, section: "A", subjectId: SUB[subj], teacherId: teacherBySubject[subj], roomNo: cid === C7 ? "207" : "106" }, admin);
+    }
   }
   const ensureUser = async (email, body) => {
     if (await exists("SELECT 1 FROM users WHERE lower(email) = lower($1)", [email])) return;
@@ -104,7 +113,8 @@ async function main() {
   // ------------------------------------------------------------------ 2. Weekly routine (Sun–Thu) for Class 6-A and 7-A
   const SLOTS = [["P1", "08:00", "08:45"], ["P2", "08:45", "09:30"], ["P3", "09:30", "10:15"], ["BRK", "10:15", "10:35"], ["P4", "10:35", "11:20"], ["P5", "11:20", "12:05"], ["P6", "12:05", "12:50"]];
   const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"];
-  for (const [cid, offset, room] of [[C7, 0, "Room 207"], [C6, 3, "Room 106"]]) {
+  await query("UPDATE routine_entries SET room_no = regexp_replace(room_no, '^Room\\s+', '') WHERE room_no ~ '^Room\\s'");
+  for (const [cid, offset, room] of [[C7, 0, "207"], [C6, 3, "106"]]) {
     if (await exists("SELECT 1 FROM routine_entries WHERE class_id = $1 AND section = 'A'", [cid])) continue;
     for (const [d, day] of DAYS.entries()) {
       let p = 0;

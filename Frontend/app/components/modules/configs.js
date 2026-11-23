@@ -37,7 +37,7 @@ const STATUS = ["Active", "Inactive"];
 export const CONFIGS = {
   admissionCirculars: {
     title: "Admission Circulars", singular: "Circular", endpoint: "/admission-circulars", module: "admission", icon: FileText,
-    subtitle: "Class-wise seats, fees, eligibility, deadlines and required documents (AD-01). Published circulars appear on the public admission portal.",
+    subtitle: "Class-wise seats, fees, eligibility, deadlines and required documents. Published circulars appear on the public admission portal.",
     columns: [{ key: "title", label: "Title" }, { key: "className", label: "Class" }, { key: "seats", label: "Seats" },
       { key: "admissionFee", label: "Admission Fee", type: "money" }, { key: "deadline", label: "Deadline", type: "date" },
       { key: "selectionMethod", label: "Selection" }, { key: "status", label: "Status", type: "badge" }],
@@ -62,7 +62,7 @@ export const CONFIGS = {
   },
   guardians: {
     title: "Guardians", singular: "Guardian", endpoint: "/guardians", module: "guardians", icon: Users,
-    subtitle: "Father, mother and legal guardian profiles. Mobile number is the unique identity; siblings link to the same guardian (GD-01..07).",
+    subtitle: "Father, mother and legal guardian profiles. Mobile number is the unique identity; siblings link to the same guardian.",
     columns: [{ key: "id", label: "ID" }, { key: "name", label: "Name" }, { key: "mobile", label: "Mobile" }, { key: "relationDefault", label: "Relation" },
       { key: "occupation", label: "Occupation" }, { key: "portalAccess", label: "Portal", type: "boolean" }, { key: "status", label: "Status", type: "badge" }],
     filters: [{ key: "relationDefault", label: "Relation", options: ["Father", "Mother", "Guardian", "Other"] }],
@@ -124,7 +124,7 @@ export const CONFIGS = {
   },
   certificates: {
     title: "Certificates", singular: "Certificate", endpoint: "/certificates", module: "certificates", icon: FileText, create: false, delete: false,
-    subtitle: "TC, testimonial, character, study certificate and sanad requests. Issue happens after approval (ST-09, OPS-03).",
+    subtitle: "TC, testimonial, character, study certificate and sanad requests. Issue happens after approval.",
     columns: [{ key: "id", label: "Serial" }, { key: "certificateType", label: "Type" }, { key: "holderName", label: "Holder" }, { key: "holderId", label: "ID" },
       { key: "status", label: "Status", type: "badge" }, { key: "issuedAt", label: "Issued", type: "date" }],
     filters: [{ key: "certificateType", label: "Type", options: ["Transfer Certificate", "Testimonial", "Character Certificate", "Study Certificate", "Sanad", "Hifz Sanad", "Experience Certificate", "Employment Letter"] },
@@ -157,7 +157,7 @@ export const CONFIGS = {
   },
   classSubjects: {
     title: "Class–Subject Mapping", singular: "Mapping", endpoint: "/class-subjects", module: "academic",
-    subtitle: "Compulsory / elective / 4th subject per class and group (AC-04, ACA-01..03).",
+    subtitle: "Compulsory / elective / 4th subject per class and group.",
     columns: [{ key: "classId", label: "Class" }, { key: "subjectId", label: "Subject" }, { key: "groupName", label: "Group" },
       { key: "isCompulsory", label: "Compulsory", type: "boolean" }, { key: "isFourthSubjectEligible", label: "4th subject", type: "boolean" }],
     filters: [{ key: "classId", label: "Class", relation: REL.class }],
@@ -173,7 +173,7 @@ export const CONFIGS = {
   },
   academicEvents: {
     title: "Academic Calendar", singular: "Event", endpoint: "/academic-events", module: "academic", icon: CalendarDays,
-    subtitle: "Holidays, exams, events, meetings and admission deadlines (AC-10, ACA-05). Public events show in the guardian portal.",
+    subtitle: "Holidays, exams, events, meetings and admission deadlines. Public events show in the guardian portal.",
     columns: [{ key: "title", label: "Title" }, { key: "type", label: "Type", type: "badge" }, { key: "startDate", label: "From", type: "date" }, { key: "endDate", label: "To", type: "date" },
       { key: "hijriLabel", label: "Hijri" }, { key: "audience", label: "Audience" }],
     filters: [{ key: "type", label: "Type", options: ["Holiday", "Exam", "Event", "Meeting", "Admission", "Activity", "Other"] }],
@@ -185,7 +185,7 @@ export const CONFIGS = {
   },
   homework: {
     title: "Homework & Assignments", singular: "Homework", endpoint: "/homework", module: "homework", icon: BookOpen,
-    subtitle: "Create, attach and publish homework per class/section (AC-11, TA-05). Visible to guardians.",
+    subtitle: "Create, attach and publish homework per class/section. Visible to guardians.",
     columns: [{ key: "title", label: "Title" }, { key: "kind", label: "Type" }, { key: "classId", label: "Class" }, { key: "section", label: "Section" },
       { key: "subjectId", label: "Subject" }, { key: "dueDate", label: "Due", type: "date" }, { key: "status", label: "Status", type: "badge" }],
     filters: [{ key: "classId", label: "Class", relation: REL.class }, { key: "kind", label: "Type", options: ["Homework", "Assignment", "Project", "Class Test"] }],
@@ -203,7 +203,7 @@ export const CONFIGS = {
   },
   syllabus: {
     title: "Syllabus & Lesson Plan", singular: "Topic", endpoint: "/syllabus", module: "homework",
-    subtitle: "Planned topics and completion tracking (AC-13).",
+    subtitle: "Planned topics and completion tracking.",
     columns: [{ key: "classId", label: "Class" }, { key: "subjectId", label: "Subject" }, { key: "chapter", label: "Chapter" }, { key: "topic", label: "Topic" },
       { key: "plannedDate", label: "Planned", type: "date" }, { key: "completed", label: "Done", type: "boolean" }],
     filters: [{ key: "classId", label: "Class", relation: REL.class }, { key: "subjectId", label: "Subject", relation: REL.subject }],
@@ -218,7 +218,7 @@ export const CONFIGS = {
   },
   onlineClasses: {
     title: "Online Classes", singular: "Online class", endpoint: "/online-classes", module: "online_classes", icon: Video,
-    subtitle: "Zoom / Google Meet / Jitsi links and recorded lessons (ONL-01/02).",
+    subtitle: "Zoom / Google Meet / Jitsi links and recorded lessons.",
     columns: [{ key: "title", label: "Title" }, { key: "classId", label: "Class" }, { key: "subjectId", label: "Subject" }, { key: "provider", label: "Provider" },
       { key: "scheduledAt", label: "Scheduled", type: "datetime" }, { key: "meetingUrl", label: "Join", type: "link" }, { key: "recordingUrl", label: "Recording", type: "link" }],
     fields: [{ key: "title", label: "Title", required: true, wide: true }, rel("class", "classId", "Class"), { key: "section", label: "Section" }, rel("subject", "subjectId", "Subject"),
@@ -240,7 +240,7 @@ export const CONFIGS = {
   },
   exams: {
     title: "Exam Setup", singular: "Exam", endpoint: "/exams", module: "exams", icon: ClipboardList,
-    subtitle: "Class test, monthly, half-yearly, annual, model, pre-test, test, mock or weighted combined exams with marks-entry window, grading scale and tie-break rule (EX-01/02/10/13).",
+    subtitle: "Class test, monthly, half-yearly, annual, model, pre-test, test, mock or weighted combined exams with marks-entry window, grading scale and tie-break rule.",
     columns: [{ key: "name", label: "Exam" }, { key: "examType", label: "Type", type: "badge" }, { key: "classIds", label: "Classes" }, { key: "startDate", label: "Starts", type: "date" },
       { key: "marksEntryEnd", label: "Marks entry closes", type: "date" }, { key: "gradeScaleId", label: "Grading" }, { key: "resultStatus", label: "Result", type: "badge" }],
     filters: [{ key: "examType", label: "Type", options: ["Class Test", "Monthly", "Term", "Half-Yearly", "Annual", "Model", "Pre-Test", "Test", "Mock", "Combined"] }],
@@ -258,7 +258,7 @@ export const CONFIGS = {
   },
   examSchedules: {
     title: "Exam Routine", singular: "Paper", endpoint: "/exam-schedules", module: "exams", icon: CalendarDays,
-    subtitle: "Date, time, room, invigilator, full/pass marks and components per subject (EX-02..04).",
+    subtitle: "Date, time, room, invigilator, full/pass marks and components per subject.",
     columns: [{ key: "examId", label: "Exam" }, { key: "classId", label: "Class" }, { key: "subjectId", label: "Subject" }, { key: "examDate", label: "Date", type: "date" },
       { key: "startTime", label: "Start" }, { key: "endTime", label: "End" }, { key: "room", label: "Room" }, { key: "fullMarks", label: "Full" }, { key: "passMarks", label: "Pass" }],
     filters: [{ key: "examId", label: "Exam", relation: REL.exam }, { key: "classId", label: "Class", relation: REL.class }],
@@ -269,7 +269,7 @@ export const CONFIGS = {
   },
   gradeScales: {
     title: "Grading Scales", singular: "Grade scale", endpoint: "/grade-scales", module: "settings", icon: ClipboardList,
-    subtitle: "NCTB GPA 5.0, Alia (BMEB), Qawmi (Mumtaz–Rasib), Cambridge A*–U, Kindergarten – or your own (PC-18..22, EX-12).",
+    subtitle: "NCTB GPA 5.0, Alia (BMEB), Qawmi (Mumtaz–Rasib), Cambridge A*–U, Kindergarten – or your own.",
     columns: [{ key: "name", label: "Name" }, { key: "scaleType", label: "Type", type: "badge" }, { key: "institutionType", label: "For" },
       { key: "bands", label: "Bands", render: (r) => (r.bands || []).map((b) => `${b.grade} ≥${b.min}`).join(" · ") }, { key: "isDefault", label: "Default", type: "boolean" }],
     fields: [{ key: "name", label: "Name", required: true }, { key: "scaleType", label: "Type", type: "select", options: ["GPA", "Letter", "Division"], default: "GPA" },
@@ -300,7 +300,7 @@ export const CONFIGS = {
   },
   gatewayTransactions: {
     title: "Online Payments", singular: "Payment", endpoint: "/gateway-transactions", module: "fees", create: false, edit: false, delete: false,
-    subtitle: "bKash / Nagad / Rocket / SSLCommerz transactions with callback reconciliation (FE-10/11).",
+    subtitle: "bKash / Nagad / Rocket / SSLCommerz transactions with callback reconciliation.",
     columns: [{ key: "createdAt", label: "Date", type: "datetime" }, { key: "gateway", label: "Gateway" }, { key: "txnId", label: "Txn ID" }, { key: "amount", label: "Amount", type: "money" },
       { key: "status", label: "Status", type: "badge" }, { key: "posted", label: "Posted", type: "boolean" }, { key: "callbackCount", label: "Callbacks" }],
     filters: [{ key: "status", label: "Status", options: ["Pending", "Success", "Failed", "Cancelled"] }],
@@ -320,7 +320,7 @@ export const CONFIGS = {
   },
   vouchers: {
     title: "Vouchers", singular: "Voucher", endpoint: "/vouchers", module: "accounts", delete: false, edit: false,
-    subtitle: "Receipt / payment / journal vouchers. Entries must balance; posted vouchers are reversed, never edited (ACC-02, ACC-06).",
+    subtitle: "Receipt / payment / journal vouchers. Entries must balance; posted vouchers are reversed, never edited.",
     columns: [{ key: "id", label: "No." }, { key: "voucherType", label: "Type" }, { key: "voucherDate", label: "Date", type: "date" }, { key: "narration", label: "Narration" },
       { key: "total", label: "Total", type: "money" }, { key: "status", label: "Status", type: "badge" }],
     fields: [{ key: "voucherType", label: "Type", type: "select", options: ["Receipt", "Payment", "Journal", "Contra"], required: true, default: "Journal" },
@@ -353,7 +353,7 @@ export const CONFIGS = {
   },
   salaryStructures: {
     title: "Salary Structures", singular: "Salary structure", endpoint: "/salary-structures", module: "payroll", icon: CreditCard,
-    subtitle: "Basic, allowances, deductions, provident fund, MPO government portion (HR-06, HRX-05).",
+    subtitle: "Basic, allowances, deductions, provident fund, MPO government portion.",
     columns: [{ key: "employeeType", label: "Type" }, { key: "employeeName", label: "Employee" }, { key: "basic", label: "Basic", type: "money" },
       { key: "houseRent", label: "House rent", type: "money" }, { key: "providentFund", label: "PF", type: "money" }, { key: "govtPortion", label: "Govt (MPO)", type: "money" }],
     fields: [{ key: "employeeType", label: "Employee type", type: "select", options: ["Teacher", "Staff"], required: true, default: "Teacher" },
@@ -416,7 +416,7 @@ export const CONFIGS = {
   },
   deviceEvents: {
     title: "Entry / Exit Log", singular: "Event", endpoint: "/device-events", module: "devices", create: false, edit: false, delete: false,
-    subtitle: "Raw device events with match status. Unmatched scans need manual verification (AT-10, ATT-05).",
+    subtitle: "Raw device events with match status. Unmatched scans need manual verification.",
     columns: [{ key: "eventTime", label: "Time", type: "datetime" }, { key: "personType", label: "Person" }, { key: "personId", label: "ID" }, { key: "eventType", label: "Event", type: "badge" },
       { key: "status", label: "Status", type: "badge" }, { key: "message", label: "Message" }, { key: "deviceId", label: "Device" }],
     filters: [{ key: "status", label: "Status", options: ["Processed", "Unmatched", "Duplicate", "Error"] }, { key: "eventType", label: "Event", options: ["IN", "OUT"] }],
@@ -432,7 +432,7 @@ export const CONFIGS = {
   },
   messageLogs: {
     title: "Message & Delivery Log", singular: "Message", endpoint: "/message-logs", module: "communication", create: false, edit: false, delete: false,
-    subtitle: "SMS / email / push / portal delivery status, cost and failures (CM-06, COM-03).",
+    subtitle: "SMS / email / push / portal delivery status, cost and failures.",
     columns: [{ key: "createdAt", label: "Time", type: "datetime" }, { key: "channel", label: "Channel" }, { key: "eventType", label: "Event" }, { key: "recipient", label: "Recipient" },
       { key: "body", label: "Message", cellClass: "max-w-sm truncate" }, { key: "status", label: "Status", type: "badge" }, { key: "cost", label: "Cost", render: (r) => (Number(r.cost) ? `৳${Number(r.cost).toFixed(2)}` : "—") }, { key: "error", label: "Error", cellClass: "max-w-xs truncate text-rose-600" }],
     filters: [{ key: "channel", label: "Channel", options: ["SMS", "Email", "Push", "Portal"] }, { key: "status", label: "Status", options: ["Queued", "Sent", "Delivered", "Failed", "Read"] }],
@@ -445,7 +445,7 @@ export const CONFIGS = {
   },
   complaints: {
     title: "Complaints & Feedback", singular: "Complaint", endpoint: "/complaints", module: "communication",
-    subtitle: "Guardian complaint → assign → respond → resolve (CM-07).",
+    subtitle: "Guardian complaint → assign → respond → resolve.",
     columns: [{ key: "id", label: "ID" }, { key: "subject", label: "Subject" }, { key: "category", label: "Category" }, { key: "studentId", label: "Student" }, { key: "assignedTo", label: "Assigned" }, { key: "status", label: "Status", type: "badge" }, { key: "createdAt", label: "Date", type: "date" }],
     filters: [{ key: "status", label: "Status", options: ["Open", "In Progress", "Resolved", "Closed"] }],
     fields: [{ key: "subject", label: "Subject", required: true, wide: true }, { key: "category", label: "Category", type: "select", options: ["General", "Academic", "Fees", "Transport", "Behaviour", "Facility"], default: "General" },
@@ -591,7 +591,7 @@ export const CONFIGS = {
   },
   approvalDelegations: {
     title: "Approval Delegation", singular: "Delegation", endpoint: "/approval-delegations", module: "approvals",
-    subtitle: "Temporarily delegate approval power; expires automatically after the end date (APR-07, RP-09).",
+    subtitle: "Temporarily delegate approval power; expires automatically after the end date.",
     columns: [{ key: "fromUserId", label: "From" }, { key: "toUserId", label: "To" }, { key: "startDate", label: "Start", type: "date" }, { key: "endDate", label: "End", type: "date" }, { key: "status", label: "Status", type: "badge" }],
     fields: [rel("user", "fromUserId", "From user", { required: true }), rel("user", "toUserId", "To user", { required: true }), { key: "startDate", label: "Start", type: "date", required: true },
       { key: "endDate", label: "End", type: "date", required: true }, { key: "requestTypes", label: "Request types (blank = all)", type: "list", wide: true }, { key: "status", label: "Status", type: "select", options: STATUS, default: "Active" }],
