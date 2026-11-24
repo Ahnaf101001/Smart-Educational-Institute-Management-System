@@ -22,6 +22,9 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _form = GlobalKey<FormState>();
+  // Errors stay hidden until the first submit; after that each field re-checks as it is edited,
+  // so a corrected field clears its message straight away.
+  bool _showErrors = false;
   late final TextEditingController _email = TextEditingController(
     text: widget.initialEmail,
   );
@@ -36,7 +39,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_form.currentState!.validate()) return;
+    if (!_form.currentState!.validate()) {
+      setState(() => _showErrors = true);
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -87,6 +93,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   )
                 : Form(
                     key: _form,
+                    autovalidateMode: _showErrors
+                        ? AutovalidateMode.onUserInteraction
+                        : AutovalidateMode.disabled,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [

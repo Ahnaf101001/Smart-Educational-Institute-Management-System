@@ -22,6 +22,9 @@ class ResetPasswordScreen extends StatefulWidget {
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _form = GlobalKey<FormState>();
+  // Errors stay hidden until the first submit; after that each field re-checks as it is edited,
+  // so a corrected field clears its message straight away.
+  bool _showErrors = false;
   final _next = TextEditingController();
   final _confirm = TextEditingController();
   bool _obscure = true;
@@ -37,7 +40,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_form.currentState!.validate()) return;
+    if (!_form.currentState!.validate()) {
+      setState(() => _showErrors = true);
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -93,6 +99,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   )
                 : Form(
                     key: _form,
+                    autovalidateMode: _showErrors
+                        ? AutovalidateMode.onUserInteraction
+                        : AutovalidateMode.disabled,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [

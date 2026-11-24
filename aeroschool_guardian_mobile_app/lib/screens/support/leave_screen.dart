@@ -116,6 +116,9 @@ class _LeaveForm extends StatefulWidget {
 
 class _LeaveFormState extends State<_LeaveForm> {
   final _form = GlobalKey<FormState>();
+  // Errors stay hidden until the first submit; after that each field re-checks as it is edited,
+  // so a corrected field clears its message straight away.
+  bool _showErrors = false;
   final _reason = TextEditingController();
   late String? _typeId = widget.types.isEmpty ? null : widget.types.first.id;
   DateTime _from = DateTime.now();
@@ -159,7 +162,10 @@ class _LeaveFormState extends State<_LeaveForm> {
   }
 
   Future<void> _submit() async {
-    if (!_form.currentState!.validate()) return;
+    if (!_form.currentState!.validate()) {
+      setState(() => _showErrors = true);
+      return;
+    }
     setState(() => _busy = true);
     try {
       await context.read<GuardianService>().applyLeave(
@@ -188,6 +194,9 @@ class _LeaveFormState extends State<_LeaveForm> {
       icon: Icons.edit_note_rounded,
       child: Form(
         key: _form,
+        autovalidateMode: _showErrors
+            ? AutovalidateMode.onUserInteraction
+            : AutovalidateMode.disabled,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

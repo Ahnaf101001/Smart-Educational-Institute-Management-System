@@ -23,6 +23,9 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _form = GlobalKey<FormState>();
+  // Errors stay hidden until the first submit; after that each field re-checks as it is edited,
+  // so a corrected field clears its message straight away.
+  bool _showErrors = false;
   late final _alt = TextEditingController(text: widget.profile.altMobile ?? '');
   late final _occupation = TextEditingController(
     text: widget.profile.occupation ?? '',
@@ -60,7 +63,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _save() async {
-    if (!_form.currentState!.validate()) return;
+    if (!_form.currentState!.validate()) {
+      setState(() => _showErrors = true);
+      return;
+    }
     setState(() => _busy = true);
     try {
       await context.read<GuardianService>().updateProfile({
@@ -85,6 +91,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     appBar: AppBar(title: Text(context.l10n.editProfile)),
     body: Form(
       key: _form,
+      autovalidateMode: _showErrors
+          ? AutovalidateMode.onUserInteraction
+          : AutovalidateMode.disabled,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [

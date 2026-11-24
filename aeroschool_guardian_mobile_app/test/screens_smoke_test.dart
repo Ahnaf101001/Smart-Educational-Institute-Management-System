@@ -795,6 +795,19 @@ void main() {
     expect(find.text('Total outstanding'), findsNothing);
   });
 
+  testWidgets('a corrected field clears its error without resubmitting', (
+    tester,
+  ) async {
+    final en = lookupAppLocalizations(const Locale('en'));
+    await pumpScreen(tester, const LoginScreen());
+    await tester.tap(find.text(en.loginButton));
+    await settle(tester);
+    expect(find.text(en.loginEnterPassword), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).at(1), 'Guardian@2026');
+    await settle(tester);
+    expect(find.text(en.loginEnterPassword), findsNothing);
+  });
+
   test('data values are translated for display only', () {
     final bn = lookupAppLocalizations(const Locale('bn'));
     final en = lookupAppLocalizations(const Locale('en'));
