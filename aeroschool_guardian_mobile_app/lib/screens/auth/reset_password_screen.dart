@@ -5,9 +5,9 @@ import '../../l10n/l10n_ext.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
+import '../../core/validators.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_exception.dart';
-import 'change_password_screen.dart';
 
 /// Opened from the `aeroschool://reset-password?token=…` link in the reset email
 /// (Workflow §6 steps 4–6): set a new password, then sign in with it.
@@ -118,12 +118,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                   setState(() => _obscure = !_obscure),
                             ),
                           ),
-                          validator: (v) {
-                            final e = ChangePasswordScreenValidators.strength(
-                              v,
-                            );
-                            return e == null ? null : context.l10n.word(e);
-                          },
+                          validator: (v) =>
+                              Validators.passwordStrength(v, context.l10n),
                         ),
                         const SizedBox(height: 14),
                         TextFormField(
@@ -133,9 +129,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             labelText: context.l10n.confirmNewPassword,
                             prefixIcon: const Icon(Icons.lock_outline),
                           ),
-                          validator: (v) => v != _next.text
-                              ? context.l10n.passwordsDoNotMatch
-                              : null,
+                          validator: (v) => Validators.passwordsMatch(
+                            v,
+                            _next.text,
+                            context.l10n,
+                          ),
                           onFieldSubmitted: (_) => _submit(),
                         ),
                         if (_error != null)

@@ -5,6 +5,7 @@ import '../../l10n/l10n_ext.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
+import '../../core/validators.dart';
 import '../../models/support.dart';
 import '../../services/api_exception.dart';
 import '../../services/guardian_service.dart';
@@ -95,13 +96,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               hintText: '01XXXXXXXXX',
               prefixIcon: const Icon(Icons.phone_android),
             ),
-            validator: (v) {
-              final s = (v ?? '').replaceAll(RegExp(r'\D'), '');
-              if (s.isEmpty) return null;
-              return RegExp(r'^01[3-9]\d{8}$').hasMatch(s)
-                  ? null
-                  : context.l10n.enterValidBdMobile;
-            },
+            validator: (v) => Validators.bdMobile(v, context.l10n),
           ),
           const SizedBox(height: 12),
           TextFormField(

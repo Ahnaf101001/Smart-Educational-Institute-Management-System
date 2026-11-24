@@ -4,8 +4,6 @@ import '../../l10n/l10n_ext.dart';
 
 import 'package:provider/provider.dart';
 
-import '../../l10n/app_localizations.dart';
-
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../models/child.dart';
@@ -36,7 +34,7 @@ class ChildDashboardScreen extends StatelessWidget {
     final child = family.selectedChild;
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).studentDashboard),
+        title: Text(context.l10n.studentDashboard),
         bottom: child == null
             ? null
             : const PreferredSize(
@@ -71,8 +69,7 @@ class ChildDashboardScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               children: [
                 Text(
-                  AppLocalizations.of(context)
-                      .selectedStudentDashboard(child.name),
+                  context.l10n.selectedStudentDashboard(child.name),
                   style: const TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 16,
@@ -83,18 +80,18 @@ class ChildDashboardScreen extends StatelessWidget {
                 StatGrid(
                   children: [
                     StatTile(
-                      label: AppLocalizations.of(context).attendance,
+                      label: context.l10n.attendance,
                       value: Fmt.percent(child.monthAttendancePercentage),
-                      caption: AppLocalizations.of(context).monthlyAttendance,
+                      caption: context.l10n.monthlyAttendance,
                       icon: Icons.fact_check_outlined,
                       color: AppColors.success,
                       onTap: () =>
                           _open(context, AttendanceScreen(child: child)),
                     ),
                     StatTile(
-                      label: AppLocalizations.of(context).feeDue,
+                      label: context.l10n.feeDue,
                       value: child.canViewFees ? Fmt.money(child.feeDue) : '—',
-                      caption: AppLocalizations.of(context).outstandingAmount,
+                      caption: context.l10n.outstandingAmount,
                       icon: Icons.account_balance_wallet_outlined,
                       color: child.feeDue > 0
                           ? AppColors.danger
@@ -102,9 +99,9 @@ class ChildDashboardScreen extends StatelessWidget {
                       onTap: () => _open(context, FeesScreen(child: child)),
                     ),
                     StatTile(
-                      label: AppLocalizations.of(context).homework,
+                      label: context.l10n.homework,
                       value: '${child.homeworkCount}',
-                      caption: AppLocalizations.of(context).pendingAssignments,
+                      caption: context.l10n.pendingAssignments,
                       icon: Icons.menu_book_rounded,
                       color: AppColors.warning,
                       onTap: () => _open(
@@ -113,13 +110,13 @@ class ChildDashboardScreen extends StatelessWidget {
                       ),
                     ),
                     StatTile(
-                      label: AppLocalizations.of(context).latestResult,
+                      label: context.l10n.latestResult,
                       value: child.canViewResults
                           ? (child.latestResultGrade ?? '—')
                           : '—',
                       caption:
                           child.latestResultExam ??
-                          AppLocalizations.of(context).lastPublishedResult,
+                          context.l10n.lastPublishedResult,
                       icon: Icons.emoji_events_outlined,
                       color: AppColors.blue,
                       onTap: () => _open(
@@ -136,22 +133,22 @@ class ChildDashboardScreen extends StatelessWidget {
                 _ModuleGrid(
                   items: [
                     _Module(
-                      AppLocalizations.of(context).modAttendance,
+                      context.l10n.modAttendance,
                       Icons.fact_check_outlined,
                       () => _open(context, AttendanceScreen(child: child)),
                     ),
                     _Module(
-                      AppLocalizations.of(context).modFees,
+                      context.l10n.modFees,
                       Icons.payments_outlined,
                       () => _open(context, FeesScreen(child: child)),
                     ),
                     _Module(
-                      AppLocalizations.of(context).modExams,
+                      context.l10n.modExams,
                       Icons.emoji_events_outlined,
                       () => _open(context, ExamsScreen(child: child)),
                     ),
                     _Module(
-                      AppLocalizations.of(context).modHomework,
+                      context.l10n.modHomework,
                       Icons.menu_book_rounded,
                       () => _open(
                         context,
@@ -159,12 +156,12 @@ class ChildDashboardScreen extends StatelessWidget {
                       ),
                     ),
                     _Module(
-                      AppLocalizations.of(context).modRoutine,
+                      context.l10n.modRoutine,
                       Icons.schedule_rounded,
                       () => _open(context, AcademicsScreen(child: child)),
                     ),
                     _Module(
-                      AppLocalizations.of(context).modNotices,
+                      context.l10n.modNotices,
                       Icons.campaign_outlined,
                       () => _open(
                         context,
@@ -180,12 +177,12 @@ class ChildDashboardScreen extends StatelessWidget {
                 _ModuleGrid(
                   items: [
                     _Module(
-                      AppLocalizations.of(context).modProfile,
+                      context.l10n.modProfile,
                       Icons.badge_outlined,
                       () => _open(context, StudentProfileScreen(child: child)),
                     ),
                     _Module(
-                      AppLocalizations.of(context).modCalendar,
+                      context.l10n.modCalendar,
                       Icons.event_note_outlined,
                       () => _open(
                         context,
@@ -193,17 +190,17 @@ class ChildDashboardScreen extends StatelessWidget {
                       ),
                     ),
                     _Module(
-                      AppLocalizations.of(context).modTransport,
+                      context.l10n.modTransport,
                       Icons.directions_bus_outlined,
                       () => _open(context, TransportScreen(child: child)),
                     ),
                     _Module(
-                      AppLocalizations.of(context).modLeave,
+                      context.l10n.modLeave,
                       Icons.event_busy_outlined,
                       () => _open(context, LeaveScreen(child: child)),
                     ),
                     _Module(
-                      AppLocalizations.of(context).modProgress,
+                      context.l10n.modProgress,
                       Icons.insights_outlined,
                       () => _open(
                         context,
@@ -211,17 +208,17 @@ class ChildDashboardScreen extends StatelessWidget {
                       ),
                     ),
                     _Module(
-                      AppLocalizations.of(context).modTeachers,
+                      context.l10n.modTeachers,
                       Icons.co_present_outlined,
                       () => _open(context, TeachersScreen(child: child)),
                     ),
                     _Module(
-                      AppLocalizations.of(context).modDocuments,
+                      context.l10n.modDocuments,
                       Icons.folder_outlined,
                       () => _open(context, DocumentsScreen(child: child)),
                     ),
                     _Module(
-                      AppLocalizations.of(context).modFeedback,
+                      context.l10n.modFeedback,
                       Icons.forum_outlined,
                       () => _open(
                         context,
@@ -249,7 +246,7 @@ class _TodayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SectionCard(
-    title: AppLocalizations.of(context).today,
+    title: context.l10n.today,
     icon: Icons.today_outlined,
     child: Column(
       children: [
@@ -257,14 +254,13 @@ class _TodayCard extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                AppLocalizations.of(context).attendance,
+                context.l10n.attendance,
                 style: const TextStyle(color: AppColors.muted),
               ),
             ),
             Flexible(
               child: StatusChip(
-                child.todayAttendance ??
-                    AppLocalizations.of(context).notMarkedYet,
+                child.todayAttendance ?? context.l10n.notMarkedYet,
                 color: child.todayAttendance == null ? AppColors.muted : null,
               ),
             ),

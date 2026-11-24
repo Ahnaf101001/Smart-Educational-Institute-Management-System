@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
@@ -46,7 +49,7 @@ class ChildSelector extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      AppLocalizations.of(context).selectYourChild,
+                      context.l10n.selectYourChild,
                       style: TextStyle(
                         fontSize: 10,
                         letterSpacing: 1,

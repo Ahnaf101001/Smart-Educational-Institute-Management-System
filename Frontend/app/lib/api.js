@@ -38,6 +38,11 @@ async function request(path, options = {}) {
 export { request };
 
 // Generic CRUD helper for config-driven screens.
+// A list some roles may not read (e.g. teachers viewing the teacher list): use [] instead of
+// failing the whole page. Any other error still surfaces.
+export const optionalList = (promise, fallback = []) =>
+  promise.catch((e) => (e?.status === 403 ? fallback : Promise.reject(e)));
+
 export function resource(path) {
   return {
     list: (params = {}) => {
@@ -172,7 +177,7 @@ export const academicApi = {
       list("/assignments"),
       // Teacher names are display-only here; roles without Teacher access (e.g. teachers
       // themselves) must still get classes and subjects instead of a failed page.
-      list("/teachers").catch((e) => (e?.status === 403 ? [] : Promise.reject(e))),
+      optionalList(list("/teachers")),
     ]).then(([classes, subjects, years, settings, assignments, teachers]) => ({
       classes,
       subjects,

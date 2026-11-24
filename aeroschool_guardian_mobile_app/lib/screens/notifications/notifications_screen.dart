@@ -4,8 +4,6 @@ import '../../l10n/l10n_ext.dart';
 
 import 'package:provider/provider.dart';
 
-import '../../l10n/app_localizations.dart';
-
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../models/family.dart';
@@ -76,11 +74,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   context.l10n.modNotices,
                   widget.studentName ?? '',
                 )
-              : AppLocalizations.of(context).notificationsTitle,
+              : context.l10n.notificationsTitle,
         ),
         actions: [
           IconButton(
-            tooltip: AppLocalizations.of(context).teacherMessages,
+            tooltip: context.l10n.teacherMessages,
             icon: const Icon(Icons.forum_outlined),
             onPressed: () => Navigator.push(
               context,
@@ -91,7 +89,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             TextButton(
               onPressed: provider.markAllRead,
               child: Text(
-                AppLocalizations.of(context).markAllRead,
+                context.l10n.markAllRead,
                 style: const TextStyle(color: Colors.white),
               ),
             ),
@@ -116,9 +114,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         Padding(
                           padding: const EdgeInsets.only(right: 6),
                           child: ChoiceChip(
-                            label: Text(
-                              AppLocalizations.of(context).allChildren,
-                            ),
+                            label: Text(context.l10n.allChildren),
                             selected: _childFilter == null,
                             onSelected: (_) =>
                                 setState(() => _childFilter = null),

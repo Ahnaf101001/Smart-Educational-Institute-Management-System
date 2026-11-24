@@ -4,8 +4,6 @@ import '../../l10n/l10n_ext.dart';
 
 import 'package:provider/provider.dart';
 
-import '../../l10n/app_localizations.dart';
-
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../models/child.dart';
@@ -31,9 +29,9 @@ class FamilyDashboardScreen extends StatelessWidget {
 
   String _greeting(BuildContext context) {
     final h = DateTime.now().hour;
-    if (h < 12) return AppLocalizations.of(context).greetMorning;
-    if (h < 17) return AppLocalizations.of(context).greetAfternoon;
-    return AppLocalizations.of(context).greetEvening;
+    if (h < 12) return context.l10n.greetMorning;
+    if (h < 17) return context.l10n.greetAfternoon;
+    return context.l10n.greetEvening;
   }
 
   @override
@@ -41,7 +39,7 @@ class FamilyDashboardScreen extends StatelessWidget {
     final family = context.watch<FamilyProvider>();
     final o = family.overview;
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context).dashTitle)),
+      appBar: AppBar(title: Text(context.l10n.dashTitle)),
       body: Builder(
         builder: (context) {
           if (o == null && family.loading) {
@@ -63,22 +61,21 @@ class FamilyDashboardScreen extends StatelessWidget {
                 StatGrid(
                   children: [
                     StatTile(
-                      label: AppLocalizations.of(context).statTotalChildren,
+                      label: context.l10n.statTotalChildren,
                       value: '${o.children.length}',
                       icon: Icons.family_restroom_rounded,
                     ),
                     StatTile(
-                      label: AppLocalizations.of(context).statPresentToday,
+                      label: context.l10n.statPresentToday,
                       value: '${o.presentToday}/${o.children.length}',
                       icon: Icons.how_to_reg_rounded,
                       color: AppColors.success,
                       caption: o.absentToday > 0
-                          ? AppLocalizations.of(context)
-                                .absentCount(o.absentToday)
+                          ? context.l10n.absentCount(o.absentToday)
                           : null,
                     ),
                     StatTile(
-                      label: AppLocalizations.of(context).statTotalDue,
+                      label: context.l10n.statTotalDue,
                       value: Fmt.money(o.totalDue),
                       icon: Icons.account_balance_wallet_outlined,
                       color: o.totalDue > 0
@@ -86,7 +83,7 @@ class FamilyDashboardScreen extends StatelessWidget {
                           : AppColors.success,
                     ),
                     StatTile(
-                      label: AppLocalizations.of(context).statPendingHomework,
+                      label: context.l10n.statPendingHomework,
                       value: '${o.pendingHomework}',
                       icon: Icons.menu_book_rounded,
                       color: AppColors.warning,
@@ -98,15 +95,12 @@ class FamilyDashboardScreen extends StatelessWidget {
                   for (final n in o.notices.where((n) => n.isUrgent).take(2))
                     _UrgentBanner(notice: n),
                 ],
-                SectionTitle(
-                  AppLocalizations.of(context).myChildren(o.children.length),
-                ),
+                SectionTitle(context.l10n.myChildren(o.children.length)),
                 if (o.children.isEmpty)
                   Card(
                     child: EmptyView(
-                      title: AppLocalizations.of(context).noLinkedStudents,
-                      subtitle: AppLocalizations.of(context)
-                          .noLinkedStudentsHint,
+                      title: context.l10n.noLinkedStudents,
+                      subtitle: context.l10n.noLinkedStudentsHint,
                       icon: Icons.link_off,
                     ),
                   )
@@ -116,11 +110,9 @@ class FamilyDashboardScreen extends StatelessWidget {
                     const SizedBox(height: 10),
                   ],
                 if (o.children.isNotEmpty) ...[
-                  SectionTitle(
-                    AppLocalizations.of(context).childWiseAttendance,
-                  ),
+                  SectionTitle(context.l10n.childWiseAttendance),
                   SectionCard(
-                    title: AppLocalizations.of(context).thisMonth,
+                    title: context.l10n.thisMonth,
                     icon: Icons.fact_check_outlined,
                     child: Column(
                       children: [
@@ -128,19 +120,19 @@ class FamilyDashboardScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                  SectionTitle(AppLocalizations.of(context).todaysRoutine),
+                  SectionTitle(context.l10n.todaysRoutine),
                   for (final c in o.children) ...[
                     _TodayRoutine(child: c),
                     const SizedBox(height: 10),
                   ],
-                  SectionTitle(AppLocalizations.of(context).monthlyFeeSummary),
+                  SectionTitle(context.l10n.monthlyFeeSummary),
                   _FeeSummary(overview: o),
                 ],
-                SectionTitle(AppLocalizations.of(context).upcomingExams),
+                SectionTitle(context.l10n.upcomingExams),
                 Card(
                   child: o.upcomingExams.isEmpty
                       ? EmptyView(
-                          title: AppLocalizations.of(context).noUpcomingExams,
+                          title: context.l10n.noUpcomingExams,
                           icon: Icons.event_available_outlined,
                         )
                       : Column(
@@ -169,7 +161,7 @@ class FamilyDashboardScreen extends StatelessWidget {
                         ),
                 ),
                 SectionTitle(
-                  AppLocalizations.of(context).recentNotices,
+                  context.l10n.recentNotices,
                   trailing: o.notices.isEmpty
                       ? null
                       : Text(
@@ -180,7 +172,7 @@ class FamilyDashboardScreen extends StatelessWidget {
                 Card(
                   child: o.notices.isEmpty
                       ? EmptyView(
-                          title: AppLocalizations.of(context).noNotices,
+                          title: context.l10n.noNotices,
                           icon: Icons.campaign_outlined,
                         )
                       : Column(
@@ -227,16 +219,16 @@ class FamilyDashboardScreen extends StatelessWidget {
                         ),
                 ),
                 SectionTitle(
-                  AppLocalizations.of(context).importantNotifications,
+                  context.l10n.importantNotifications,
                   trailing: TextButton(
                     onPressed: onOpenNotifications,
-                    child: Text(AppLocalizations.of(context).viewAll),
+                    child: Text(context.l10n.viewAll),
                   ),
                 ),
                 Card(
                   child: o.recentNotifications.isEmpty
                       ? EmptyView(
-                          title: AppLocalizations.of(context).noNotifications,
+                          title: context.l10n.noNotifications,
                           icon: Icons.notifications_none_rounded,
                         )
                       : Column(
@@ -421,8 +413,7 @@ class _ChildCard extends StatelessWidget {
                   ),
                 ),
                 StatusChip(
-                  child.todayAttendance ??
-                      AppLocalizations.of(context).notMarked,
+                  child.todayAttendance ?? context.l10n.notMarked,
                   color: child.todayAttendance == null ? AppColors.muted : null,
                 ),
               ],
@@ -431,20 +422,20 @@ class _ChildCard extends StatelessWidget {
             Row(
               children: [
                 _Mini(
-                  label: AppLocalizations.of(context).attendance,
+                  label: context.l10n.attendance,
                   value: Fmt.percent(child.monthAttendancePercentage),
                 ),
                 _Mini(
-                  label: AppLocalizations.of(context).feeDue,
+                  label: context.l10n.feeDue,
                   value: child.canViewFees ? Fmt.money(child.feeDue) : '—',
                   danger: child.feeDue > 0,
                 ),
                 _Mini(
-                  label: AppLocalizations.of(context).homework,
+                  label: context.l10n.homework,
                   value: '${child.homeworkCount}',
                 ),
                 _Mini(
-                  label: AppLocalizations.of(context).latestResult,
+                  label: context.l10n.latestResult,
                   value: child.canViewResults
                       ? (child.latestResultGrade ?? '—')
                       : '—',

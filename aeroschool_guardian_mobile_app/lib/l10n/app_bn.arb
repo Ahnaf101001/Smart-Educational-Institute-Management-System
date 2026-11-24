@@ -370,5 +370,7 @@
   "updatedRefresh": "হালনাগাদ {time} • প্রতি ১৫ সেকেন্ডে রিফ্রেশ হয়",
   "speedKmh": "গতি: {speed} কিমি/ঘণ্টা",
   "selectedCount": "{count}টি নির্বাচিত",
-  "daysPresentOf": "{present}/{total} দিন • {percent}"
+  "daysPresentOf": "{present}/{total} দিন • {percent}",
+  "tomorrow": "আগামীকাল",
+  "daysCount": "{count, plural, other{{count} দিন}}"
 }

@@ -1248,4 +1248,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String daysPresentOf(String present, String total, String percent) {
     return '$present/$total days • $percent';
   }
+
+  @override
+  String get tomorrow => 'Tomorrow';
+
+  @override
+  String daysCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days',
+      one: '1 day',
+    );
+    return '$_temp0';
+  }
 }

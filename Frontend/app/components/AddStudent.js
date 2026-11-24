@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, Upload } from "lucide-react";
-import { academicApi, studentsApi, uploadsApi } from "../lib/api";
+import { Check, ChevronDown, Upload, Users } from "lucide-react";
+import { academicApi, http, resource, studentsApi, uploadsApi } from "../lib/api";
 import PhotoUpload from "./ui/PhotoUpload";
-import { useToast } from "./ui/kit";
+import { today, useToast } from "./ui/kit";
 
-const steps = ["Personal Info", "Guardian Info", "Academic Info", "Documents"];
+const steps = ["Student", "Guardian", "Class", "Documents"];
 
 const defaultForm = {
   photoUrl: "",
@@ -15,7 +15,7 @@ const defaultForm = {
   dateOfBirth: "",
   gender: "",
   religion: "",
-  nationality: "",
+  nationality: "Bangladeshi",
   phone: "",
   email: "",
   presentAddress: "",
@@ -41,11 +41,20 @@ const defaultForm = {
   section: "",
   rollNumber: "",
   session: "",
-  admissionDate: "",
+  admissionDate: today(),
   previousSchool: "",
   previousClass: "",
   previousGpa: "",
 };
+
+// Only what the school genuinely needs to create the record; everything else is optional.
+// Step 2 needs a primary guardian mobile (the guardian account is matched by it) and a name.
+const requiredByStep = [
+  ["firstName", "lastName", "dateOfBirth", "gender"],
+  ["fatherPhone"],
+  ["admissionClass", "section", "rollNumber", "session", "admissionDate"],
+  [],
+];
 
 // [form key, title, subtitle, student_documents.document_type]
 const documentFields = [
@@ -55,71 +64,66 @@ const documentFields = [
   ["transferCertificate", "Transfer Certificate", "TC from previous school", "Transfer Certificate"],
 ];
 
-function Field({ label, name, value, onChange, type = "text", children, className = "" }) {
+const DIVISIONS = ["Dhaka", "Chattogram", "Rajshahi", "Khulna", "Barishal", "Sylhet", "Rangpur", "Mymensingh"];
+const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+
+function Field({ label, name, value, onChange, onBlur, type = "text", required = false, hint, children, className = "" }) {
   const controlClass =
     "h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
 
   return (
     <label className={`block ${className}`}>
-      <span className="mb-2 block text-sm font-semibold text-slate-700">{label}</span>
+      <span className="mb-2 block text-sm font-semibold text-slate-700">
+        {label}
+        {required && <span className="ml-0.5 text-rose-600" aria-hidden="true">*</span>}
+      </span>
       {children ? (
-        <select name={name} value={value} onChange={onChange} className={controlClass}>
+        <select name={name} value={value} onChange={onChange} required={required} className={controlClass}>
           {children}
         </select>
       ) : (
-        <input name={name} value={value} onChange={onChange} type={type} className={controlClass} />
+        <input name={name} value={value} onChange={onChange} onBlur={onBlur} type={type} required={required} className={controlClass} />
       )}
+      {hint && <span className="mt-1 block text-xs text-slate-500">{hint}</span>}
     </label>
+  );
+}
+
+// Optional details stay one click away so the everyday form stays short.
+function MoreDetails({ title, children }) {
+  return (
+    <details className="group md:col-span-2 rounded-2xl border border-slate-200 bg-slate-50/50 open:bg-white">
+      <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold text-slate-700">
+        {title}
+        <ChevronDown size={18} className="transition group-open:rotate-180" />
+      </summary>
+      <div className="grid gap-5 border-t border-slate-100 p-4 md:grid-cols-2">{children}</div>
+    </details>
   );
 }
 
 function Stepper({ currentStep }) {
   return (
-    <div className="rounded-[20px] border border-slate-200 bg-white px-8 py-7 shadow-sm">
-      <div className="grid grid-cols-4 items-start gap-4">
-        {steps.map((step, index) => {
-          const number = index + 1;
-          const completed = currentStep > index;
-          const active = currentStep === index;
-
-          return (
-            <div className="grid grid-cols-[auto_1fr] items-center gap-4 last:grid-cols-[auto]" key={step}>
-              <div>
-                <span
-                  className={`grid size-11 place-items-center rounded-full text-base font-bold ${
-                    completed
-                      ? "bg-emerald-500 text-white"
-                      : active
-                        ? "bg-blue-600 text-white"
-                        : "bg-slate-100 text-slate-400"
-                  }`}
-                >
-                  {completed ? <Check size={20} /> : number}
-                </span>
-                <p
-                  className={`mt-2 whitespace-nowrap text-sm font-medium ${
-                    completed
-                      ? "text-emerald-600"
-                      : active
-                        ? "text-blue-600"
-                        : "text-slate-500"
-                  }`}
-                >
-                  {step}
-                </p>
-              </div>
-              {index < steps.length - 1 && (
-                <div
-                  className={`mt-5 h-0.5 min-w-12 ${
-                    currentStep > index ? "bg-emerald-500" : "bg-slate-200"
-                  }`}
-                />
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
+    <ol className="grid grid-cols-4 gap-2 rounded-[20px] border border-slate-200 bg-white px-4 py-5 shadow-sm sm:px-8">
+      {steps.map((step, index) => {
+        const completed = currentStep > index;
+        const active = currentStep === index;
+        return (
+          <li key={step} className="flex min-w-0 flex-col items-center gap-2 text-center" aria-current={active ? "step" : undefined}>
+            <span
+              className={`grid size-10 place-items-center rounded-full text-sm font-bold ${
+                completed ? "bg-emerald-500 text-white" : active ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400"
+              }`}
+            >
+              {completed ? <Check size={18} /> : index + 1}
+            </span>
+            <span className={`truncate text-xs font-semibold sm:text-sm ${completed ? "text-emerald-600" : active ? "text-blue-600" : "text-slate-500"}`}>
+              {step}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -149,47 +153,88 @@ function UploadBox({ name, title, subtitle, fileName, onFile }) {
   );
 }
 
+const nextFreeRoll = (students) =>
+  String(students.reduce((max, s) => Math.max(max, Number.parseInt(s.roll, 10) || 0), 0) + 1);
+
 export default function AddStudent({ onCancel, onSaved }) {
   const toast = useToast();
   const [currentStep, setCurrentStep] = useState(0);
   const [form, setForm] = useState(defaultForm);
   const [academicYears, setAcademicYears] = useState([]);
+  const [classes, setClasses] = useState([]);
   const [documents, setDocuments] = useState({});
   const [message, setMessage] = useState("");
+  const [rollAuto, setRollAuto] = useState(true);
+  const [sibling, setSibling] = useState(null);
 
   const fullName = useMemo(
     () => `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
     [form.firstName, form.lastName],
   );
+  // Sections come from the school's own class setup, so madrasa / pre-school lines appear too.
+  const sections = useMemo(
+    () => classes.find((c) => c.name === form.admissionClass)?.sections || [],
+    [classes, form.admissionClass],
+  );
 
   useEffect(() => {
     let cancelled = false;
-    const timer = window.setTimeout(async () => {
-      try {
-        const years = await academicApi.years.list();
+    Promise.all([academicApi.years.list(), academicApi.classes.list()])
+      .then(([years, classList]) => {
         if (cancelled) return;
-
         setAcademicYears(years);
+        setClasses(classList);
         setForm((current) => {
           if (current.session || !years.length) return current;
           const currentYear = years.find((year) => year.status === "Current") || years[0];
           return { ...current, session: currentYear.name };
         });
-      } catch {
-        if (!cancelled) setAcademicYears([]);
-      }
-    }, 0);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
+      })
+      .catch(() => { /* the selects simply stay empty; saving reports the error */ });
+    return () => { cancelled = true; };
   }, []);
+
+  // A class has one section → pick it.
+  useEffect(() => {
+    if (sections.length === 1 && form.section !== sections[0]) {
+      setForm((current) => ({ ...current, section: sections[0] }));
+    }
+  }, [sections, form.section]);
+
+  // Suggest the next free roll for the chosen class/section (the server still rejects duplicates).
+  useEffect(() => {
+    if (!rollAuto || !form.admissionClass || !form.section) return;
+    let cancelled = false;
+    resource("/students")
+      .all({ class_name: `${form.admissionClass}-${form.section}` })
+      .then((rows) => { if (!cancelled) setForm((current) => ({ ...current, rollNumber: nextFreeRoll(rows) })); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [rollAuto, form.admissionClass, form.section]);
 
   function changeField(event) {
     const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: value }));
+    setForm((current) => ({
+      ...current,
+      [name]: value,
+      ...(name === "admissionClass" ? { section: "" } : {}),
+    }));
+    if (name === "rollNumber") setRollAuto(false);
     setMessage("");
+  }
+
+  async function checkSibling() {
+    if (form.fatherPhone.replace(/\D/g, "").length < 11) { setSibling(null); return; }
+    try {
+      const hint = await http.get("/students/siblings/check", { mobile: form.fatherPhone });
+      setSibling(hint?.guardian ? hint : null);
+      // Same guardian → reuse their name instead of typing it again.
+      if (hint?.guardian && !form.fatherName && !form.guardianName) {
+        setForm((current) => ({ ...current, fatherName: hint.guardian.name || current.fatherName }));
+      }
+    } catch {
+      setSibling(null);
+    }
   }
 
   function changeDocument(name, file) {
@@ -197,19 +242,12 @@ export default function AddStudent({ onCancel, onSaved }) {
   }
 
   function validateStep() {
-    const requiredByStep = [
-      ["firstName", "lastName", "dateOfBirth", "gender", "phone"],
-      ["fatherName", "fatherPhone", "motherName"],
-      ["admissionClass", "section", "rollNumber", "session", "admissionDate"],
-      [],
-    ];
-
     const missing = requiredByStep[currentStep].some((field) => !String(form[field] || "").trim());
-    if (missing) {
-      setMessage("Please fill all required fields before continuing.");
+    const noGuardianName = currentStep === 1 && !form.fatherName.trim() && !form.guardianName.trim();
+    if (missing || noGuardianName) {
+      setMessage("Please fill the fields marked * before continuing.");
       return false;
     }
-
     return true;
   }
 
@@ -229,7 +267,7 @@ export default function AddStudent({ onCancel, onSaved }) {
         roll: (form.rollNumber || "").padStart(3, "0"),
         name: fullName || "New Student",
         gender: form.gender,
-        className: `${form.admissionClass}-${form.section}`.replace("Class ", "Class "),
+        className: `${form.admissionClass}-${form.section}`,
         parentContact: form.fatherPhone,
         guardianName: form.guardianName || form.fatherName || undefined,
         dateOfBirth: form.dateOfBirth,
@@ -274,105 +312,124 @@ export default function AddStudent({ onCancel, onSaved }) {
     }
   }
 
+  const f = (name) => ({ name, value: form[name], onChange: changeField });
+
   return (
     <div className="mx-auto max-w-[960px] space-y-5">
       <Stepper currentStep={currentStep} />
 
-      <div className="rounded-[20px] border border-slate-200 bg-white p-8 shadow-sm">
+      <div className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
         {message && (
-          <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+          <div role="alert" className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
             {message}
           </div>
         )}
 
         {currentStep === 0 && (
           <div>
-            <h1 className="mb-6 text-2xl font-bold text-slate-950">Personal Info</h1>
+            <h1 className="mb-1 text-2xl font-bold text-slate-950">Student</h1>
+            <p className="mb-6 text-sm text-slate-500">Fields marked <span className="text-rose-600">*</span> are required.</p>
             <div className="grid gap-5 md:grid-cols-2">
-              <Field label="First Name" name="firstName" value={form.firstName} onChange={changeField} />
-              <Field label="Last Name" name="lastName" value={form.lastName} onChange={changeField} />
-              <Field label="Date of Birth" name="dateOfBirth" value={form.dateOfBirth} onChange={changeField} type="date" />
-              <Field label="Gender" name="gender" value={form.gender} onChange={changeField}>
+              <Field label="First name" required {...f("firstName")} />
+              <Field label="Last name" required {...f("lastName")} />
+              <Field label="Date of birth" type="date" required {...f("dateOfBirth")} />
+              <Field label="Gender" required {...f("gender")}>
                 <option value="">Select gender</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
                 <option value="Other">Other</option>
               </Field>
-              <Field label="Religion" name="religion" value={form.religion} onChange={changeField} />
-              <Field label="Nationality" name="nationality" value={form.nationality} onChange={changeField} />
-              <Field label="Phone" name="phone" value={form.phone} onChange={changeField} />
-              <Field label="Email" name="email" value={form.email} onChange={changeField} type="email" />
-              <Field label="Name in Bangla" name="nameBn" value={form.nameBn} onChange={changeField} />
-              <Field label="Birth Certificate No" name="birthCertNo" value={form.birthCertNo} onChange={changeField} />
-              <Field label="Blood Group (optional)" name="bloodGroup" value={form.bloodGroup} onChange={changeField}>
-                <option value="">Not known</option>
-                {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((g) => <option key={g} value={g}>{g}</option>)}
-              </Field>
-              <Field label="Present Address" name="presentAddress" value={form.presentAddress} onChange={changeField} className="md:col-span-2" />
-              <Field label="Division" name="division" value={form.division} onChange={changeField}>
-                <option value="">Select division</option>
-                {["Dhaka", "Chattogram", "Rajshahi", "Khulna", "Barishal", "Sylhet", "Rangpur", "Mymensingh"].map((d) => <option key={d} value={d}>{d}</option>)}
-              </Field>
-              <Field label="District" name="district" value={form.district} onChange={changeField} />
-              <Field label="Upazila / Thana" name="upazila" value={form.upazila} onChange={changeField} />
-              <Field label="Post Office" name="postOffice" value={form.postOffice} onChange={changeField} />
-              <Field label="Allergies (optional)" name="allergies" value={form.allergies} onChange={changeField} />
-              <Field label="Special needs (optional)" name="specialNeeds" value={form.specialNeeds} onChange={changeField} />
-              <Field label="Medical notes (optional)" name="medicalNotes" value={form.medicalNotes} onChange={changeField} className="md:col-span-2" />
+              <Field label="Name in Bangla" {...f("nameBn")} />
+              <Field label="Birth certificate no." {...f("birthCertNo")} />
+              <MoreDetails title="Contact & address (optional)">
+                <Field label="Student phone" {...f("phone")} />
+                <Field label="Email" type="email" {...f("email")} />
+                <Field label="Present address" className="md:col-span-2" {...f("presentAddress")} />
+                <Field label="Division" {...f("division")}>
+                  <option value="">Select division</option>
+                  {DIVISIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+                </Field>
+                <Field label="District" {...f("district")} />
+                <Field label="Upazila / Thana" {...f("upazila")} />
+                <Field label="Post office" {...f("postOffice")} />
+              </MoreDetails>
+              <MoreDetails title="Religion, nationality & health (optional)">
+                <Field label="Religion" {...f("religion")} />
+                <Field label="Nationality" {...f("nationality")} />
+                <Field label="Blood group" {...f("bloodGroup")}>
+                  <option value="">Not known</option>
+                  {BLOOD_GROUPS.map((g) => <option key={g} value={g}>{g}</option>)}
+                </Field>
+                <Field label="Allergies" {...f("allergies")} />
+                <Field label="Special needs" {...f("specialNeeds")} />
+                <Field label="Medical notes" className="md:col-span-2" {...f("medicalNotes")} />
+              </MoreDetails>
             </div>
           </div>
         )}
 
         {currentStep === 1 && (
           <div>
-            <h1 className="mb-6 text-2xl font-bold text-slate-950">Guardian Info</h1>
+            <h1 className="mb-1 text-2xl font-bold text-slate-950">Guardian</h1>
+            <p className="mb-6 text-sm text-slate-500">
+              The primary mobile is the guardian&apos;s login and SMS number. A mobile that already exists links this student to the same guardian account.
+            </p>
             <div className="grid gap-5 md:grid-cols-2">
-              <Field label="Father's Name" name="fatherName" value={form.fatherName} onChange={changeField} />
-              <Field label="Father's Occupation" name="fatherOccupation" value={form.fatherOccupation} onChange={changeField} />
-              <Field label="Father's Phone" name="fatherPhone" value={form.fatherPhone} onChange={changeField} />
-              <Field label="Father's NIC" name="fatherNic" value={form.fatherNic} onChange={changeField} />
-              <Field label="Mother's Name" name="motherName" value={form.motherName} onChange={changeField} />
-              <Field label="Mother's Phone" name="motherPhone" value={form.motherPhone} onChange={changeField} />
-              <Field label="Guardian Name (if different)" name="guardianName" value={form.guardianName} onChange={changeField} />
-              <Field label="Guardian Relation" name="guardianRelation" value={form.guardianRelation} onChange={changeField} />
+              <Field label="Primary guardian mobile" required type="tel" onBlur={checkSibling} hint="e.g. 01711000301" {...f("fatherPhone")} />
+              <Field label="Father's name" required={!form.guardianName} hint="Or fill “Guardian name” below." {...f("fatherName")} />
+              {sibling?.guardian && (
+                <div className="md:col-span-2 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                  <Users size={18} className="mt-0.5 shrink-0" />
+                  <span>
+                    This mobile belongs to <b>{sibling.guardian.name}</b>
+                    {sibling.siblings?.length ? ` (already guardian of ${sibling.siblings.map((s) => s.name).join(", ")})` : ""}.
+                    The new student will be linked to the same guardian account – no second account is created.
+                  </span>
+                </div>
+              )}
+              <Field label="Mother's name" {...f("motherName")} />
+              <Field label="Mother's mobile" type="tel" {...f("motherPhone")} />
+              <MoreDetails title="Other guardian & father's details (optional)">
+                <Field label="Guardian name (if not the father)" {...f("guardianName")} />
+                <Field label="Guardian relation" {...f("guardianRelation")} />
+                <Field label="Father's occupation" {...f("fatherOccupation")} />
+                <Field label="Father's NID" {...f("fatherNic")} />
+              </MoreDetails>
             </div>
           </div>
         )}
 
         {currentStep === 2 && (
           <div>
-            <h1 className="mb-6 text-2xl font-bold text-slate-950">Academic Info</h1>
+            <h1 className="mb-6 text-2xl font-bold text-slate-950">Class</h1>
             <div className="grid gap-5 md:grid-cols-2">
-              <Field label="Admission Class" name="admissionClass" value={form.admissionClass} onChange={changeField}>
+              <Field label="Class" required {...f("admissionClass")}>
                 <option value="">Select class</option>
-                {Array.from({ length: 12 }, (_, index) => (
-                  <option key={index + 1} value={`Class ${index + 1}`}>{`Class ${index + 1}`}</option>
-                ))}
+                {classes.map((c) => <option key={c.id || c.name} value={c.name}>{c.name}</option>)}
               </Field>
-              <Field label="Section" name="section" value={form.section} onChange={changeField}>
-                <option value="">Select section</option>
-                {["A", "B", "C", "D"].map((section) => (
-                  <option key={section} value={section}>{section}</option>
-                ))}
+              <Field label="Section" required {...f("section")}>
+                <option value="">{form.admissionClass ? "Select section" : "Choose a class first"}</option>
+                {sections.map((s) => <option key={s} value={s}>{s}</option>)}
               </Field>
-              <Field label="Roll Number" name="rollNumber" value={form.rollNumber} onChange={changeField} />
-              <Field label="Session" name="session" value={form.session} onChange={changeField}>
+              <Field label="Roll" required hint={rollAuto && form.rollNumber ? "Next free roll – change it if needed." : undefined} {...f("rollNumber")} />
+              <Field label="Session" required {...f("session")}>
                 <option value="">Select session</option>
-                {academicYears.map((year) => (
-                  <option key={year.id} value={year.name}>{year.name}</option>
-                ))}
+                {academicYears.map((year) => <option key={year.id} value={year.name}>{year.name}</option>)}
               </Field>
-              <Field label="Admission Date" name="admissionDate" value={form.admissionDate} onChange={changeField} type="date" />
-              <Field label="Previous School" name="previousSchool" value={form.previousSchool} onChange={changeField} />
-              <Field label="Previous Class" name="previousClass" value={form.previousClass} onChange={changeField} />
-              <Field label="GPA (Previous)" name="previousGpa" value={form.previousGpa} onChange={changeField} />
+              <Field label="Admission date" type="date" required {...f("admissionDate")} />
+              <MoreDetails title="Previous school (optional)">
+                <Field label="Previous school" {...f("previousSchool")} />
+                <Field label="Previous class" {...f("previousClass")} />
+                <Field label="GPA (previous)" {...f("previousGpa")} />
+              </MoreDetails>
             </div>
           </div>
         )}
 
         {currentStep === 3 && (
           <div>
-            <h1 className="mb-6 text-2xl font-bold text-slate-950">Documents</h1>
+            <h1 className="mb-1 text-2xl font-bold text-slate-950">Documents</h1>
+            <p className="mb-6 text-sm text-slate-500">All optional – they can also be added later from Student 360.</p>
             <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50/60 p-5">
               <PhotoUpload
                 label="Student Photo (ID Card)"
@@ -395,38 +452,21 @@ export default function AddStudent({ onCancel, onSaved }) {
           </div>
         )}
 
-        <div className="mt-8 flex items-center justify-between border-t border-slate-100 pt-5">
-          {currentStep === 0 ? (
-            <button
-              className="h-12 rounded-2xl border border-slate-200 bg-white px-7 text-base font-bold text-slate-700 transition hover:bg-slate-50"
-              onClick={onCancel}
-            >
-              Cancel
-            </button>
-          ) : (
-            <button
-              className="h-12 rounded-2xl border border-slate-200 bg-white px-7 text-base font-bold text-slate-700 transition hover:bg-slate-50"
-              onClick={previousStep}
-            >
-              Previous
-            </button>
-          )}
-
-          {currentStep < steps.length - 1 ? (
-            <button
-              className="h-12 rounded-2xl bg-blue-600 px-7 text-base font-bold text-white shadow-sm transition hover:bg-blue-700"
-              onClick={nextStep}
-            >
-              Next Step
-            </button>
-          ) : (
-            <button
-              className="h-12 rounded-2xl bg-blue-600 px-7 text-base font-bold text-white shadow-sm transition hover:bg-blue-700"
-              onClick={saveStudent}
-            >
-              Save Student
-            </button>
-          )}
+        <div className="mt-8 flex items-center justify-between gap-3 border-t border-slate-100 pt-5">
+          <button
+            type="button"
+            className="h-12 rounded-2xl border border-slate-200 bg-white px-7 text-base font-bold text-slate-700 transition hover:bg-slate-50"
+            onClick={currentStep === 0 ? onCancel : previousStep}
+          >
+            {currentStep === 0 ? "Cancel" : "Back"}
+          </button>
+          <button
+            type="button"
+            className="h-12 rounded-2xl bg-blue-600 px-7 text-base font-bold text-white shadow-sm transition hover:bg-blue-700"
+            onClick={currentStep < steps.length - 1 ? nextStep : saveStudent}
+          >
+            {currentStep < steps.length - 1 ? "Next" : "Save student"}
+          </button>
         </div>
       </div>
     </div>

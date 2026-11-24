@@ -5,6 +5,7 @@ import '../../l10n/l10n_ext.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
+import '../../core/validators.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_exception.dart';
 import '../../widgets/async_view.dart';
@@ -35,15 +36,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     _next.dispose();
     _confirm.dispose();
     super.dispose();
-  }
-
-  static String? validateStrength(String? v) {
-    final s = v ?? '';
-    if (s.length < 8) return 'Use at least 8 characters.';
-    if (!RegExp(r'[A-Za-z]').hasMatch(s) || !RegExp(r'\d').hasMatch(s)) {
-      return 'Use both letters and numbers.';
-    }
-    return null;
   }
 
   Future<void> _submit() async {
@@ -161,10 +153,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                           onPressed: () => setState(() => _obscure = !_obscure),
                         ),
                       ),
-                      validator: (v) {
-                        final e = validateStrength(v);
-                        return e == null ? null : context.l10n.word(e);
-                      },
+                      validator: (v) =>
+                          Validators.passwordStrength(v, context.l10n),
                     ),
                     const SizedBox(height: 14),
                     TextFormField(
@@ -174,16 +164,18 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         labelText: context.l10n.confirmNewPassword,
                         prefixIcon: const Icon(Icons.lock_outline),
                       ),
-                      validator: (v) => v != _next.text
-                          ? context.l10n.passwordsDoNotMatch
-                          : null,
+                      validator: (v) => Validators.passwordsMatch(
+                        v,
+                        _next.text,
+                        context.l10n,
+                      ),
                       onFieldSubmitted: (_) => _submit(),
                     ),
                     if (_error != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 12),
                         child: Text(
-                          _error!,
+                          context.l10n.word(_error!),
                           style: const TextStyle(color: AppColors.danger),
                         ),
                       ),
@@ -213,19 +205,5 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         ),
       ),
     );
-  }
-}
-
-/// Password rules shared by the change-password and reset-password screens.
-class ChangePasswordScreenValidators {
-  ChangePasswordScreenValidators._();
-
-  static String? strength(String? v) {
-    final s = v ?? '';
-    if (s.length < 8) return 'Use at least 8 characters.';
-    if (!RegExp(r'[A-Za-z]').hasMatch(s) || !RegExp(r'\d').hasMatch(s)) {
-      return 'Use both letters and numbers.';
-    }
-    return null;
   }
 }

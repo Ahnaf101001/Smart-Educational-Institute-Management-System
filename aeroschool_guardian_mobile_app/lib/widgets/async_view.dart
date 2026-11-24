@@ -2,8 +2,6 @@ import 'package:material_ui/material_ui.dart';
 
 import '../l10n/l10n_ext.dart';
 
-import '../l10n/app_localizations.dart';
-
 import '../core/theme.dart';
 import '../services/api_exception.dart';
 
@@ -52,7 +50,7 @@ class ErrorView extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
-              label: Text(AppLocalizations.of(context).tryAgain),
+              label: Text(context.l10n.tryAgain),
             ),
           ],
         ],

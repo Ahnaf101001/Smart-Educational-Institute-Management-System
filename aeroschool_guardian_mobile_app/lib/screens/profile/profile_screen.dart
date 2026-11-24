@@ -4,8 +4,6 @@ import '../../l10n/l10n_ext.dart';
 
 import 'package:provider/provider.dart';
 
-import '../../l10n/app_localizations.dart';
-
 import '../../config/app_config.dart';
 import '../../core/format.dart';
 import '../../core/theme.dart';
@@ -51,7 +49,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final auth = context.read<AuthProvider>();
     final family = context.watch<FamilyProvider>();
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context).profileTitle)),
+      appBar: AppBar(title: Text(context.l10n.profileTitle)),
       body: AsyncView<_ProfileData>(
         key: ValueKey(_version),
         load: () => _load(service),
@@ -109,7 +107,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 12),
                 SectionCard(
-                  title: AppLocalizations.of(context).contactInformation,
+                  title: context.l10n.contactInformation,
                   icon: Icons.contact_phone_outlined,
                   action: TextButton.icon(
                     onPressed: () async {
@@ -124,7 +122,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       }
                     },
                     icon: const Icon(Icons.edit_outlined, size: 18),
-                    label: Text(AppLocalizations.of(context).edit),
+                    label: Text(context.l10n.edit),
                   ),
                   child: Column(
                     children: [
@@ -164,7 +162,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 12),
                 SectionCard(
-                  title: AppLocalizations.of(context).otherGuardianContacts,
+                  title: context.l10n.otherGuardianContacts,
                   icon: Icons.groups_outlined,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,7 +208,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 12),
                 SectionCard(
-                  title: AppLocalizations.of(context).schoolContact,
+                  title: context.l10n.schoolContact,
                   icon: Icons.apartment_rounded,
                   child: Column(
                     children: [
@@ -254,16 +252,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                 ),
-                SectionTitle(AppLocalizations.of(context).support),
+                SectionTitle(context.l10n.support),
                 Card(
                   child: Column(
                     children: [
                       if (child != null)
                         ListTile(
                           leading: const Icon(Icons.event_busy_outlined),
-                          title: Text(
-                            AppLocalizations.of(context).leaveApplication,
-                          ),
+                          title: Text(context.l10n.leaveApplication),
                           subtitle: Text(context.l10n.onBehalfOf(child.name)),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () => Navigator.push(
@@ -275,9 +271,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ListTile(
                         leading: const Icon(Icons.report_problem_outlined),
-                        title: Text(
-                          AppLocalizations.of(context).complaintsFeedback,
-                        ),
+                        title: Text(context.l10n.complaintsFeedback),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => Navigator.push(
                           context,
@@ -290,9 +284,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       if (child != null)
                         ListTile(
                           leading: const Icon(Icons.folder_outlined),
-                          title: Text(
-                            AppLocalizations.of(context).downloadDocuments,
-                          ),
+                          title: Text(context.l10n.downloadDocuments),
                           subtitle: Text(child.name),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () => Navigator.push(
@@ -305,22 +297,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                 ),
-                SectionTitle(AppLocalizations.of(context).language),
+                SectionTitle(context.l10n.language),
                 const Card(
                   child: Padding(
                     padding: EdgeInsets.all(12),
                     child: Center(child: LanguageSwitch()),
                   ),
                 ),
-                SectionTitle(AppLocalizations.of(context).security),
+                SectionTitle(context.l10n.security),
                 Card(
                   child: Column(
                     children: [
                       ListTile(
                         leading: const Icon(Icons.password_rounded),
-                        title: Text(
-                          AppLocalizations.of(context).changePassword,
-                        ),
+                        title: Text(context.l10n.changePassword),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => Navigator.push(
                           context,
@@ -331,9 +321,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       ListTile(
                         leading: const Icon(Icons.devices_other_outlined),
-                        title: Text(
-                          AppLocalizations.of(context).signOutAllDevices,
-                        ),
+                        title: Text(context.l10n.signOutAllDevices),
                         onTap: () =>
                             _confirmLogout(context, auth, allDevices: true),
                       ),
@@ -343,7 +331,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           color: AppColors.danger,
                         ),
                         title: Text(
-                          AppLocalizations.of(context).logout,
+                          context.l10n.logout,
                           style: const TextStyle(
                             color: AppColors.danger,
                             fontWeight: FontWeight.w700,
@@ -384,23 +372,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(
-          allDevices
-              ? AppLocalizations.of(context).logoutAllTitle
-              : AppLocalizations.of(context).logoutTitle,
+          allDevices ? context.l10n.logoutAllTitle : context.l10n.logoutTitle,
         ),
         content: Text(
-          allDevices
-              ? AppLocalizations.of(context).logoutAllBody
-              : AppLocalizations.of(context).logoutBody,
+          allDevices ? context.l10n.logoutAllBody : context.l10n.logoutBody,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text(AppLocalizations.of(context).cancel),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(AppLocalizations.of(context).logout),
+            child: Text(context.l10n.logout),
           ),
         ],
       ),

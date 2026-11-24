@@ -279,6 +279,11 @@ module.exports = {
     writable: ["kind", "class_id", "class_name", "section", "subject_id", "teacher_id", "title", "description",
       "attachment_url", "assigned_date", "due_date", "total_marks", "status", "submissions", "created_by"],
     required: ["title"], scopeColumn: { id: "class_id", name: "class_name" },
+    // A teacher posting homework is its teacher unless another one was chosen – saves picking
+    // yourself from a list teachers cannot read.
+    beforeCreate: async (payload, req) => {
+      if (!payload.teacher_id && req?.user?.linkedType === "Teacher" && req.user.linkedId) payload.teacher_id = req.user.linkedId;
+    },
     // Guardian App (Workflow v2 §9, Workflow §5): notify guardians when homework is published.
     afterCreate: async (row) => notifyHomework(row),
     afterUpdate: async (row, old) => { if (row.status === "Published" && old.status !== "Published") notifyHomework(row); },

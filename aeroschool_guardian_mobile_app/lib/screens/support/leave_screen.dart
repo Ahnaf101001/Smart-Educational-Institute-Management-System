@@ -151,6 +151,13 @@ class _LeaveFormState extends State<_LeaveForm> {
     });
   }
 
+  static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  bool _isSingleDay(int offset) {
+    final d = _dateOnly(DateTime.now()).add(Duration(days: offset));
+    return _dateOnly(_from) == d && _dateOnly(_to) == d;
+  }
+
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
@@ -201,6 +208,27 @@ class _LeaveFormState extends State<_LeaveForm> {
                 onChanged: (v) => setState(() => _typeId = v),
               ),
             const SizedBox(height: 12),
+            // Most requests are for today or tomorrow: one tap instead of two date pickers.
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final (label, offset) in [
+                  (context.l10n.today, 0),
+                  (context.l10n.tomorrow, 1),
+                ])
+                  ChoiceChip(
+                    label: Text(label),
+                    selected: _isSingleDay(offset),
+                    onSelected: (_) => setState(() {
+                      final d = _dateOnly(DateTime.now())
+                          .add(Duration(days: offset));
+                      _from = d;
+                      _to = d;
+                    }),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
@@ -223,7 +251,7 @@ class _LeaveFormState extends State<_LeaveForm> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
-                '$days day${days == 1 ? '' : 's'}',
+                context.l10n.daysCount(days),
                 style: const TextStyle(color: AppColors.muted),
               ),
             ),

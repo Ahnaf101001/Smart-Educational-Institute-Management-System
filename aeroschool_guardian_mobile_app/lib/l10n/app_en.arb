@@ -689,5 +689,14 @@
         "type": "String"
       }
     }
+  },
+  "tomorrow": "Tomorrow",
+  "daysCount": "{count, plural, =1{1 day} other{{count} days}}",
+  "@daysCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

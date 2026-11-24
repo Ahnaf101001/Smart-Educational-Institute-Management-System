@@ -1,7 +1,8 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:provider/provider.dart';
 
-import '../../l10n/app_localizations.dart';
+import '../../l10n/l10n_ext.dart';
+
+import 'package:provider/provider.dart';
 
 import '../../providers/family_provider.dart';
 import '../../providers/notification_provider.dart';
@@ -89,12 +90,12 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           NavigationDestination(
             icon: const Icon(Icons.home_outlined),
             selectedIcon: const Icon(Icons.home_rounded),
-            label: AppLocalizations.of(context).navHome,
+            label: context.l10n.navHome,
           ),
           NavigationDestination(
             icon: const Icon(Icons.face_outlined),
             selectedIcon: const Icon(Icons.face_rounded),
-            label: AppLocalizations.of(context).navMyChild,
+            label: context.l10n.navMyChild,
           ),
           NavigationDestination(
             icon: Badge(
@@ -107,12 +108,12 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               label: Text('$unread'),
               child: const Icon(Icons.notifications_rounded),
             ),
-            label: AppLocalizations.of(context).navAlerts,
+            label: context.l10n.navAlerts,
           ),
           NavigationDestination(
             icon: const Icon(Icons.person_outline),
             selectedIcon: const Icon(Icons.person_rounded),
-            label: AppLocalizations.of(context).navProfile,
+            label: context.l10n.navProfile,
           ),
         ],
       ),

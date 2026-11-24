@@ -160,6 +160,21 @@ function FormField({ field, value, onChange, optionsFor, form }) {
   return <Field label={field.label} required={field.required} hint={field.hint} className={field.wide ? "sm:col-span-2" : ""}>{control}</Field>;
 }
 
+// Collapsible group for optional fields. Opens by itself when the record already has values there;
+// after that the user's own toggle wins (state is read once per opened record via `key`).
+function MoreFields({ defaultOpen, count, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <details open={open} onToggle={(e) => setOpen(e.currentTarget.open)} className="mt-4 rounded-xl border border-slate-200">
+      <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2.5 text-sm font-semibold text-slate-700">
+        More details (optional)
+        {!open && <span className="text-xs font-normal text-slate-500">{count} fields</span>}
+      </summary>
+      <div className="grid gap-4 border-t border-slate-100 p-3 sm:grid-cols-2">{children}</div>
+    </details>
+  );
+}
+
 export default function ResourceManager({ config, embedded = false, fixedFilters = {}, onChanged }) {
   const { user } = useUser();
   const toast = useToast();
@@ -399,11 +414,30 @@ export default function ResourceManager({ config, embedded = false, fixedFilters
           </>
         )}
       >
-        <div className="grid gap-4 sm:grid-cols-2">
-          {(config.fields || []).filter((f) => !(f.readOnlyOnEdit && editing !== "new")).filter((f) => !Object.prototype.hasOwnProperty.call(fixedFilters, f.key)).map((f) => (
+        {(() => {
+          const shown = (config.fields || [])
+            .filter((f) => !(f.readOnlyOnEdit && editing !== "new"))
+            .filter((f) => !Object.prototype.hasOwnProperty.call(fixedFilters, f.key));
+          const render = (f) => (
             <FormField key={f.key} field={f} value={form[f.key]} form={form} optionsFor={optionsFor} onChange={(v) => setForm((cur) => ({ ...cur, [f.key]: v }))} />
-          ))}
-        </div>
+          );
+          // Optional extras (`more: true`) sit behind one toggle so everyday entry stays short.
+          // Required fields are never hidden, and the group opens when a record already has values there.
+          const isMore = (f) => f.more && !f.required;
+          const main = shown.filter((f) => !isMore(f));
+          const more = shown.filter(isMore);
+          // Only an existing record opens the group by itself; on a new one the values are just defaults.
+          const hasMoreValues = editing !== "new"
+            && more.some((f) => form[f.key] !== undefined && form[f.key] !== null && form[f.key] !== "" && form[f.key] !== false);
+          return (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2">{main.map(render)}</div>
+              {more.length > 0 && (
+                <MoreFields key={String(editing)} defaultOpen={hasMoreValues} count={more.length}>{more.map(render)}</MoreFields>
+              )}
+            </>
+          );
+        })()}
         {config.formNote && <p className="mt-4 rounded-xl bg-blue-50 p-3 text-xs text-blue-700">{config.formNote}</p>}
       </Modal>
       {dialog}

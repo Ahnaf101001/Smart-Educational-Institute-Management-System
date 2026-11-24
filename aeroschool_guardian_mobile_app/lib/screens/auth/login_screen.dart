@@ -4,8 +4,6 @@ import '../../l10n/l10n_ext.dart';
 
 import 'package:provider/provider.dart';
 
-import '../../l10n/app_localizations.dart';
-
 import '../../config/app_config.dart';
 import '../../core/theme.dart';
 import '../../models/school.dart';
@@ -180,8 +178,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 14),
                     Text(
-                      _school?.name ??
-                          AppLocalizations.of(context).loginSchoolFallback,
+                      _school?.name ?? context.l10n.loginSchoolFallback,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 18,
@@ -190,7 +187,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      AppLocalizations.of(context).loginBrand,
+                      context.l10n.loginBrand,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: AppColors.muted,
@@ -209,17 +206,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                       textInputAction: TextInputAction.next,
                       decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context).loginEmail,
+                        labelText: context.l10n.loginEmail,
                         prefixIcon: const Icon(Icons.alternate_email),
                       ),
                       validator: (v) {
                         final s = (v ?? '').trim();
                         if (s.isEmpty) {
-                          return AppLocalizations.of(context).loginEnterEmail;
+                          return context.l10n.loginEnterEmail;
                         }
                         if (!s.contains('@') &&
                             !RegExp(r'^\+?\d{10,14}$').hasMatch(s)) {
-                          return AppLocalizations.of(context).loginInvalidEmail;
+                          return context.l10n.loginInvalidEmail;
                         }
                         return null;
                       },
@@ -231,7 +228,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       autofillHints: const [AutofillHints.password],
                       onFieldSubmitted: (_) => _submit(),
                       decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context).loginPassword,
+                        labelText: context.l10n.loginPassword,
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           tooltip: _obscure
@@ -246,7 +243,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       validator: (v) => (v ?? '').length < 6
-                          ? AppLocalizations.of(context).loginEnterPassword
+                          ? context.l10n.loginEnterPassword
                           : null,
                     ),
                     const SizedBox(height: 6),
@@ -263,7 +260,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               onChanged: (v) =>
                                   setState(() => _remember = v ?? true),
                             ),
-                            Text(AppLocalizations.of(context).loginRemember),
+                            Text(context.l10n.loginRemember),
                           ],
                         ),
                         TextButton(
@@ -275,7 +272,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                           ),
-                          child: Text(AppLocalizations.of(context).loginForgot),
+                          child: Text(context.l10n.loginForgot),
                         ),
                       ],
                     ),
@@ -323,19 +320,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : Text(AppLocalizations.of(context).loginButton),
+                          : Text(context.l10n.loginButton),
                     ),
                     const SizedBox(height: 18),
                     OutlinedButton.icon(
                       onPressed: _contactSchool,
                       icon: const Icon(Icons.support_agent),
-                      label: Text(
-                        AppLocalizations.of(context).loginContactSchool,
-                      ),
+                      label: Text(context.l10n.loginContactSchool),
                     ),
                     const SizedBox(height: 18),
                     Text(
-                      AppLocalizations.of(context).loginNoSignup,
+                      context.l10n.loginNoSignup,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: AppColors.muted,

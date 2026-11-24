@@ -1,7 +1,9 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../l10n/l10n_ext.dart';
+
 import 'package:provider/provider.dart';
 
-import '../l10n/app_localizations.dart';
 import '../providers/locale_provider.dart';
 
 /// English / বাংলা toggle (N2). Used on the login screen and in the profile.
@@ -14,7 +16,7 @@ class LanguageSwitch extends StatelessWidget {
   Widget build(BuildContext context) {
     final locale = context.watch<LocaleProvider>();
     final current = locale.isBangla ? 'bn' : 'en';
-    final l = AppLocalizations.of(context);
+    final l = context.l10n;
     return SegmentedButton<String>(
       showSelectedIcon: false,
       style: compact

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Calendar, Clock, LayoutGrid, List, Plus, Printer, User, BookOpen, Trash2 } from "lucide-react";
-import { academicApi, routineApi, teachersApi } from "../lib/api";
+import { academicApi, optionalList, routineApi, teachersApi } from "../lib/api";
 
 // Color mapping for subjects
 const subjectColors = {
@@ -150,7 +150,7 @@ export default function Routine() {
         const [academicData, teachersData] = await Promise.all([
           academicApi.load(),
           // Teachers may view the routine without access to the teacher list.
-          teachersApi.list().catch((e) => (e?.status === 403 ? [] : Promise.reject(e)))
+          optionalList(teachersApi.list())
         ]);
         
         const allClasses = academicData.classes || [];
