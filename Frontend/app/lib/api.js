@@ -389,6 +389,7 @@ export const authApi = {
     body: JSON.stringify({ email, password }),
   }).then((payload) => payload.data),
   me: () => request("/auth/me").then((payload) => payload.data),
+  logout: () => request("/auth/logout", { method: "POST", body: "{}" }),
 };
 
 export const reportsApi = {

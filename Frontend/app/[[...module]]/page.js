@@ -492,6 +492,8 @@ export default function Home() {
   }, []);
 
   const handleLogout = useCallback(() => {
+    // Revoke this session on the server (best effort; the request reads the token synchronously).
+    if (localStorage.getItem("edumanage-token")) authApi.logout().catch(() => {});
     localStorage.removeItem("edumanage-token");
     localStorage.removeItem("edumanage-user");
     setUser(null);

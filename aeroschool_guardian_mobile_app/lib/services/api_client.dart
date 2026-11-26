@@ -84,6 +84,19 @@ class ApiClient {
     auth: auth,
   );
 
+  /// Best-effort signed request whose failure is ignored and never triggers the
+  /// sign-out callbacks (used while signing out, where a 401 would loop).
+  Future<void> postQuietly(
+    String path, {
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
+    try {
+      await _http
+          .post(_uri(path), headers: await _headers(), body: '{}')
+          .timeout(timeout);
+    } catch (_) {}
+  }
+
   Future<dynamic> delete(String path, {Object? body}) => _send(
     () async => _http.delete(
       _uri(path),

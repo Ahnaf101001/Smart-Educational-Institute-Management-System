@@ -125,11 +125,18 @@ class AuthProvider extends ChangeNotifier {
   Future<void> resetPassword(String token, String newPassword) =>
       _auth.resetPassword(token, newPassword);
 
-  Future<void> logout({String? message, bool allDevices = false}) async {
+  Future<void> logout({
+    String? message,
+    bool allDevices = false,
+    bool revokeSession = true,
+  }) async {
     if (allDevices) {
       try {
         await _auth.logoutAllDevices();
       } catch (_) {}
+    } else if (revokeSession) {
+      // Otherwise the token would stay valid on the server until it expires.
+      await _auth.logoutThisDevice();
     }
     await tokens.clearToken();
     _user = null;
@@ -141,7 +148,11 @@ class AuthProvider extends ChangeNotifier {
   void _handleUnauthorized() {
     if (_status == AuthStatus.signedIn ||
         _status == AuthStatus.mustChangePassword) {
-      logout(message: 'Your session has ended. Please sign in again.');
+      // The server already rejected the token: nothing left to revoke.
+      logout(
+        message: 'Your session has ended. Please sign in again.',
+        revokeSession: false,
+      );
     }
   }
 

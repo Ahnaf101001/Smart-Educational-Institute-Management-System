@@ -68,6 +68,9 @@ class AuthService {
 
   Future<void> logoutAllDevices() => _api.post('/auth/logout-all');
 
+  /// Revokes this phone's session on the server (best effort, never throws).
+  Future<void> logoutThisDevice() => _api.postQuietly('/auth/logout');
+
   /// Public school branding/contact for the login screen.
   Future<SchoolInfo> publicSchool() async => SchoolInfo.fromJson(
     J.map(await _api.get('/public/institute', auth: false)),

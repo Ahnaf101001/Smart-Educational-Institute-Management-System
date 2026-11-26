@@ -20,6 +20,10 @@ class FamilyProvider extends ChangeNotifier {
   String? _fingerprint;
   String? _syncVersion;
 
+  /// Bumped by [clear] (sign-out). A load that started for the previous
+  /// guardian is discarded, so a shared phone never shows another family's data.
+  int _session = 0;
+
   /// The values a guardian sees on the dashboards. When a silent re-check
   /// returns different values, open screens are told to reload.
   static String fingerprintOf(FamilyOverview o) => [
@@ -79,6 +83,7 @@ class FamilyProvider extends ChangeNotifier {
 
   Future<void> load({bool silent = false}) async {
     if (_loading) return;
+    final session = _session;
     _loading = true;
     if (!silent) {
       _error = null;
@@ -91,6 +96,7 @@ class FamilyProvider extends ChangeNotifier {
       final pendingVersion = service.syncVersion();
       final o = await service.home();
       final version = await pendingVersion;
+      if (session != _session) return;
       final fp = fingerprintOf(o);
       final changed =
           (_fingerprint != null && fp != _fingerprint) ||
@@ -104,14 +110,23 @@ class FamilyProvider extends ChangeNotifier {
         _selectedChildId = children.isEmpty ? null : children.first.id;
       }
     } on ApiException catch (e) {
-      _error = e.message;
+      if (session == _session) _error = e.message;
+    } catch (_) {
+      // Unexpected data from the server must not crash the app.
+      if (session == _session) {
+        _error = 'Something went wrong. Please try again.';
+      }
     } finally {
-      _loading = false;
-      notifyListeners();
+      if (session == _session) {
+        _loading = false;
+        notifyListeners();
+      }
     }
   }
 
   void clear() {
+    _session++;
+    _loading = false;
     _overview = null;
     _fingerprint = null;
     _syncVersion = null;

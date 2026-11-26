@@ -203,6 +203,8 @@ class _FamilyCalendarScreenState extends State<FamilyCalendarScreen> {
                         for (final day in byDay.entries) ...[
                           SectionTitle(Fmt.date(day.key)),
                           Card(
+                            // Keeps the per-child colour stripes inside the rounded corners.
+                            clipBehavior: Clip.antiAlias,
                             child: Column(
                               children: [
                                 for (final item in day.value)

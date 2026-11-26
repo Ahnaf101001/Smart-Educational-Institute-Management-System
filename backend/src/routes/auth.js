@@ -275,6 +275,15 @@ router.post("/change-password", authenticate, asyncHandler(async (req, res) => {
   res.json({ success: true, message: "Password changed. Please sign in again." });
 }));
 
+// Sign-out on this device: the session (and its token) stops working immediately.
+router.post("/logout", authenticate, asyncHandler(async (req, res) => {
+  if (req.user.sessionId) {
+    await query("UPDATE user_sessions SET revoked_at = NOW() WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL", [req.user.sessionId, req.user.id]);
+  }
+  await writeAudit(req, { entity: "user_sessions", entityId: req.user.sessionId || req.user.id, action: "LOGOUT" });
+  res.json({ success: true });
+}));
+
 // Ends every active session of the current user.
 router.post("/logout-all", authenticate, asyncHandler(async (req, res) => {
   await query("UPDATE users SET token_version = token_version + 1 WHERE id = $1", [req.user.id]);

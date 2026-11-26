@@ -24,6 +24,9 @@ class NotificationProvider extends ChangeNotifier {
   Timer? _timer;
   bool _baseline = false;
 
+  /// Bumped by [clear] (sign-out) so late responses for the previous guardian are dropped.
+  int _session = 0;
+
   /// Called on every poll tick so other data (the family overview) is
   /// re-checked on the same schedule.
   VoidCallback? onTick;
@@ -51,8 +54,10 @@ class NotificationProvider extends ChangeNotifier {
   }
 
   Future<void> refreshCount() async {
+    final session = _session;
     try {
       final n = await service.unreadCount();
+      if (session != _session) return;
       // Compare with the last known count, whether or not the Alerts list was
       // ever opened (previously new items were only announced after it was).
       if (_baseline && n > _unread) {
@@ -66,21 +71,32 @@ class NotificationProvider extends ChangeNotifier {
       }
     } on ApiException {
       // Polling failures are silent; the list screen shows errors.
+    } catch (_) {
+      // Unexpected response: ignore this tick, the next poll tries again.
     }
   }
 
   Future<void> load({String? studentId}) async {
+    final session = _session;
     _loading = true;
     _error = null;
     notifyListeners();
     try {
-      _items = await service.notifications(studentId: studentId);
+      final items = await service.notifications(studentId: studentId);
+      if (session != _session) return;
+      _items = items;
       if (studentId == null) _unread = _items.where((n) => n.isUnread).length;
     } on ApiException catch (e) {
-      _error = e.message;
+      if (session == _session) _error = e.message;
+    } catch (_) {
+      if (session == _session) {
+        _error = 'Something went wrong. Please try again.';
+      }
     } finally {
-      _loading = false;
-      notifyListeners();
+      if (session == _session) {
+        _loading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -112,6 +128,9 @@ class NotificationProvider extends ChangeNotifier {
   }
 
   void clear() {
+    _session++;
+    _loading = false;
+    _error = null;
     stopPolling();
     onTick = null;
     _baseline = false;

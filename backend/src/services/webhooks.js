@@ -62,7 +62,7 @@ function emit(entity, action, auditId, data) {
       const committed = await query("SELECT 1 FROM audit_logs WHERE id = $1", [auditId]).catch(() => ({ rowCount: 0 }));
       // Not visible yet: the transaction is still open or was rolled back. Retry, then give up.
       if (!committed.rowCount) {
-        if (i + 1 < delays.length) setTimeout(() => attempt(i + 1), delays[i + 1] - delays[i]);
+        if (i + 1 < delays.length) setTimeout(() => attempt(i + 1).catch(() => {}), delays[i + 1] - delays[i]);
         return;
       }
     }
@@ -73,7 +73,8 @@ function emit(entity, action, auditId, data) {
       }
     }
   };
-  setTimeout(() => attempt(0), delays[0]);
+  // A database hiccup while checking hooks must not surface as an unhandled rejection.
+  setTimeout(() => attempt(0).catch(() => {}), delays[0]);
 }
 
 module.exports = { emit, deliver, invalidate };

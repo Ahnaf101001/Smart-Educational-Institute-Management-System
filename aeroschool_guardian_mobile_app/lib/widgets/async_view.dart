@@ -147,20 +147,25 @@ class _AsyncViewState<T> extends State<AsyncView<T>> {
     if (oldWidget.key != widget.key) _reload();
   }
 
+  /// Only the latest request may update the screen: a slow earlier response
+  /// (e.g. a live-sync reload overlapping pull-to-refresh) must not overwrite newer data.
+  int _generation = 0;
+
   Future<void> _reload() async {
+    final generation = ++_generation;
     setState(() {
       _loading = _data == null;
       _error = null;
     });
     try {
       final data = await widget.load();
-      if (!mounted) return;
+      if (!mounted || generation != _generation) return;
       setState(() {
         _data = data;
         _loading = false;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || generation != _generation) return;
       setState(() {
         _error = e is ApiException
             ? e.message

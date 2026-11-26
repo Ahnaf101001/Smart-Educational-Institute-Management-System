@@ -110,6 +110,8 @@ const _bn = <String, String>{
   'The server is taking too long to respond. Please try again.':
       'সার্ভার সাড়া দিতে দেরি করছে। আবার চেষ্টা করুন।',
   'Cannot reach the school server. Check your internet connection and try again.': 'স্কুলের সার্ভারে সংযোগ করা যাচ্ছে না। ইন্টারনেট সংযোগ দেখে আবার চেষ্টা করুন।',
+  'Something went wrong. Please try again.':
+      'কিছু একটা সমস্যা হয়েছে। আবার চেষ্টা করুন।',
   'Sign-in failed. Please try again.': 'লগইন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।',
   'Enter your current password.': 'আপনার বর্তমান পাসওয়ার্ড লিখুন।',
   'Two-step verification is enabled for this account. Please contact the school to use the guardian app.': 'এই অ্যাকাউন্টে দুই-ধাপের যাচাই চালু আছে। অভিভাবক অ্যাপ ব্যবহারের জন্য স্কুলে যোগাযোগ করুন।',
