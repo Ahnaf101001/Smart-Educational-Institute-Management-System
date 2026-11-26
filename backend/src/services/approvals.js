@@ -108,8 +108,11 @@ async function isDelegateFor(userId, type) {
 }
 
 /** Super Admins may decide their own requests; others only when the self-approval exception is on. */
+// Maker-checker exception (RP-15, RP-19): everyone may decide own requests when the institution-wide
+// exception is on; otherwise only administrators, and only while the Super Admin override is enabled.
 function canSelfDecide(req, settings) {
-  return Boolean(req.user?.isAdmin || settings?.allow_self_approval);
+  if (settings?.allow_self_approval) return true;
+  return Boolean(req.user?.isAdmin && settings?.admin_self_approval !== false);
 }
 
 // The record behind a leave approval mirrors its lifecycle, so the guardian app (which reads
@@ -180,7 +183,7 @@ async function decide(req, id, decision, note) {
     throw httpError(422, "A reason is mandatory when rejecting or asking for clarification.");
   }
 
-  const settings = (await query("SELECT allow_self_approval FROM system_settings WHERE id = 1")).rows[0] || {};
+  const settings = (await query("SELECT allow_self_approval, admin_self_approval FROM system_settings WHERE id = 1")).rows[0] || {};
 
   return transaction(async (client) => {
     const result = await client.query("SELECT * FROM approval_requests WHERE id = $1 FOR UPDATE", [id]);

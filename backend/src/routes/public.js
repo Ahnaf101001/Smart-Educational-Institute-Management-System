@@ -57,6 +57,33 @@ router.post("/uploads/photo", photoLimiter, asyncHandler(async (req, res) => {
   res.status(201).json({ success: true, data: { url, mimeType: sig.mime, size: buffer.length, width: dimensions.width, height: dimensions.height } });
 }));
 
+// Applicant documents for the online admission form (AD-02 / AD-02v1): birth certificate, previous
+// result, transfer certificate… JPG / PNG / WEBP / PDF up to 5 MB, saved in the PRIVATE folder (only
+// staff with admission / student access can open them). The returned reference is sent back in
+// details.documents and checked again on submit.
+const docLimiter = rateLimit({ windowMs: 60 * 60_000, max: 20, message: "Too many document uploads from this network. Try later." });
+const PRIVATE_FILE = /^\/api\/backend\/uploads\/private\/[0-9a-f-]{36}\.(?:jpg|png|webp|pdf)$/;
+router.post("/uploads/document", docLimiter, asyncHandler(async (req, res) => {
+  const s = (await query("SELECT public_admission_enabled FROM system_settings WHERE id = 1")).rows[0];
+  if (s && s.public_admission_enabled === false) throw httpError(403, "Online admission is currently closed.");
+  const { buffer, sig } = uploads.validateUpload({ data: req.body?.data, category: "document", maxMb: 5 });
+  const { name, url } = await uploads.saveFile(buffer, sig, "document");
+  await writeAudit(req, { entity: "uploads", entityId: name, action: "PUBLIC_UPLOAD", newValue: { category: "admission-document", size: buffer.length } });
+  res.status(201).json({ success: true, data: { url, mimeType: sig.mime, size: buffer.length, fileName: String(req.body?.fileName || name).slice(0, 120) } });
+}));
+
+// Public gallery (OM-05): published albums marked Public.
+router.get("/gallery", asyncHandler(async (req, res) => {
+  const rows = (await query(
+    `SELECT a.id, a.title, a.title_bn, a.description, a.event_date, a.cover_url,
+            COALESCE((SELECT json_agg(json_build_object('id', p.id, 'imageUrl', p.image_url, 'caption', p.caption) ORDER BY p.sort_order, p.created_at)
+                      FROM gallery_photos p WHERE p.album_id = a.id::text), '[]'::json) AS photos
+     FROM gallery_albums a WHERE a.status = 'Published' AND a.audience = 'Public'
+     ORDER BY a.event_date DESC NULLS LAST, a.created_at DESC LIMIT 50`,
+  )).rows;
+  res.json({ success: true, data: keysToCamel(rows) });
+}));
+
 // Online admission form (AD-02, v1 AD-02..05).
 router.post("/admissions/apply", applyLimiter, asyncHandler(async (req, res) => {
   const s = (await query("SELECT public_admission_enabled FROM system_settings WHERE id = 1")).rows[0];
@@ -80,6 +107,11 @@ router.post("/admissions/apply", applyLimiter, asyncHandler(async (req, res) => 
   if (details.photoUrl && !/^\/api\/backend\/public\/files\/[A-Za-z0-9-]+\.(?:jpg|png|webp)$/.test(String(details.photoUrl))) {
     delete details.photoUrl;
   }
+  // Documents: only files uploaded through /public/uploads/document (private folder), max 10.
+  details.documents = (Array.isArray(b.documents) ? b.documents : [])
+    .filter((d) => d && PRIVATE_FILE.test(String(d.url || "")))
+    .slice(0, 10)
+    .map((d) => ({ type: String(d.type || "Document").slice(0, 60), url: String(d.url), fileName: String(d.fileName || "").slice(0, 120), mimeType: String(d.mimeType || "").slice(0, 40) }));
 
   const dups = await findDuplicates({ query }, { birthCertNo: b.birthCertificateNo, name, dateOfBirth: b.dateOfBirth, guardianMobile: mobile });
   const row = await transaction(async (client) => {

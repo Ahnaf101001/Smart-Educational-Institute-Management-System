@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import '../core/format.dart';
 import '../models/academics.dart';
+import '../models/campus.dart';
 import '../models/family.dart';
 import '../models/fees.dart';
 import '../models/school.dart';
@@ -63,6 +64,37 @@ class GuardianService {
       StudentExtras.fromJson(
         J.map(await _api.get(_student(studentId, 'extras'))),
       );
+
+  /// Hifz, Salah, library, hostel, houses / clubs and pre-school log (same endpoint as [extras]).
+  Future<CampusData> campus(String studentId) async =>
+      CampusData.fromJson(J.map(await _api.get(_student(studentId, 'extras'))));
+
+  /// Published photo albums for guardians (OM-05v1).
+  Future<List<GalleryAlbum>> gallery() async => J
+      .list(await _api.get('$_base/gallery'))
+      .map(GalleryAlbum.fromJson)
+      .toList();
+
+  /// Upcoming parent–teacher meeting slots: free ones and this guardian's bookings (SB-09).
+  Future<List<PtmSlot>> ptmSlots() async =>
+      J.list(await _api.get('$_base/ptm-slots')).map(PtmSlot.fromJson).toList();
+
+  Future<void> bookPtm(String slotId, String studentId) => _api.post(
+    '$_base/ptm-slots/${Uri.encodeComponent(slotId)}/book',
+    body: {'studentId': studentId},
+  );
+
+  Future<void> cancelPtm(String slotId) =>
+      _api.post('$_base/ptm-slots/${Uri.encodeComponent(slotId)}/cancel');
+
+  /// Signed-in phones and browsers on this account (GA-05v1).
+  Future<List<DeviceSession>> sessions() async => J
+      .list(await _api.get('/auth/sessions'))
+      .map(DeviceSession.fromJson)
+      .toList();
+
+  Future<void> signOutSession(String sessionId) =>
+      _api.delete('/auth/sessions/${Uri.encodeComponent(sessionId)}');
 
   /// Latest position of the child's bus, or null when no GPS fix exists.
   Future<BusLocation?> busLocation(String studentId) async {

@@ -59,6 +59,16 @@ async function confirmAdmission(client, req, admissionId, { section, roll } = {}
 
   await upsertEnrollment(client, student);
 
+  // AD-02: documents uploaded with the online application become the student's documents.
+  for (const doc of Array.isArray(d.documents) ? d.documents : []) {
+    if (!doc?.url) continue;
+    await client.query(
+      `INSERT INTO student_documents (owner_type, owner_id, document_type, file_name, file_url, mime_type, uploaded_by)
+       VALUES ('Student', $1, $2, $3, $4, $5, $6)`,
+      [student.id, doc.type || "Admission document", doc.fileName || null, doc.url, doc.mimeType || null, "Online application"],
+    );
+  }
+
   // Guardians: father, mother, legal guardian (GD-01); primary = selected or first.
   const guardianInputs = [
     { name: d.fatherName, mobile: d.fatherPhone, relation: "Father", occupation: d.fatherOccupation, nid: d.fatherNid },

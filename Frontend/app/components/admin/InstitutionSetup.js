@@ -268,7 +268,11 @@ function PoliciesTab() {
           <Field label="Session timeout (minutes)"><Input type="number" value={s.sessionTimeoutMinutes} onChange={num("sessionTimeoutMinutes")} /></Field>
           <Field label="Lock account after failed logins"><Input type="number" value={s.maxLoginAttempts} onChange={num("maxLoginAttempts")} /></Field>
         </div>
-        <div className="mt-3">{chk("allowSelfApproval", "Exception policy: allow makers to approve their own requests (not recommended)")}</div>
+        <div className="mt-3 grid gap-2">
+          {chk("allowSelfApproval", "Exception policy: allow makers to approve their own requests (not recommended)")}
+          {chk("adminSelfApproval", "Super Admin override: administrators may decide their own requests (flagged \"Own request\" in the history)")}
+          {chk("enforceAdminTwoFactor", "Require two-step sign-in (SMS OTP) for administrator accounts")}
+        </div>
       </Card>
       <Card title="Optional modules" subtitle="Turn modules on for this institution (v1 PC-04)">
         <div className="grid gap-2 sm:grid-cols-2">

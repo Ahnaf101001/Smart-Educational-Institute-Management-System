@@ -11,7 +11,7 @@ const BN = {
   "ID Card Center": "আইডি কার্ড সেন্টার", "Template Gallery": "টেমপ্লেট গ্যালারি", "Generate & Print": "কার্ড তৈরি ও প্রিন্ট",
   "Print History": "প্রিন্ট ইতিহাস", "Issued Cards": "ইস্যুকৃত কার্ড",
   "Teachers": "শিক্ষক", "Staff": "কর্মচারী", "HR & Payroll": "এইচআর ও বেতন", "Payroll": "বেতন", "Salary Structure": "বেতন কাঠামো",
-  "Leave": "ছুটি", "Academic": "একাডেমিক", "Setup": "সেটআপ", "Calendar": "একাডেমিক ক্যালেন্ডার", "Homework": "হোমওয়ার্ক",
+  "Photo Gallery": "ফটো গ্যালারি", "Leave": "ছুটি", "Academic": "একাডেমিক", "Setup": "সেটআপ", "Calendar": "একাডেমিক ক্যালেন্ডার", "Homework": "হোমওয়ার্ক",
   "Resources & Syllabus": "রিসোর্স ও সিলেবাস", "Online Classes": "অনলাইন ক্লাস", "Routine": "রুটিন",
   "Attendance": "উপস্থিতি", "Student Attendance": "শিক্ষার্থী উপস্থিতি", "Staff Attendance": "স্টাফ উপস্থিতি",
   "Leave Requests": "ছুটির আবেদন", "Devices & RFID": "ডিভাইস ও আরএফআইডি", "Attendance Reports": "উপস্থিতি রিপোর্ট",

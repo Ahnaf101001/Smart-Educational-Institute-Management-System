@@ -155,6 +155,53 @@ class AcademicEvent {
   );
 }
 
+/// Live / recorded online class (GA-19).
+class OnlineClass {
+  OnlineClass({
+    required this.id,
+    required this.title,
+    required this.status,
+    this.provider,
+    this.scheduledAt,
+    this.durationMinutes,
+    this.meetingUrl,
+    this.recordingUrl,
+  });
+
+  final String id;
+  final String title;
+  final String status;
+  final String? provider;
+  final DateTime? scheduledAt;
+  final int? durationMinutes;
+  final String? meetingUrl;
+  final String? recordingUrl;
+
+  bool get cancelled => status == 'Cancelled';
+
+  /// Joinable from 15 minutes before the start until the end of the class.
+  bool joinableAt(DateTime now) {
+    if (meetingUrl == null || cancelled || status == 'Completed') return false;
+    if (status == 'Live') return true;
+    final start = scheduledAt;
+    if (start == null) return true;
+    final end = start.add(Duration(minutes: durationMinutes ?? 60));
+    return now.isAfter(start.subtract(const Duration(minutes: 15))) &&
+        now.isBefore(end);
+  }
+
+  factory OnlineClass.fromJson(Map<String, dynamic> j) => OnlineClass(
+    id: J.str(j['id']),
+    title: J.str(j['title'], 'Online class'),
+    status: J.str(j['status'], 'Scheduled'),
+    provider: J.strOrNull(j['provider']),
+    scheduledAt: J.date(j['scheduledAt']),
+    durationMinutes: J.numOrNull(j['durationMinutes'])?.toInt(),
+    meetingUrl: J.strOrNull(j['meetingUrl']),
+    recordingUrl: J.strOrNull(j['recordingUrl']),
+  );
+}
+
 /// `/portal/guardian/students/:id/academics`.
 class AcademicsData {
   AcademicsData({
@@ -162,12 +209,14 @@ class AcademicsData {
     required this.homework,
     required this.examRoutine,
     required this.events,
+    this.onlineClasses = const [],
   });
 
   final List<RoutineEntry> routine;
   final List<Homework> homework;
   final List<ExamScheduleItem> examRoutine;
   final List<AcademicEvent> events;
+  final List<OnlineClass> onlineClasses;
 
   factory AcademicsData.fromJson(Map<String, dynamic> j) => AcademicsData(
     routine: J.list(j['routine']).map(RoutineEntry.fromJson).toList(),
@@ -177,6 +226,11 @@ class AcademicsData {
         .map(ExamScheduleItem.fromJson)
         .toList(),
     events: J.list(j['events']).map(AcademicEvent.fromJson).toList(),
+    onlineClasses: J
+        .list(j['onlineClasses'])
+        .map(OnlineClass.fromJson)
+        .where((c) => !c.cancelled)
+        .toList(),
   );
 }
 

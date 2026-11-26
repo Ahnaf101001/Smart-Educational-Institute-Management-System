@@ -17,7 +17,7 @@ const allowed = [
   "invoice_generation_day", "sms_provider", "sms_sender_id", "sms_cost_per_part", "payment_gateways",
   "require_new_card_each_session", "card_print_requires_approval", "card_validity_months", "card_number_prefix",
   "staff_card_number_prefix", "student_id_format", "admit_card_block_on_due", "result_hide_on_due",
-  "allow_self_approval", "expense_approval_threshold", "committee_approval_threshold", "session_timeout_minutes",
+  "allow_self_approval", "admin_self_approval", "enforce_admin_two_factor", "expense_approval_threshold", "committee_approval_threshold", "session_timeout_minutes",
   "max_login_attempts", "enabled_modules", "public_admission_enabled", "public_result_enabled",
   "max_discount_percent", "allow_discount_stacking", "approval_escalation_hours", "sms_fallback_channel",
   "form_fillup_block_on_test_fail", "late_days_per_deduction", "half_day_counts_as", "teacher_quiet_hours",

@@ -2,15 +2,17 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// App language (English / বাংলা). Defaults to the phone's language when it is
-/// Bangla, otherwise English; the guardian's choice is remembered on the device.
+/// App language (বাংলা / English). Bangla is the default (GA-04v1); the
+/// guardian's choice is remembered on the device.
 class LocaleProvider extends ChangeNotifier {
   static const _key = 'aeroschool.locale';
   static const supported = [Locale('en'), Locale('bn')];
 
-  Locale? _locale;
+  Locale? _locale = defaultLocale;
 
-  /// Null means "follow the device" (resolved by MaterialApp against [supported]).
+  static const defaultLocale = Locale('bn');
+
+  /// The guardian's choice, or Bangla until they pick a language.
   Locale? get locale => _locale;
 
   bool get isBangla =>

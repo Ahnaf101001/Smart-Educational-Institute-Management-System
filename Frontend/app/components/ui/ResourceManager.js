@@ -60,6 +60,7 @@ export function renderValue(type, value) {
     case "json":
     case "list": return Array.isArray(value) ? value.map((v) => (typeof v === "object" ? v.name || JSON.stringify(v) : v)).join(", ") : JSON.stringify(value);
     case "link": return <a className="font-semibold text-blue-600 hover:underline" href={value} target="_blank" rel="noreferrer">Open</a>;
+    case "image": return <img src={value} alt="" loading="lazy" className="size-10 rounded-lg object-cover" />;
     default: return String(value);
   }
 }

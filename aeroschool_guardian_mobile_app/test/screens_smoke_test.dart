@@ -5,11 +5,17 @@ import 'dart:convert';
 import 'package:aeroschool_guardian_mobile_app/models/child.dart';
 import 'package:aeroschool_guardian_mobile_app/models/family.dart';
 import 'package:aeroschool_guardian_mobile_app/models/academics.dart';
+import 'package:aeroschool_guardian_mobile_app/providers/app_lock_provider.dart';
 import 'package:aeroschool_guardian_mobile_app/providers/auth_provider.dart';
 import 'package:aeroschool_guardian_mobile_app/providers/family_provider.dart';
 import 'package:aeroschool_guardian_mobile_app/providers/notification_provider.dart';
 import 'package:aeroschool_guardian_mobile_app/screens/academics/academics_screen.dart';
 import 'package:aeroschool_guardian_mobile_app/screens/attendance/attendance_screen.dart';
+import 'package:aeroschool_guardian_mobile_app/screens/campus/campus_screen.dart';
+import 'package:aeroschool_guardian_mobile_app/screens/gallery/gallery_screen.dart';
+import 'package:aeroschool_guardian_mobile_app/screens/home/family_calendar_screen.dart';
+import 'package:aeroschool_guardian_mobile_app/screens/profile/settings_screen.dart';
+import 'package:aeroschool_guardian_mobile_app/screens/support/ptm_screen.dart';
 import 'package:aeroschool_guardian_mobile_app/screens/auth/change_password_screen.dart';
 import 'package:aeroschool_guardian_mobile_app/screens/auth/forgot_password_screen.dart';
 import 'package:aeroschool_guardian_mobile_app/screens/auth/login_screen.dart';
@@ -231,6 +237,26 @@ final routes = <String, Object?>{
     'percentage': 90,
   },
   '/portal/guardian/students/STU-1/academics': {
+    'onlineClasses': [
+      {
+        'id': 'OC1',
+        'title': 'Higher Mathematics revision – quadratic equations and graphs',
+        'provider': 'Google Meet',
+        'scheduledAt': '2030-12-01T04:00:00Z',
+        'durationMinutes': 45,
+        'status': 'Scheduled',
+        'meetingUrl': 'https://meet.google.com/abc-defg-hij',
+      },
+      {
+        'id': 'OC2',
+        'title': 'Physics – laws of motion',
+        'provider': 'Zoom',
+        'scheduledAt': '2026-11-01T04:00:00Z',
+        'durationMinutes': 40,
+        'status': 'Completed',
+        'recordingUrl': 'https://example.com/rec',
+      },
+    ],
     'routine': [
       for (final day in [
         'Saturday',
@@ -410,6 +436,87 @@ final routes = <String, Object?>{
     'gateways': {'bkash': true, 'nagad': true},
   },
   '/portal/guardian/students/STU-1/extras': {
+    'hifz': {
+      'parasDone': 12,
+      'logs': [
+        {
+          'logDate': '2026-11-20',
+          'logType': 'Hifz',
+          'sabakPara': 13,
+          'sabakFrom': 'Ayah 1',
+          'sabakTo': 'Ayah 25',
+          'sabqi': 'Para 12, quarter 3',
+          'amukhtaPara': 'Para 1-5',
+          'mistakes': 2,
+          'tajweedRating': 4,
+          'comment': 'Excellent fluency, revise madd rules once more',
+          'ustadName': 'Hafez Maulana Abdur Rahim Siddiqui',
+        },
+      ],
+    },
+    'salah': [
+      for (final w in ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'])
+        {
+          'attendanceDate': '2026-11-20',
+          'wakt': w,
+          'status': w == 'Fajr' ? 'Missed' : 'Jamaat',
+        },
+      {'attendanceDate': '2026-11-19', 'wakt': 'Asr', 'status': 'Excused'},
+    ],
+    'library': [
+      {
+        'title': 'The Adventures of Tom Sawyer – illustrated school edition',
+        'status': 'Issued',
+        'issueDate': '2026-10-01',
+        'dueDate': '2026-10-15',
+        'fine': '40',
+      },
+      {
+        'title': 'Thakurmar Jhuli',
+        'status': 'Returned',
+        'issueDate': '2026-09-01',
+        'dueDate': '2026-09-15',
+        'returnDate': '2026-09-14',
+      },
+    ],
+    'hostel': {
+      'building': 'Abu Bakr Siddique (RA) Boys Hostel',
+      'roomNo': '204',
+      'seatNo': 'B-3',
+      'fromDate': '2026-01-05',
+      'isLillah': true,
+    },
+    'houses': [
+      {
+        'name': 'Salahuddin Ayyubi House',
+        'kind': 'House',
+        'points': 1240,
+        'myPoints': 35,
+      },
+      {
+        'name': 'Science & Robotics Club',
+        'kind': 'Club',
+        'points': 80,
+        'myPoints': 0,
+      },
+    ],
+    'dailyLogs': [
+      {
+        'logDate': '2026-11-20',
+        'meal': 'Rice, dal and egg – finished everything',
+        'nap': '1 hour',
+        'activity': 'Painting and rhymes',
+        'mood': 'Happy',
+      },
+    ],
+    'clubAttendance': [
+      {
+        'sessionDate': '2026-11-18',
+        'status': 'Present',
+        'clubName': 'Science & Robotics Club',
+        'activity': 'Line-following robot build',
+      },
+    ],
     'transport': {
       'routeName': 'Route 7 – Mirpur to Dhanmondi via Shyamoli',
       'stopName': 'Mirpur 10 Golchattar',
@@ -557,6 +664,60 @@ final routes = <String, Object?>{
     'phone': '01700000000',
     'email': 'info@school.edu',
   },
+  '/portal/guardian/gallery': [
+    {
+      'id': 'A1',
+      'title': 'Annual Sports Day 2026 – prize giving and march past',
+      'titleBn': 'বার্ষিক ক্রীড়া দিবস ২০২৬',
+      'eventDate': '2026-11-10',
+      'description': 'Highlights from the sports day.',
+      'photos': [
+        {
+          'id': 'P1',
+          'imageUrl': '/api/backend/public/files/x.jpg',
+          'caption': 'March past',
+        },
+        {'id': 'P2', 'imageUrl': '/api/backend/public/files/y.jpg'},
+      ],
+    },
+    {'id': 'A2', 'title': 'Milad Mahfil', 'photos': <Object>[]},
+  ],
+  '/portal/guardian/ptm-slots': [
+    {
+      'id': 'S1',
+      'teacherName': 'Mst. Rokeya Sultana Khatun',
+      'slotDate': '2030-12-05',
+      'startTime': '10:00',
+      'endTime': '10:15',
+      'status': 'Available',
+    },
+    {
+      'id': 'S2',
+      'teacherName': 'Md. Jahangir Alam Sarkar',
+      'slotDate': '2030-12-05',
+      'startTime': '10:15',
+      'endTime': '10:30',
+      'status': 'Booked',
+      'guardianId': 'GDN-00005',
+      'studentId': 'STU-1',
+    },
+  ],
+  '/auth/sessions': [
+    {
+      'id': 'SE1',
+      'userAgent': 'Dart/3.10 (dart:io)',
+      'ip': '192.168.1.20',
+      'method': 'password',
+      'lastSeenAt': '2026-11-21T02:00:00Z',
+      'current': true,
+    },
+    {
+      'id': 'SE2',
+      'userAgent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0 Safari/537.36',
+      'ip': '203.0.113.9',
+      'lastSeenAt': '2026-11-19T10:00:00Z',
+    },
+  ],
   '/portal/guardian/leave-types': [
     {'id': 'LT1', 'name': 'Sick Leave'},
     {'id': 'LT2', 'name': 'Family Emergency'},
@@ -632,6 +793,7 @@ Future<FamilyProvider> pumpScreen(
         ChangeNotifierProvider.value(value: family),
         ChangeNotifierProvider(create: (_) => NotificationProvider(guardian)),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
+        ChangeNotifierProvider(create: (_) => AppLockProvider()),
         ChangeNotifierProvider(create: (_) => DeepLinkService()),
       ],
       child: MaterialApp(
@@ -664,6 +826,8 @@ Future<void> scrollAll(WidgetTester tester) async {
 Future<void> visitTabs(WidgetTester tester) async {
   final tabs = find.byType(Tab);
   for (var i = 0; i < tabs.evaluate().length; i++) {
+    await tester.ensureVisible(tabs.at(i));
+    await settle(tester);
     await tester.tap(tabs.at(i));
     await settle(tester);
     await scrollAll(tester);
@@ -672,6 +836,11 @@ Future<void> visitTabs(WidgetTester tester) async {
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
+  // The family calendar loads every child's academics.
+  for (final id in ['STU-2', 'STU-3']) {
+    routes['/portal/guardian/students/$id/academics'] =
+        routes['/portal/guardian/students/STU-1/academics'];
+  }
 
   ChildSummary first() =>
       ChildSummary.fromJson(child('STU-1', longName, 'Class 10'));
@@ -703,6 +872,10 @@ void main() {
             as Map<String, dynamic>,
       ),
     ),
+    'gallery': () => const GalleryScreen(),
+    'parent-teacher meetings': () => const PtmScreen(initialStudentId: 'STU-1'),
+    'family calendar': () => const FamilyCalendarScreen(),
+    'settings': () => const SettingsScreen(),
     'edit profile': () => EditProfileScreen(
       profile: GuardianProfile.fromJson(
         routes['/portal/guardian/profile']! as Map<String, dynamic>,
@@ -724,6 +897,7 @@ void main() {
     'academics': () => AcademicsScreen(child: first()),
     'exams': () => ExamsScreen(child: first()),
     'fees': () => FeesScreen(child: first()),
+    'campus life': () => CampusScreen(child: first()),
   }.entries) {
     testWidgets(
       'renders every ${entry.key} tab on a 320px phone without errors',
@@ -750,6 +924,7 @@ void main() {
     'academics': () => AcademicsScreen(child: first()),
     'exams': () => ExamsScreen(child: first()),
     'fees': () => FeesScreen(child: first()),
+    'campus life': () => CampusScreen(child: first()),
   }.entries) {
     testWidgets('renders every ${entry.key} tab in Bangla', (tester) async {
       await pumpScreen(tester, entry.value(), locale: const Locale('bn'));

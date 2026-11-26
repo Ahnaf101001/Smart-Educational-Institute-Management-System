@@ -24,6 +24,7 @@ import '../support/complaint_screen.dart';
 import '../support/documents_screen.dart';
 import '../support/leave_screen.dart';
 import 'edit_profile_screen.dart';
+import 'settings_screen.dart';
 
 typedef _ProfileData = ({GuardianProfile profile, SchoolInfo school});
 
@@ -318,6 +319,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           context,
                           MaterialPageRoute<void>(
                             builder: (_) => const ChangePasswordScreen(),
+                          ),
+                        ),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.settings_outlined),
+                        title: Text(context.l10n.settings),
+                        subtitle: Text(context.l10n.settingsSubtitle),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (_) => const SettingsScreen(),
                           ),
                         ),
                       ),

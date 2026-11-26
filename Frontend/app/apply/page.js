@@ -1,11 +1,55 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, FileSearch, Send } from "lucide-react";
+import { CheckCircle2, FileSearch, Loader2, Paperclip, Send, Trash2 } from "lucide-react";
 import { publicApi } from "../lib/api";
 import PublicShell from "../components/public/PublicShell";
 import PhotoUpload from "../components/ui/PhotoUpload";
 import { Badge, Button, Card, EmptyState, Field, Input, Select, Spinner, Tabs, Textarea, formatDate, money, useToast } from "../components/ui/kit";
+
+const DOC_TYPES = ["Birth certificate", "Previous result / transcript", "Transfer certificate", "Guardian NID", "Testimonial", "Other"];
+
+// AD-02 / AD-02v1: supporting documents for the online application (uploaded privately, no login).
+function ApplicantDocuments({ required, value, onChange }) {
+  const toast = useToast();
+  const [type, setType] = useState(required[0] || DOC_TYPES[0]);
+  const [busy, setBusy] = useState(false);
+  const types = [...new Set([...required, ...DOC_TYPES])];
+  const missing = required.filter((r) => !value.some((d) => d.type === r));
+  async function pick(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error("Each document must be 5 MB or smaller."); return; }
+    setBusy(true);
+    try {
+      const res = await publicApi.uploadDocument(file);
+      onChange([...value, { type, url: res.url, fileName: file.name, mimeType: res.mimeType }]);
+    } catch (err) { toast.error(err); } finally { setBusy(false); }
+  }
+  return (
+    <Card title="Documents" subtitle="Birth certificate, previous result and other papers (JPG, PNG or PDF, up to 5 MB each)">
+      <div className="flex flex-wrap items-end gap-3">
+        <Field label="Document type"><Select value={type} onChange={(e) => setType(e.target.value)} options={types} /></Field>
+        <label className={`inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 ${busy || value.length >= 10 ? "pointer-events-none opacity-60" : ""}`}>
+          {busy ? <Loader2 size={16} className="animate-spin" /> : <Paperclip size={16} />} {busy ? "Uploading…" : "Attach file"}
+          <input type="file" className="sr-only" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={pick} disabled={busy || value.length >= 10} />
+        </label>
+      </div>
+      {value.length > 0 && (
+        <ul className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-100">
+          {value.map((d, i) => (
+            <li key={d.url} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+              <span className="min-w-0 truncate"><Badge tone="blue">{d.type}</Badge> <span className="ml-1 text-slate-600">{d.fileName}</span></span>
+              <button type="button" aria-label={`Remove ${d.fileName}`} className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" onClick={() => onChange(value.filter((_, j) => j !== i))}><Trash2 size={15} /></button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {missing.length > 0 && <p className="mt-2 text-xs text-amber-700">Still needed: {missing.join(", ")}</p>}
+    </Card>
+  );
+}
 
 function ApplyForm() {
   const toast = useToast();
@@ -96,6 +140,11 @@ function ApplyForm() {
           <Field label="Present address" className="md:col-span-3"><Textarea value={form.presentAddress || ""} onChange={set("presentAddress")} /></Field>
         </div>
       </Card>
+      <ApplicantDocuments
+        required={circular?.requiredDocuments || []}
+        value={form.documents || []}
+        onChange={(documents) => setForm((current) => ({ ...current, documents }))}
+      />
       <p className="text-xs text-slate-500">By submitting you agree that the institution may use this information for admission and communication. Your data is not shared with third parties.</p>
       <Button type="submit" size="lg" icon={Send} loading={busy} disabled={!form.circularId}>Submit application</Button>
     </form>

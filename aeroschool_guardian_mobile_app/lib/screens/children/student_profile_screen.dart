@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../models/child.dart';
+import '../../models/school.dart';
 import '../../models/student.dart';
 import '../../services/file_service.dart';
 import '../../services/guardian_service.dart';
@@ -28,205 +29,267 @@ class StudentProfileScreen extends StatelessWidget {
     final files = context.read<FileService>();
     return Scaffold(
       appBar: AppBar(title: Text(child.name)),
-      body: AsyncView<StudentProfile>(
-        load: () => service.studentProfile(child.id),
-        builder: (context, p, reload) => RefreshIndicator(
-          onRefresh: reload,
-          child: StaggeredListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    children: [
-                      PersonAvatar(
-                        name: p.name,
-                        photoUrl: p.photoUrl,
-                        radius: 44,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        p.name,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      if (p.nameBn != null)
-                        Text(
-                          p.nameBn!,
-                          style: const TextStyle(color: AppColors.muted),
-                        ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        alignment: WrapAlignment.center,
-                        children: [
-                          StatusChip('ID ${p.id}', color: AppColors.navy),
-                          if (p.roll != null)
-                            StatusChip(
-                              context.l10n.rollNo('${p.roll}'),
-                              color: AppColors.blue,
-                            ),
-                          if (p.status != null) StatusChip(p.status!),
-                        ],
-                      ),
-                    ],
+      body: AsyncView<(StudentProfile, SchoolInfo?)>(
+        load: () async {
+          final profile = service.studentProfile(child.id);
+          // The school header is decoration: a failure there never hides the profile.
+          final school = service
+              .school()
+              .then<SchoolInfo?>((s) => s)
+              .catchError((_) => null);
+          return (await profile, await school);
+        },
+        builder: (context, data, reload) =>
+            _body(context, data.$1, data.$2, files, reload),
+      ),
+    );
+  }
+
+  Widget _body(
+    BuildContext context,
+    StudentProfile p,
+    SchoolInfo? school,
+    FileService files,
+    Future<void> Function() reload,
+  ) => RefreshIndicator(
+    onRefresh: reload,
+    child: StaggeredListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              children: [
+                // GA-07v1: school logo and name above the student.
+                if (school != null) ...[
+                  _SchoolHeader(school: school),
+                  const Divider(height: 24),
+                ],
+                PersonAvatar(name: p.name, photoUrl: p.photoUrl, radius: 44),
+                const SizedBox(height: 12),
+                Text(
+                  p.name,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              SectionCard(
-                title: context.l10n.academic,
-                icon: Icons.school_outlined,
-                child: Column(
+                if (p.nameBn != null)
+                  Text(
+                    p.nameBn!,
+                    style: const TextStyle(color: AppColors.muted),
+                  ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  alignment: WrapAlignment.center,
                   children: [
-                    InfoRow(
-                      label: context.l10n.classLabel,
-                      value: p.className.split('-').first,
-                    ),
-                    InfoRow(label: context.l10n.section, value: p.section),
-                    InfoRow(label: context.l10n.shift, value: p.shift),
-                    if (p.groupName != null)
-                      InfoRow(label: context.l10n.group, value: p.groupName),
-                    if (p.version != null)
-                      InfoRow(label: context.l10n.version, value: p.version),
-                    InfoRow(label: context.l10n.session, value: p.sessionName),
+                    StatusChip('ID ${p.id}', color: AppColors.navy),
+                    if (p.roll != null)
+                      StatusChip(
+                        context.l10n.rollNo('${p.roll}'),
+                        color: AppColors.blue,
+                      ),
+                    if (p.status != null) StatusChip(p.status!),
                   ],
                 ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SectionCard(
+          title: context.l10n.academic,
+          icon: Icons.school_outlined,
+          child: Column(
+            children: [
+              InfoRow(
+                label: context.l10n.classLabel,
+                value: p.className.split('-').first,
               ),
-              const SizedBox(height: 12),
-              SectionCard(
-                title: context.l10n.admissionInformation,
-                icon: Icons.how_to_reg_outlined,
-                child: Column(
-                  children: [
-                    InfoRow(
-                      label: context.l10n.admissionDate,
-                      value: p.admissionDate == null
-                          ? null
-                          : Fmt.date(p.admissionDate),
-                    ),
-                    InfoRow(
-                      label: context.l10n.previousSchool,
-                      value: p.previousSchool,
-                    ),
-                  ],
-                ),
+              InfoRow(label: context.l10n.section, value: p.section),
+              InfoRow(label: context.l10n.shift, value: p.shift),
+              if (p.groupName != null)
+                InfoRow(label: context.l10n.group, value: p.groupName),
+              if (p.version != null)
+                InfoRow(label: context.l10n.version, value: p.version),
+              InfoRow(label: context.l10n.session, value: p.sessionName),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        SectionCard(
+          title: context.l10n.admissionInformation,
+          icon: Icons.how_to_reg_outlined,
+          child: Column(
+            children: [
+              InfoRow(
+                label: context.l10n.admissionDate,
+                value: p.admissionDate == null
+                    ? null
+                    : Fmt.date(p.admissionDate),
               ),
-              const SizedBox(height: 12),
-              SectionCard(
-                title: context.l10n.personal,
-                icon: Icons.person_outline,
-                child: Column(
-                  children: [
-                    InfoRow(
-                      label: context.l10n.dateOfBirth,
-                      value: p.dateOfBirth == null
-                          ? null
-                          : Fmt.date(p.dateOfBirth),
-                    ),
-                    InfoRow(label: context.l10n.gender, value: p.gender),
-                    if (p.bloodGroup != null)
-                      InfoRow(
-                        label: context.l10n.bloodGroup,
-                        value: p.bloodGroup,
-                      ),
-                    InfoRow(label: context.l10n.religion, value: p.religion),
-                    InfoRow(
-                      label: context.l10n.nationality,
-                      value: p.nationality,
-                    ),
-                    InfoRow(label: context.l10n.address, value: p.address),
-                    if (p.allergies != null)
-                      InfoRow(
-                        label: context.l10n.allergies,
-                        value: p.allergies,
-                      ),
-                    if (p.medicalNotes != null)
-                      InfoRow(
-                        label: context.l10n.medicalNotes,
-                        value: p.medicalNotes,
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              SectionCard(
-                title: context.l10n.assignedClassTeacher,
-                icon: Icons.co_present_outlined,
-                child: p.classTeacher == null
-                    ? Text(
-                        context.l10n.notAssignedYet,
-                        style: const TextStyle(color: AppColors.muted),
-                      )
-                    : Column(
-                        children: [
-                          InfoRow(
-                            label: context.l10n.name,
-                            value: p.classTeacher,
-                          ),
-                          if (p.classTeacherPhone != null)
-                            InfoRow(
-                              label: context.l10n.phone,
-                              value: p.classTeacherPhone,
-                              onTap: () => files.call(p.classTeacherPhone!),
-                            ),
-                          if (p.classTeacherEmail != null)
-                            InfoRow(
-                              label: context.l10n.email,
-                              value: p.classTeacherEmail,
-                              onTap: () => files.email(p.classTeacherEmail!),
-                            ),
-                        ],
-                      ),
-              ),
-              const SizedBox(height: 12),
-              SectionCard(
-                title: context.l10n.emergencyContact,
-                icon: Icons.emergency_outlined,
-                child: Column(
-                  children: [
-                    if (p.emergencyName != null) ...[
-                      InfoRow(
-                        label: context.l10n.name,
-                        value:
-                            '${p.emergencyName} (${context.l10n.word(p.emergencyRelation ?? 'Guardian')})',
-                      ),
-                      InfoRow(
-                        label: context.l10n.mobile,
-                        value: p.emergencyMobile,
-                        onTap: p.emergencyMobile == null
-                            ? null
-                            : () => files.call(p.emergencyMobile!),
-                      ),
-                    ],
-                    if (p.guardians.isNotEmpty) const Divider(height: 20),
-                    for (final g in p.guardians)
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: PersonAvatar(name: g.name, radius: 18),
-                        title: Text(
-                          g.name,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                        subtitle: Text(
-                          '${g.relation}${g.isPrimary ? ' • Primary' : ''} • ${g.mobile}',
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.call_outlined),
-                          onPressed: () => files.call(g.mobile),
-                        ),
-                      ),
-                  ],
-                ),
+              InfoRow(
+                label: context.l10n.previousSchool,
+                value: p.previousSchool,
               ),
             ],
           ),
         ),
-      ),
+        const SizedBox(height: 12),
+        SectionCard(
+          title: context.l10n.personal,
+          icon: Icons.person_outline,
+          child: Column(
+            children: [
+              InfoRow(
+                label: context.l10n.dateOfBirth,
+                value: p.dateOfBirth == null ? null : Fmt.date(p.dateOfBirth),
+              ),
+              InfoRow(label: context.l10n.gender, value: p.gender),
+              if (p.bloodGroup != null)
+                InfoRow(label: context.l10n.bloodGroup, value: p.bloodGroup),
+              InfoRow(label: context.l10n.religion, value: p.religion),
+              InfoRow(label: context.l10n.nationality, value: p.nationality),
+              InfoRow(label: context.l10n.address, value: p.address),
+              if (p.allergies != null)
+                InfoRow(label: context.l10n.allergies, value: p.allergies),
+              if (p.medicalNotes != null)
+                InfoRow(
+                  label: context.l10n.medicalNotes,
+                  value: p.medicalNotes,
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        SectionCard(
+          title: context.l10n.assignedClassTeacher,
+          icon: Icons.co_present_outlined,
+          child: p.classTeacher == null
+              ? Text(
+                  context.l10n.notAssignedYet,
+                  style: const TextStyle(color: AppColors.muted),
+                )
+              : Column(
+                  children: [
+                    InfoRow(label: context.l10n.name, value: p.classTeacher),
+                    if (p.classTeacherPhone != null)
+                      InfoRow(
+                        label: context.l10n.phone,
+                        value: p.classTeacherPhone,
+                        onTap: () => files.call(p.classTeacherPhone!),
+                      ),
+                    if (p.classTeacherEmail != null)
+                      InfoRow(
+                        label: context.l10n.email,
+                        value: p.classTeacherEmail,
+                        onTap: () => files.email(p.classTeacherEmail!),
+                      ),
+                  ],
+                ),
+        ),
+        const SizedBox(height: 12),
+        SectionCard(
+          title: context.l10n.emergencyContact,
+          icon: Icons.emergency_outlined,
+          child: Column(
+            children: [
+              if (p.emergencyName != null) ...[
+                InfoRow(
+                  label: context.l10n.name,
+                  value:
+                      '${p.emergencyName} (${context.l10n.word(p.emergencyRelation ?? 'Guardian')})',
+                ),
+                InfoRow(
+                  label: context.l10n.mobile,
+                  value: p.emergencyMobile,
+                  onTap: p.emergencyMobile == null
+                      ? null
+                      : () => files.call(p.emergencyMobile!),
+                ),
+              ],
+              if (p.guardians.isNotEmpty) const Divider(height: 20),
+              for (final g in p.guardians)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: PersonAvatar(name: g.name, radius: 18),
+                  title: Text(
+                    g.name,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: Text(
+                    '${g.relation}${g.isPrimary ? ' • Primary' : ''} • ${g.mobile}',
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.call_outlined),
+                    onPressed: () => files.call(g.mobile),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _SchoolHeader extends StatelessWidget {
+  const _SchoolHeader({required this.school});
+
+  final SchoolInfo school;
+
+  @override
+  Widget build(BuildContext context) {
+    final logo = PersonAvatar.resolve(school.logoUrl);
+    final bn = context.l10n.localeName.startsWith('bn');
+    final name = bn && (school.nameBn?.isNotEmpty ?? false)
+        ? school.nameBn!
+        : school.name;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            width: 32,
+            height: 32,
+            child: logo == null
+                ? const ColoredBox(
+                    color: AppColors.surfaceTint,
+                    child: Icon(
+                      Icons.school_rounded,
+                      size: 20,
+                      color: AppColors.navy,
+                    ),
+                  )
+                : Image.network(
+                    logo,
+                    fit: BoxFit.contain,
+                    semanticLabel: school.name,
+                    errorBuilder: (_, _, _) => const Icon(
+                      Icons.school_rounded,
+                      size: 20,
+                      color: AppColors.navy,
+                    ),
+                  ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Flexible(
+          child: Text(
+            name,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              color: AppColors.navy,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

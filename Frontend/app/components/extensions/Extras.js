@@ -28,6 +28,7 @@ const REL = {
   club: { endpoint: "/clubs", label: (r) => `${r.name} (${r.kind})` },
   branch: { endpoint: "/branches", label: (r) => r.name },
   coursework: { endpoint: "/coursework", label: (r) => r.title },
+  album: { endpoint: "/gallery-albums", label: (r) => r.title },
 };
 const rel = (key, field, label, extra = {}) => ({ key: field, label, type: "relation", relation: REL[key], ...extra });
 
@@ -803,6 +804,27 @@ export function GuardianLearning({ studentId }) {
 
 // ----------------------------------------------------------------- simple configs used in navigation
 export const EXTRA_CONFIGS = {
+  clubAttendance: {
+    title: "Club Attendance", singular: "Attendance", endpoint: "/club-attendance", module: "academic",
+    subtitle: "Who attended each club / house / ECA session (shown to guardians in the app).",
+    columns: [{ key: "sessionDate", label: "Date", type: "date" }, { key: "clubId", label: "Club" }, { key: "studentId", label: "Student" }, { key: "status", label: "Status", type: "badge" }, { key: "activity", label: "Activity" }],
+    fields: [rel("club", "clubId", "Club / house / ECA", { required: true }), rel("student", "studentId", "Student", { required: true }), { key: "sessionDate", label: "Session date", type: "date", required: true, default: today() },
+      { key: "status", label: "Status", type: "select", options: ["Present", "Absent", "Late", "Excused"], default: "Present" }, { key: "activity", label: "Activity", wide: true }, { key: "note", label: "Note", wide: true }],
+  },
+  galleryAlbums: {
+    title: "Gallery Albums", singular: "Album", endpoint: "/gallery-albums", module: "communication",
+    subtitle: "Event photo albums. Public albums show on the website; Guardians albums in the guardian portal and app.",
+    columns: [{ key: "coverUrl", label: "", type: "image" }, { key: "title", label: "Album" }, { key: "eventDate", label: "Event date", type: "date" }, { key: "audience", label: "Audience", type: "badge" }, { key: "status", label: "Status", type: "badge" }],
+    fields: [{ key: "title", label: "Title", required: true }, { key: "titleBn", label: "শিরোনাম (বাংলা)" }, { key: "eventDate", label: "Event date", type: "date", default: today() },
+      { key: "audience", label: "Audience", type: "select", options: ["Guardians", "Public", "Staff"], default: "Guardians" }, { key: "status", label: "Status", type: "select", options: ["Published", "Draft"], default: "Published" },
+      { key: "coverUrl", label: "Cover photo", type: "image", category: "gallery", wide: true }, { key: "description", label: "Description", type: "textarea", wide: true }],
+  },
+  galleryPhotos: {
+    title: "Gallery Photos", singular: "Photo", endpoint: "/gallery-photos", module: "communication",
+    columns: [{ key: "imageUrl", label: "", type: "image" }, { key: "albumId", label: "Album" }, { key: "caption", label: "Caption" }, { key: "sortOrder", label: "Order" }],
+    fields: [rel("album", "albumId", "Album", { required: true }), { key: "imageUrl", label: "Photo", type: "image", category: "gallery", required: true, wide: true },
+      { key: "caption", label: "Caption", wide: true }, { key: "sortOrder", label: "Order", type: "number", default: 0 }],
+  },
   housePoints: {
     title: "House Points", singular: "Award", endpoint: "/house-points", module: "academic",
     subtitle: "Points roll up to the house total automatically.",

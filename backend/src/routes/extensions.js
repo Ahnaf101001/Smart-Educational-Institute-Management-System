@@ -525,6 +525,45 @@ router.get("/online-classes/:id/attendance", requirePermission("online_classes",
   res.json({ success: true, data: keysToCamel(rows) });
 }));
 
+// ======================================================================= Hijri holiday suggestions (QM-07)
+const { hijriSuggestions } = require("../services/hijri");
+
+async function suggestionsWithStatus(year) {
+  const list = hijriSuggestions(year);
+  const labels = list.map((s) => s.hijriLabel);
+  const existing = labels.length
+    ? new Set((await query("SELECT hijri_label FROM academic_events WHERE hijri_label = ANY($1::text[])", [labels])).rows.map((r) => r.hijri_label))
+    : new Set();
+  return list.map((s) => ({ ...s, added: existing.has(s.hijriLabel) }));
+}
+
+router.get("/calendar/hijri-suggestions", requirePermission("academic", "view"), asyncHandler(async (req, res) => {
+  const year = Number(req.query.year || localDate().slice(0, 4));
+  if (!Number.isInteger(year) || year < 2000 || year > 2100) throw httpError(422, "Year must be between 2000 and 2100.");
+  res.json({ success: true, data: await suggestionsWithStatus(year) });
+}));
+
+router.post("/calendar/hijri-suggestions/apply", requirePermission("academic", "create"), asyncHandler(async (req, res) => {
+  const year = Number(req.body?.year);
+  const keys = Array.isArray(req.body?.keys) ? req.body.keys.map(String) : [];
+  if (!Number.isInteger(year) || year < 2000 || year > 2100) throw httpError(422, "Year must be between 2000 and 2100.");
+  const picked = (await suggestionsWithStatus(year)).filter((s) => keys.includes(s.key) && !s.added);
+  const created = await transaction(async (client) => {
+    const rows = [];
+    for (const s of picked) {
+      rows.push((await client.query(
+        `INSERT INTO academic_events (title, type, start_date, end_date, audience, hijri_label, description, is_public)
+         VALUES ($1,$2,$3,$4,'All',$5,$6,TRUE) RETURNING *`,
+        [`${s.title} / ${s.titleBn}`, s.type, s.startDate, s.endDate, s.hijriLabel,
+          "Estimated from the Umm al-Qura calendar; confirm the date after the moon-sighting announcement."],
+      )).rows[0]);
+    }
+    return rows;
+  });
+  await writeAudit(req, { entity: "academic_events", entityId: String(year), action: "HIJRI_HOLIDAYS_ADDED", newValue: { count: created.length, keys: picked.map((s) => s.key) } });
+  res.status(201).json({ success: true, data: keysToCamel(created) });
+}));
+
 // ======================================================================= portal extras (guardian: GA-10..22, EM-10, CM-09)
 router.get("/portal/children/:studentId/extras", asyncHandler(async (req, res) => {
   await assertStudentAccess(req, req.params.studentId, "students", "view");

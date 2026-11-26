@@ -14,6 +14,9 @@ import '../../providers/family_provider.dart';
 import '../../widgets/async_view.dart';
 import '../../widgets/common.dart';
 import '../fees/fees_screen.dart';
+import '../gallery/gallery_screen.dart';
+import '../support/ptm_screen.dart';
+import 'family_calendar_screen.dart';
 import '../notices/notice_detail_screen.dart';
 
 /// Part A – Family Overview: guardian profile, total children, child-wise
@@ -102,6 +105,10 @@ class FamilyDashboardScreen extends StatelessWidget {
                   const SizedBox(height: 14),
                   for (final n in o.notices.where((n) => n.isUrgent).take(2))
                     _UrgentBanner(notice: n),
+                ],
+                if (o.children.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  const _QuickActions(),
                 ],
                 SectionTitle(context.l10n.myChildren(o.children.length)),
                 if (o.children.isEmpty)
@@ -422,6 +429,8 @@ class _ChildCard extends StatelessWidget {
                           fontSize: 13,
                         ),
                       ),
+                      const SizedBox(height: 4),
+                      _LinkedBadge(child: child),
                     ],
                   ),
                 ),
@@ -460,6 +469,115 @@ class _ChildCard extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// UI-04: shows that the child is linked to this guardian account, with the relation.
+class _LinkedBadge extends StatelessWidget {
+  const _LinkedBadge({required this.child});
+
+  final ChildSummary child;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final parts = [
+      l.linked,
+      if (child.relation != null) l.word(child.relation!),
+      if (child.isPrimary) l.primaryGuardian,
+    ];
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.success.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.link_rounded, size: 14, color: AppColors.success),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              parts.join(' • '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppColors.success,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Family-wide shortcuts: merged calendar, gallery and parent–teacher meetings.
+class _QuickActions extends StatelessWidget {
+  const _QuickActions();
+
+  void _open(BuildContext context, Widget screen) =>
+      Navigator.push(context, MaterialPageRoute<void>(builder: (_) => screen));
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final items = [
+      (
+        l.familyCalendar,
+        Icons.calendar_month_outlined,
+        () => _open(context, const FamilyCalendarScreen()),
+      ),
+      (
+        l.photoGallery,
+        Icons.photo_library_outlined,
+        () => _open(context, const GalleryScreen()),
+      ),
+      (
+        l.meetings,
+        Icons.handshake_outlined,
+        () => _open(context, const PtmScreen()),
+      ),
+    ];
+    return Row(
+      children: [
+        for (final (i, item) in items.indexed) ...[
+          if (i > 0) const SizedBox(width: 10),
+          Expanded(
+            child: Card(
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: item.$3,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 6,
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(item.$2, color: AppColors.navy),
+                      const SizedBox(height: 6),
+                      Text(
+                        item.$1,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
 }
 
 class _Mini extends StatelessWidget {

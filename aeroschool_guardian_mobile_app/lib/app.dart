@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'config/app_config.dart';
 import 'core/theme.dart';
 import 'l10n/app_localizations.dart';
+import 'providers/app_lock_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/locale_provider.dart';
 import 'providers/family_provider.dart';
@@ -15,6 +16,7 @@ import 'screens/auth/splash_screen.dart';
 import 'screens/home/home_shell.dart';
 import 'services/deep_link_service.dart';
 import 'services/push_service.dart';
+import 'widgets/app_lock_gate.dart';
 
 final GlobalKey<ScaffoldMessengerState> rootMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
@@ -38,6 +40,8 @@ class AeroSchoolGuardianApp extends StatelessWidget {
       AppLocalizations.delegate,
       ...GlobalMaterialLocalizations.delegates,
     ],
+    // App lock (PIN) covers every screen, pushed routes included.
+    builder: (context, child) => AppLockGate(child: child ?? const SizedBox()),
     home: const AuthGate(),
   );
 }
@@ -148,6 +152,10 @@ class _AuthGateState extends State<AuthGate> {
     } else {
       family.clear();
       notifications.clear();
+      // A shared phone must not keep the previous guardian's PIN.
+      if (status == AuthStatus.signedOut) {
+        context.read<AppLockProvider>().disable();
+      }
     }
   }
 }

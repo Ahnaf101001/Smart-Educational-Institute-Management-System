@@ -1300,4 +1300,390 @@ class AppLocalizationsEn extends AppLocalizations {
   String clarificationNeeded(String note) {
     return 'School asks: $note';
   }
+
+  @override
+  String get campusLife => 'Campus life';
+
+  @override
+  String get hifzSalah => 'Hifz & Salah';
+
+  @override
+  String get library => 'Library';
+
+  @override
+  String get hostel => 'Hostel';
+
+  @override
+  String get activities => 'Activities';
+
+  @override
+  String get noMadrasaRecords => 'No Hifz or Salah records yet';
+
+  @override
+  String get noMadrasaRecordsHint =>
+      'Records appear here when the ustad marks lessons and prayers.';
+
+  @override
+  String get parasMemorised => 'Paras memorised';
+
+  @override
+  String get hifzProgress => 'Hifz progress';
+
+  @override
+  String get salahThisWeek => 'Salah (7 days)';
+
+  @override
+  String get salahPrayedCaption => 'Prayers performed';
+
+  @override
+  String parasOfThirty(int count) {
+    return '$count of 30 paras completed';
+  }
+
+  @override
+  String get recentLessons => 'Recent lessons';
+
+  @override
+  String get salahLast7Days => 'Salah – last 7 days';
+
+  @override
+  String paraNo(int n) {
+    return 'Para $n';
+  }
+
+  @override
+  String get sabak => 'Sabak';
+
+  @override
+  String get sabqi => 'Sabqi';
+
+  @override
+  String get amukhta => 'Amukhta';
+
+  @override
+  String get mistakes => 'Mistakes';
+
+  @override
+  String get tajweed => 'Tajweed';
+
+  @override
+  String get ustad => 'Ustad';
+
+  @override
+  String get comment => 'Comment';
+
+  @override
+  String get booksBorrowed => 'Books borrowed';
+
+  @override
+  String get currentlyWithChild => 'Currently with your child';
+
+  @override
+  String fineDue(String amount) {
+    return 'Fine due $amount';
+  }
+
+  @override
+  String get noFine => 'No fine';
+
+  @override
+  String get libraryCard => 'Library card';
+
+  @override
+  String get noBooksBorrowed => 'No books borrowed';
+
+  @override
+  String issuedOn(String date) {
+    return 'Issued $date';
+  }
+
+  @override
+  String returnedOn(String date) {
+    return 'Returned $date';
+  }
+
+  @override
+  String get fine => 'Fine';
+
+  @override
+  String get notInHostel => 'Not staying in the hostel';
+
+  @override
+  String get notInHostelHint =>
+      'Room details appear here when the school allocates a seat.';
+
+  @override
+  String get hostelRoom => 'Hostel room';
+
+  @override
+  String get building => 'Building';
+
+  @override
+  String get room => 'Room';
+
+  @override
+  String get seat => 'Seat';
+
+  @override
+  String get since => 'Since';
+
+  @override
+  String get boardingType => 'Boarding';
+
+  @override
+  String get lillah => 'Lillah (free)';
+
+  @override
+  String get noActivities => 'No houses, clubs or daily logs yet';
+
+  @override
+  String get noActivitiesHint =>
+      'Clubs, house points and the pre-school daily log appear here.';
+
+  @override
+  String get housesClubs => 'Houses, clubs & ECA';
+
+  @override
+  String totalPoints(String points) {
+    return '$points points';
+  }
+
+  @override
+  String get myPoints => 'my points';
+
+  @override
+  String get clubAttendance => 'Club attendance';
+
+  @override
+  String get dailyLog => 'Daily log';
+
+  @override
+  String get meal => 'Meal';
+
+  @override
+  String get nap => 'Nap';
+
+  @override
+  String get activity => 'Activity';
+
+  @override
+  String get onlineClasses => 'Online classes';
+
+  @override
+  String get upcomingOnlineClasses => 'Upcoming & live';
+
+  @override
+  String get noOnlineClasses => 'No online classes scheduled';
+
+  @override
+  String minutes(int n) {
+    return '$n min';
+  }
+
+  @override
+  String get join => 'Join';
+
+  @override
+  String get recordedLessons => 'Recorded lessons';
+
+  @override
+  String get meetingBooked => 'Meeting booked';
+
+  @override
+  String get cancelMeetingTitle => 'Cancel this meeting?';
+
+  @override
+  String cancelMeetingBody(String teacher) {
+    return 'The slot with $teacher will be released for other guardians.';
+  }
+
+  @override
+  String get keepBooking => 'Keep';
+
+  @override
+  String get cancelBooking => 'Cancel booking';
+
+  @override
+  String get meetingCancelled => 'Booking cancelled';
+
+  @override
+  String get parentTeacherMeeting => 'Parent–teacher meetings';
+
+  @override
+  String get myBookings => 'My bookings';
+
+  @override
+  String get noBookings => 'No meetings booked';
+
+  @override
+  String bookedFor(String name) {
+    return 'About $name';
+  }
+
+  @override
+  String get availableSlots => 'Available times';
+
+  @override
+  String get noFreeSlots => 'No free times right now';
+
+  @override
+  String get noFreeSlotsHint =>
+      'Teachers publish meeting times before parent–teacher days.';
+
+  @override
+  String get book => 'Book';
+
+  @override
+  String get bookMeetingTitle => 'Book this meeting?';
+
+  @override
+  String get meetingAbout => 'Meeting about';
+
+  @override
+  String get linked => 'Linked';
+
+  @override
+  String get primaryGuardian => 'Primary';
+
+  @override
+  String get familyCalendar => 'Family calendar';
+
+  @override
+  String get photoGallery => 'Photo gallery';
+
+  @override
+  String get meetings => 'Meetings';
+
+  @override
+  String get noAlbums => 'No albums yet';
+
+  @override
+  String get noAlbumsHint => 'Photos from school events will appear here.';
+
+  @override
+  String photoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count photos',
+      one: '1 photo',
+      zero: 'No photos',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get noPhotosYet => 'No photos in this album yet';
+
+  @override
+  String get openPhoto => 'Open photo';
+
+  @override
+  String get next60Days =>
+      'Exams, homework deadlines, holidays and events for the next 60 days';
+
+  @override
+  String get nothingScheduled => 'Nothing scheduled';
+
+  @override
+  String get exam => 'Exam';
+
+  @override
+  String get homeworkDue => 'Homework due';
+
+  @override
+  String get holiday => 'Holiday';
+
+  @override
+  String get event => 'Event';
+
+  @override
+  String get wholeSchool => 'Whole school';
+
+  @override
+  String untilDate(String date) {
+    return 'until $date';
+  }
+
+  @override
+  String get pinTooManyAttempts =>
+      'Too many wrong PINs. Sign out and sign in again.';
+
+  @override
+  String pinWrong(int left) {
+    return 'Wrong PIN – $left tries left';
+  }
+
+  @override
+  String get enterPin => 'Enter your PIN';
+
+  @override
+  String get appLockedHint =>
+      'The app is locked to keep your child\'s information private.';
+
+  @override
+  String get forgotPinSignOut => 'Forgot PIN? Sign out';
+
+  @override
+  String get appLockOn => 'App lock is on';
+
+  @override
+  String get turnOffAppLock => 'Turn off app lock?';
+
+  @override
+  String get turnOffAppLockBody =>
+      'Anyone using this phone will be able to open the app.';
+
+  @override
+  String get turnOff => 'Turn off';
+
+  @override
+  String get deviceSignedOut => 'Device signed out';
+
+  @override
+  String get settings => 'Settings';
+
+  @override
+  String get settingsSubtitle => 'App lock, devices, privacy';
+
+  @override
+  String get appLock => 'App lock';
+
+  @override
+  String get appLockPin => 'Lock with a PIN';
+
+  @override
+  String get appLockHint => 'Ask for a 4-digit PIN when the app opens';
+
+  @override
+  String get changePin => 'Change PIN';
+
+  @override
+  String get signedInDevices => 'Signed-in devices';
+
+  @override
+  String get noDevices => 'No other devices';
+
+  @override
+  String get guardianAppDevice => 'Guardian app';
+
+  @override
+  String lastActive(String when) {
+    return 'Last active $when';
+  }
+
+  @override
+  String get thisDevice => 'This device';
+
+  @override
+  String get privacyPolicy => 'Privacy policy';
+
+  @override
+  String get pinMismatch => 'PINs did not match. Try again.';
+
+  @override
+  String get chooseNewPin => 'Choose a 4-digit PIN';
+
+  @override
+  String get confirmPin => 'Enter the PIN again';
 }

@@ -1297,4 +1297,389 @@ class AppLocalizationsBn extends AppLocalizations {
   String clarificationNeeded(String note) {
     return 'স্কুলের প্রশ্ন: $note';
   }
+
+  @override
+  String get campusLife => 'ক্যাম্পাস জীবন';
+
+  @override
+  String get hifzSalah => 'হিফজ ও সালাত';
+
+  @override
+  String get library => 'লাইব্রেরি';
+
+  @override
+  String get hostel => 'হোস্টেল';
+
+  @override
+  String get activities => 'সহশিক্ষা কার্যক্রম';
+
+  @override
+  String get noMadrasaRecords => 'এখনও হিফজ বা সালাতের রেকর্ড নেই';
+
+  @override
+  String get noMadrasaRecordsHint =>
+      'উস্তাদ পাঠ ও সালাত লিপিবদ্ধ করলে এখানে দেখা যাবে।';
+
+  @override
+  String get parasMemorised => 'মুখস্থ পারা';
+
+  @override
+  String get hifzProgress => 'হিফজের অগ্রগতি';
+
+  @override
+  String get salahThisWeek => 'সালাত (৭ দিন)';
+
+  @override
+  String get salahPrayedCaption => 'আদায়কৃত সালাত';
+
+  @override
+  String parasOfThirty(int count) {
+    return '৩০ পারার মধ্যে $count পারা সম্পন্ন';
+  }
+
+  @override
+  String get recentLessons => 'সাম্প্রতিক পাঠ';
+
+  @override
+  String get salahLast7Days => 'সালাত – গত ৭ দিন';
+
+  @override
+  String paraNo(int n) {
+    return 'পারা $n';
+  }
+
+  @override
+  String get sabak => 'সবক';
+
+  @override
+  String get sabqi => 'সবকি';
+
+  @override
+  String get amukhta => 'আমুখতা';
+
+  @override
+  String get mistakes => 'ভুল';
+
+  @override
+  String get tajweed => 'তাজবিদ';
+
+  @override
+  String get ustad => 'উস্তাদ';
+
+  @override
+  String get comment => 'মন্তব্য';
+
+  @override
+  String get booksBorrowed => 'ধার নেওয়া বই';
+
+  @override
+  String get currentlyWithChild => 'বর্তমানে আপনার সন্তানের কাছে';
+
+  @override
+  String fineDue(String amount) {
+    return 'জরিমানা বকেয়া $amount';
+  }
+
+  @override
+  String get noFine => 'জরিমানা নেই';
+
+  @override
+  String get libraryCard => 'লাইব্রেরি কার্ড';
+
+  @override
+  String get noBooksBorrowed => 'কোনো বই ধার নেওয়া হয়নি';
+
+  @override
+  String issuedOn(String date) {
+    return 'ইস্যু $date';
+  }
+
+  @override
+  String returnedOn(String date) {
+    return 'ফেরত $date';
+  }
+
+  @override
+  String get fine => 'জরিমানা';
+
+  @override
+  String get notInHostel => 'হোস্টেলে থাকে না';
+
+  @override
+  String get notInHostelHint =>
+      'স্কুল আসন বরাদ্দ দিলে কক্ষের তথ্য এখানে দেখা যাবে।';
+
+  @override
+  String get hostelRoom => 'হোস্টেলের কক্ষ';
+
+  @override
+  String get building => 'ভবন';
+
+  @override
+  String get room => 'কক্ষ';
+
+  @override
+  String get seat => 'আসন';
+
+  @override
+  String get since => 'যে তারিখ থেকে';
+
+  @override
+  String get boardingType => 'আবাসন';
+
+  @override
+  String get lillah => 'লিল্লাহ (বিনা খরচে)';
+
+  @override
+  String get noActivities => 'এখনও কোনো হাউস, ক্লাব বা দৈনিক লগ নেই';
+
+  @override
+  String get noActivitiesHint =>
+      'ক্লাব, হাউস পয়েন্ট ও প্রি-স্কুলের দৈনিক লগ এখানে দেখা যাবে।';
+
+  @override
+  String get housesClubs => 'হাউস, ক্লাব ও সহশিক্ষা';
+
+  @override
+  String totalPoints(String points) {
+    return '$points পয়েন্ট';
+  }
+
+  @override
+  String get myPoints => 'নিজের পয়েন্ট';
+
+  @override
+  String get clubAttendance => 'ক্লাবে উপস্থিতি';
+
+  @override
+  String get dailyLog => 'দৈনিক লগ';
+
+  @override
+  String get meal => 'খাবার';
+
+  @override
+  String get nap => 'ঘুম';
+
+  @override
+  String get activity => 'কার্যক্রম';
+
+  @override
+  String get onlineClasses => 'অনলাইন ক্লাস';
+
+  @override
+  String get upcomingOnlineClasses => 'আসন্ন ও লাইভ';
+
+  @override
+  String get noOnlineClasses => 'কোনো অনলাইন ক্লাস নির্ধারিত নেই';
+
+  @override
+  String minutes(int n) {
+    return '$n মিনিট';
+  }
+
+  @override
+  String get join => 'যোগ দিন';
+
+  @override
+  String get recordedLessons => 'রেকর্ড করা ক্লাস';
+
+  @override
+  String get meetingBooked => 'সাক্ষাৎ বুক হয়েছে';
+
+  @override
+  String get cancelMeetingTitle => 'এই সাক্ষাৎ বাতিল করবেন?';
+
+  @override
+  String cancelMeetingBody(String teacher) {
+    return '$teacher-এর সাথে সময়টি অন্য অভিভাবকদের জন্য খুলে দেওয়া হবে।';
+  }
+
+  @override
+  String get keepBooking => 'রেখে দিন';
+
+  @override
+  String get cancelBooking => 'বুকিং বাতিল';
+
+  @override
+  String get meetingCancelled => 'বুকিং বাতিল হয়েছে';
+
+  @override
+  String get parentTeacherMeeting => 'অভিভাবক–শিক্ষক সাক্ষাৎ';
+
+  @override
+  String get myBookings => 'আমার বুকিং';
+
+  @override
+  String get noBookings => 'কোনো সাক্ষাৎ বুক করা হয়নি';
+
+  @override
+  String bookedFor(String name) {
+    return '$name সম্পর্কে';
+  }
+
+  @override
+  String get availableSlots => 'খালি সময়';
+
+  @override
+  String get noFreeSlots => 'এই মুহূর্তে কোনো খালি সময় নেই';
+
+  @override
+  String get noFreeSlotsHint =>
+      'অভিভাবক–শিক্ষক দিবসের আগে শিক্ষকরা সময় প্রকাশ করেন।';
+
+  @override
+  String get book => 'বুক করুন';
+
+  @override
+  String get bookMeetingTitle => 'এই সাক্ষাৎ বুক করবেন?';
+
+  @override
+  String get meetingAbout => 'যার বিষয়ে সাক্ষাৎ';
+
+  @override
+  String get linked => 'সংযুক্ত';
+
+  @override
+  String get primaryGuardian => 'প্রধান অভিভাবক';
+
+  @override
+  String get familyCalendar => 'পারিবারিক ক্যালেন্ডার';
+
+  @override
+  String get photoGallery => 'ফটো গ্যালারি';
+
+  @override
+  String get meetings => 'সাক্ষাৎ';
+
+  @override
+  String get noAlbums => 'এখনও কোনো অ্যালবাম নেই';
+
+  @override
+  String get noAlbumsHint => 'স্কুলের অনুষ্ঠানের ছবি এখানে দেখা যাবে।';
+
+  @override
+  String photoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countটি ছবি',
+      zero: 'কোনো ছবি নেই',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get noPhotosYet => 'এই অ্যালবামে এখনও ছবি নেই';
+
+  @override
+  String get openPhoto => 'ছবি খুলুন';
+
+  @override
+  String get next60Days =>
+      'আগামী ৬০ দিনের পরীক্ষা, হোমওয়ার্ক জমার তারিখ, ছুটি ও অনুষ্ঠান';
+
+  @override
+  String get nothingScheduled => 'কিছু নির্ধারিত নেই';
+
+  @override
+  String get exam => 'পরীক্ষা';
+
+  @override
+  String get homeworkDue => 'হোমওয়ার্ক জমা';
+
+  @override
+  String get holiday => 'ছুটি';
+
+  @override
+  String get event => 'অনুষ্ঠান';
+
+  @override
+  String get wholeSchool => 'সমগ্র স্কুল';
+
+  @override
+  String untilDate(String date) {
+    return '$date পর্যন্ত';
+  }
+
+  @override
+  String get pinTooManyAttempts =>
+      'অনেকবার ভুল পিন দেওয়া হয়েছে। সাইন আউট করে আবার সাইন ইন করুন।';
+
+  @override
+  String pinWrong(int left) {
+    return 'ভুল পিন – আর $left বার চেষ্টা করা যাবে';
+  }
+
+  @override
+  String get enterPin => 'আপনার পিন দিন';
+
+  @override
+  String get appLockedHint =>
+      'আপনার সন্তানের তথ্য সুরক্ষিত রাখতে অ্যাপটি লক করা আছে।';
+
+  @override
+  String get forgotPinSignOut => 'পিন ভুলে গেছেন? সাইন আউট করুন';
+
+  @override
+  String get appLockOn => 'অ্যাপ লক চালু হয়েছে';
+
+  @override
+  String get turnOffAppLock => 'অ্যাপ লক বন্ধ করবেন?';
+
+  @override
+  String get turnOffAppLockBody =>
+      'এই ফোন যে কেউ ব্যবহার করলে অ্যাপটি খুলতে পারবে।';
+
+  @override
+  String get turnOff => 'বন্ধ করুন';
+
+  @override
+  String get deviceSignedOut => 'ডিভাইস থেকে সাইন আউট করা হয়েছে';
+
+  @override
+  String get settings => 'সেটিংস';
+
+  @override
+  String get settingsSubtitle => 'অ্যাপ লক, ডিভাইস, গোপনীয়তা';
+
+  @override
+  String get appLock => 'অ্যাপ লক';
+
+  @override
+  String get appLockPin => 'পিন দিয়ে লক';
+
+  @override
+  String get appLockHint => 'অ্যাপ খুললে ৪ অঙ্কের পিন চাইবে';
+
+  @override
+  String get changePin => 'পিন পরিবর্তন';
+
+  @override
+  String get signedInDevices => 'সাইন-ইন করা ডিভাইস';
+
+  @override
+  String get noDevices => 'অন্য কোনো ডিভাইস নেই';
+
+  @override
+  String get guardianAppDevice => 'অভিভাবক অ্যাপ';
+
+  @override
+  String lastActive(String when) {
+    return 'সর্বশেষ সক্রিয় $when';
+  }
+
+  @override
+  String get thisDevice => 'এই ডিভাইস';
+
+  @override
+  String get privacyPolicy => 'গোপনীয়তা নীতি';
+
+  @override
+  String get pinMismatch => 'পিন মেলেনি। আবার চেষ্টা করুন।';
+
+  @override
+  String get chooseNewPin => '৪ অঙ্কের একটি পিন বেছে নিন';
+
+  @override
+  String get confirmPin => 'পিনটি আবার দিন';
 }

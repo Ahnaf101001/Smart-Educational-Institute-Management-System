@@ -8,6 +8,7 @@ import {
   Clock3,
   Eye,
   FileDown,
+  FileText,
   Search,
   Trash2,
   X,
@@ -214,6 +215,21 @@ function DetailRow({ label, value }) {
   );
 }
 
+// Applicant documents live in the private upload folder: fetch with the session token, open as a blob.
+async function openPrivateFile(url) {
+  const win = window.open("", "_blank");
+  try {
+    const token = localStorage.getItem("edumanage-token");
+    const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    if (!res.ok) throw new Error(`Could not open the document (${res.status}).`);
+    const blobUrl = URL.createObjectURL(await res.blob());
+    if (win) win.location.href = blobUrl; else window.open(blobUrl, "_blank");
+  } catch (err) {
+    if (win) win.close();
+    window.alert(err.message);
+  }
+}
+
 function ApplicationDetails({ applicant, onBack, onApprove, onReject, onDelete }) {
   const details = applicant.details || {};
   const showActions = ACTIONABLE.includes(applicant.status);
@@ -264,6 +280,26 @@ function ApplicationDetails({ applicant, onBack, onApprove, onReject, onDelete }
           <DetailRow label="Previous School" value={details.previousSchool} />
           <DetailRow label="Previous Result" value={details.previousResult} />
         </div>
+
+        {Array.isArray(details.documents) && details.documents.length > 0 && (
+          <div className="mt-6">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Documents ({details.documents.length})</p>
+            <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+              {details.documents.map((doc) => (
+                <li key={doc.url}>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm transition hover:bg-slate-50"
+                    onClick={() => openPrivateFile(doc.url)}
+                  >
+                    <FileText size={18} className="shrink-0 text-blue-600" />
+                    <span className="min-w-0"><span className="block font-bold text-slate-800">{doc.type}</span><span className="block truncate text-xs text-slate-500">{doc.fileName || "Open file"}</span></span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-5">
           {showActions && (

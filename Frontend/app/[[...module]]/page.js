@@ -49,6 +49,7 @@ import ResultWorkflow from "../components/exams/ResultWorkflow";
 import StudentTools, { Student360 } from "../components/students/StudentTools";
 import { AccountBooks, FeeOperations } from "../components/finance/FinanceOps";
 import { AttendanceHub, CommunicationHub, HrHub, MadrasaHub, SimpleTabsPage, TransportHub } from "../components/operations/Hubs";
+import { GalleryPreview, HijriHolidays } from "../components/extensions/CalendarGallery";
 import TeacherPortal from "../components/portals/TeacherPortal";
 import GuardianPortal from "../components/portals/GuardianPortal";
 import ResourceManager from "../components/ui/ResourceManager";
@@ -97,7 +98,7 @@ const NAVIGATION = [
       { label: "Promotion & Import", perm: [["students", "edit"], ["students", "create"]], render: () => <StudentTools /> },
       { label: "Certificates", perm: [["certificates"]], render: RM("certificates") },
       { label: "Board & Stipend", render: () => <BoardCenter /> },
-      { label: "Textbooks & Clubs", render: () => <SimpleTabsPage title="Textbooks, Houses & Clubs" icon={BookOpen} tabs={[{ key: "tb", label: "Textbook distribution", render: () => <ResourceManager embedded config={CONFIGS.textbookDistributions} /> }, { key: "clubs", label: "House / Club / ECA", render: () => <ResourceManager embedded config={CONFIGS.clubs} /> }, { key: "points", label: "House points", render: () => <ResourceManager embedded config={EXTRA_CONFIGS.housePoints} /> }, { key: "daily", label: "Pre-school daily log", render: () => <ResourceManager embedded config={EXTRA_CONFIGS.dailyLogs} /> }, { key: "groups", label: "Group changes", render: () => <ResourceManager embedded config={EXTRA_CONFIGS.studentGroupHistory} /> }]} /> },
+      { label: "Textbooks & Clubs", render: () => <SimpleTabsPage title="Textbooks, Houses & Clubs" icon={BookOpen} tabs={[{ key: "tb", label: "Textbook distribution", render: () => <ResourceManager embedded config={CONFIGS.textbookDistributions} /> }, { key: "clubs", label: "House / Club / ECA", render: () => <ResourceManager embedded config={CONFIGS.clubs} /> }, { key: "points", label: "House points", render: () => <ResourceManager embedded config={EXTRA_CONFIGS.housePoints} /> }, { key: "clubatt", label: "Club attendance", render: () => <ResourceManager embedded config={EXTRA_CONFIGS.clubAttendance} /> }, { key: "daily", label: "Pre-school daily log", render: () => <ResourceManager embedded config={EXTRA_CONFIGS.dailyLogs} /> }, { key: "groups", label: "Group changes", render: () => <ResourceManager embedded config={EXTRA_CONFIGS.studentGroupHistory} /> }]} /> },
     ],
   },
   { label: "Guardians", icon: UsersRound, perm: [["guardians"]], render: RM("guardians") },
@@ -124,7 +125,7 @@ const NAVIGATION = [
     children: [
       { label: "Setup", perm: [["academic"]], render: () => <Academic /> },
       { label: "Subject Mapping", perm: [["academic"]], render: () => <SimpleTabsPage title="Subjects per class & class teachers" icon={BookOpen} tabs={[{ key: "map", label: "Class–subject mapping", render: () => <ResourceManager embedded config={CONFIGS.classSubjects} /> }, { key: "ct", label: "Class teacher history", render: () => <ResourceManager embedded config={CONFIGS.classTeacherHistory} /> }]} /> },
-      { label: "Calendar", perm: [["academic"]], render: RM("academicEvents") },
+      { label: "Calendar", perm: [["academic"]], render: () => <SimpleTabsPage title="Academic Calendar" icon={BookOpen} subtitle="Holidays, exams and events; Hijri occasions suggested automatically" tabs={[{ key: "events", label: "Events & holidays", render: () => <ResourceManager embedded config={CONFIGS.academicEvents} /> }, { key: "hijri", label: "Hijri holiday suggestions", render: () => <HijriHolidays /> }]} /> },
       { label: "Homework", perm: [["homework"]], render: RM("homework") },
       { label: "Resources & Syllabus", perm: [["homework"]], render: () => <SimpleTabsPage title="Class notes, resources & syllabus" icon={BookOpen} tabs={[{ key: "r", label: "Resources", render: () => <ResourceManager embedded config={CONFIGS.learningResources} /> }, { key: "s", label: "Syllabus & lesson plan", render: () => <ResourceManager embedded config={CONFIGS.syllabus} /> }]} /> },
       { label: "Online Classes", perm: [["online_classes"]], optional: "online_classes", render: RM("onlineClasses") },
@@ -189,6 +190,7 @@ const NAVIGATION = [
       { label: "Message Log", render: () => <CommunicationHub initialTab="logs" /> },
       { label: "Messages", render: () => <CommunicationHub initialTab="messages" /> },
       { label: "Complaints & PTM", render: () => <CommunicationHub initialTab="complaints" /> },
+      { label: "Photo Gallery", render: () => <SimpleTabsPage title="Photo Gallery" icon={MessageSquare} subtitle="Event albums for the website, guardian portal and guardian app" tabs={[{ key: "preview", label: "Albums", render: () => <GalleryPreview /> }, { key: "albums", label: "Manage albums", render: () => <ResourceManager embedded config={EXTRA_CONFIGS.galleryAlbums} /> }, { key: "photos", label: "Photos", render: () => <ResourceManager embedded config={EXTRA_CONFIGS.galleryPhotos} /> }]} /> },
       { label: "Moderation", perm: [["communication", "approve"]], render: () => <Moderation /> },
     ],
   },
@@ -636,7 +638,20 @@ export default function Home() {
             <Topbar openMenu={() => setSidebarOpen(true)} pageTitle={title} dark={dark} setDark={setDark} onLogout={handleLogout} user={user}
               navigateTo={navigateTo} t={i18n.t} lang={lang} setLang={setLang} digits={i18n.digits} approvalsCount={approvalsCount}
               openSearch={(query) => setSearch({ open: true, query })} />
-            <section key={currentPath} className="motion-page min-h-[calc(100vh-4rem)] min-w-0 overflow-x-clip p-3 sm:p-5 lg:p-7">{view}</section>
+            <section key={currentPath} className="motion-page min-h-[calc(100vh-4rem)] min-w-0 overflow-x-clip p-3 sm:p-5 lg:p-7">
+              {/* NF-43: the institution requires two-step sign-in for administrators. */}
+              {settings.enforceAdminTwoFactor && user.isAdmin && (!user.twoFactorEnabled || !user.phone) && active.child !== "My Account & Devices" && (
+                <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  <span>{lang === "bn"
+                    ? "প্রশাসকদের জন্য দুই-ধাপ সাইন-ইন (OTP) বাধ্যতামূলক। আপনার মোবাইল নম্বর যোগ করুন ও 2FA চালু করুন।"
+                    : "Two-step sign-in (SMS OTP) is required for administrators. Add your mobile number and turn on 2FA."}</span>
+                  <button className="rounded-xl bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700" onClick={() => navigateTo("Settings", "My Account & Devices")}>
+                    {lang === "bn" ? "এখনই সেট করুন" : "Set up now"}
+                  </button>
+                </div>
+              )}
+              {view}
+            </section>
           </main>
           <CommandPalette open={search.open} initialQuery={search.query} onClose={() => setSearch({ open: false, query: "" })}
             items={items} t={i18n.t} navigateTo={navigateTo} canSearchStudents={can(user, "students")} />

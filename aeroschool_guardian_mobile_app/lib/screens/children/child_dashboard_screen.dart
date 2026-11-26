@@ -14,6 +14,8 @@ import '../../widgets/async_view.dart';
 import '../../widgets/child_selector.dart';
 import '../../widgets/common.dart';
 import '../academics/academics_screen.dart';
+import '../campus/campus_screen.dart';
+import '../gallery/gallery_screen.dart';
 import '../attendance/attendance_screen.dart';
 import '../exams/exams_screen.dart';
 import '../fees/fees_screen.dart';
@@ -21,6 +23,7 @@ import '../notifications/notifications_screen.dart';
 import '../support/complaint_screen.dart';
 import '../support/documents_screen.dart';
 import '../support/leave_screen.dart';
+import '../support/ptm_screen.dart';
 import '../support/teachers_screen.dart';
 import '../transport/transport_screen.dart';
 import 'student_profile_screen.dart';
@@ -218,6 +221,63 @@ class ChildDashboardScreen extends StatelessWidget {
                       context.l10n.modDocuments,
                       Icons.folder_outlined,
                       () => _open(context, DocumentsScreen(child: child)),
+                    ),
+                    _Module(
+                      context.l10n.onlineClasses,
+                      Icons.videocam_outlined,
+                      () => _open(
+                        context,
+                        AcademicsScreen(child: child, initialTab: 3),
+                      ),
+                    ),
+                    _Module(
+                      context.l10n.hifzSalah,
+                      Icons.auto_stories_outlined,
+                      () => _open(context, CampusScreen(child: child)),
+                    ),
+                    _Module(
+                      context.l10n.library,
+                      Icons.local_library_outlined,
+                      () => _open(
+                        context,
+                        CampusScreen(
+                          child: child,
+                          initialTab: CampusScreen.libraryTab,
+                        ),
+                      ),
+                    ),
+                    _Module(
+                      context.l10n.hostel,
+                      Icons.bed_outlined,
+                      () => _open(
+                        context,
+                        CampusScreen(
+                          child: child,
+                          initialTab: CampusScreen.hostelTab,
+                        ),
+                      ),
+                    ),
+                    _Module(
+                      context.l10n.activities,
+                      Icons.emoji_events_outlined,
+                      () => _open(
+                        context,
+                        CampusScreen(
+                          child: child,
+                          initialTab: CampusScreen.activitiesTab,
+                        ),
+                      ),
+                    ),
+                    _Module(
+                      context.l10n.meetings,
+                      Icons.handshake_outlined,
+                      () =>
+                          _open(context, PtmScreen(initialStudentId: child.id)),
+                    ),
+                    _Module(
+                      context.l10n.photoGallery,
+                      Icons.photo_library_outlined,
+                      () => _open(context, const GalleryScreen()),
                     ),
                     _Module(
                       context.l10n.modFeedback,

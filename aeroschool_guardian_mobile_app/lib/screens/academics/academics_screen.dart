@@ -28,7 +28,7 @@ class AcademicsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final service = context.read<GuardianService>();
     return DefaultTabController(
-      length: 3,
+      length: 4,
       initialIndex: initialTab,
       child: Scaffold(
         appBar: AppBar(
@@ -36,10 +36,13 @@ class AcademicsScreen extends StatelessWidget {
             context.l10n.titleForChild(context.l10n.academicsTitle, child.name),
           ),
           bottom: TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
             tabs: [
               Tab(text: context.l10n.modRoutine),
               Tab(text: context.l10n.homework),
               Tab(text: context.l10n.modCalendar),
+              Tab(text: context.l10n.onlineClasses),
             ],
           ),
         ),
@@ -50,6 +53,7 @@ class AcademicsScreen extends StatelessWidget {
               _RoutineTab(data: data, onRefresh: reload),
               _HomeworkTab(data: data, onRefresh: reload),
               _CalendarTab(data: data, onRefresh: reload),
+              _OnlineTab(data: data, onRefresh: reload),
             ],
           ),
         ),
@@ -502,6 +506,106 @@ class _EventTile extends StatelessWidget {
       ),
       trailing: StatusChip(event.type),
       isThreeLine: event.description != null,
+    );
+  }
+}
+
+/// Live and recorded online classes for the child's class (GA-19).
+class _OnlineTab extends StatelessWidget {
+  const _OnlineTab({required this.data, required this.onRefresh});
+
+  final AcademicsData data;
+  final Future<void> Function() onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final files = context.read<FileService>();
+    final now = DateTime.now();
+    final upcoming =
+        data.onlineClasses
+            .where(
+              (c) =>
+                  c.status != 'Completed' &&
+                  (c.scheduledAt == null ||
+                      c.scheduledAt!
+                          .add(Duration(minutes: c.durationMinutes ?? 60))
+                          .isAfter(now)),
+            )
+            .toList()
+          ..sort(
+            (a, b) => (a.scheduledAt ?? now).compareTo(b.scheduledAt ?? now),
+          );
+    final recordings = data.onlineClasses
+        .where((c) => c.recordingUrl != null && !upcoming.contains(c))
+        .toList();
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: StaggeredListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          SectionTitle(l.upcomingOnlineClasses),
+          if (upcoming.isEmpty)
+            Card(
+              child: EmptyView(
+                title: l.noOnlineClasses,
+                icon: Icons.videocam_off_outlined,
+              ),
+            )
+          else
+            for (final c in upcoming)
+              Card(
+                child: ListTile(
+                  leading: Icon(
+                    c.status == 'Live'
+                        ? Icons.sensors_rounded
+                        : Icons.videocam_outlined,
+                    color: c.status == 'Live'
+                        ? AppColors.danger
+                        : AppColors.navy,
+                  ),
+                  title: Text(
+                    c.title,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: Text(
+                    [
+                      Fmt.dateTime(c.scheduledAt),
+                      if (c.durationMinutes != null)
+                        l.minutes(c.durationMinutes!),
+                      ?c.provider,
+                    ].join(' • '),
+                  ),
+                  trailing: c.joinableAt(now)
+                      ? FilledButton(
+                          onPressed: () => files.openUrl(c.meetingUrl!),
+                          child: Text(l.join),
+                        )
+                      : StatusChip(l.word(c.status)),
+                ),
+              ),
+          if (recordings.isNotEmpty) ...[
+            SectionTitle(l.recordedLessons),
+            Card(
+              child: Column(
+                children: [
+                  for (final c in recordings)
+                    ListTile(
+                      leading: const Icon(
+                        Icons.play_circle_outline,
+                        color: AppColors.blue,
+                      ),
+                      title: Text(c.title),
+                      subtitle: Text(Fmt.date(c.scheduledAt)),
+                      trailing: const Icon(Icons.open_in_new, size: 18),
+                      onTap: () => files.openUrl(c.recordingUrl!),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

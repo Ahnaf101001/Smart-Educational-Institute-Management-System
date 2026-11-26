@@ -259,7 +259,7 @@ router.get("/guardian/students/:id/extras", asyncHandler(async (req, res) => {
   const gid = requireGuardian(req);
   await assertLinked(gid, req.params.id);
   const id = req.params.id;
-  const [hifz, hifzLogs, salah, transport, library, hostel, leaves, teachers] = await Promise.all([
+  const [hifz, hifzLogs, salah, transport, library, hostel, leaves, teachers, houses, dailyLogs, clubAttendance] = await Promise.all([
     query("SELECT COUNT(*) FILTER (WHERE status IN ('Done','Revised'))::int AS done FROM hifz_progress WHERE student_id = $1", [id]),
     query("SELECT h.*, t.name AS ustad_name FROM hifz_logs h LEFT JOIN teachers t ON t.id = h.ustad_id WHERE student_id = $1 ORDER BY log_date DESC LIMIT 7", [id]),
     query(`SELECT attendance_date, wakt, status FROM salah_attendance WHERE student_id = $1 AND attendance_date > CURRENT_DATE - 7 ORDER BY attendance_date, wakt`, [id]),
@@ -283,6 +283,14 @@ router.get("/guardian/students/:id/extras", asyncHandler(async (req, res) => {
            LEFT JOIN subjects sub ON sub.id = ca.subject_id
            JOIN teachers t ON t.id = ca.teacher_id OR t.id = c.teacher_id
            WHERE s.id = $1`, [id]),
+    // GA-22 English-medium extras: houses / clubs / ECA with this child's points, pre-school daily log, club attendance.
+    query(
+      `SELECT c.id, c.name, c.kind, c.points, (SELECT COALESCE(SUM(hp.points), 0)::int FROM house_points hp WHERE hp.club_id = c.id::text AND hp.student_id = $1) AS my_points
+       FROM clubs c WHERE c.members @> to_jsonb(ARRAY[$1]::text[]) ORDER BY c.kind, c.name`, [id]),
+    query("SELECT log_date, meal, nap, activity, mood, photo_url, note FROM daily_logs WHERE student_id = $1 ORDER BY log_date DESC LIMIT 14", [id]),
+    query(
+      `SELECT ca.session_date, ca.status, ca.activity, c.name AS club_name FROM club_attendance ca LEFT JOIN clubs c ON c.id::text = ca.club_id
+       WHERE ca.student_id = $1 ORDER BY ca.session_date DESC LIMIT 20`, [id]),
   ]);
   res.json({
     success: true,
@@ -299,8 +307,22 @@ router.get("/guardian/students/:id/extras", asyncHandler(async (req, res) => {
         };
       }),
       teachers: (await guardianVisibility()).showTeacherPhone ? teachers.rows : teachers.rows.map((t) => ({ ...t, phone: null })),
+      houses: houses.rows, dailyLogs: dailyLogs.rows, clubAttendance: clubAttendance.rows,
     }),
   });
+}));
+
+// OM-05v1: school photo gallery for guardians (Public and Guardians albums that are published).
+router.get("/guardian/gallery", asyncHandler(async (req, res) => {
+  requireGuardian(req);
+  const albums = (await query(
+    `SELECT a.id, a.title, a.title_bn, a.description, a.event_date, a.cover_url,
+            COALESCE((SELECT json_agg(json_build_object('id', p.id, 'imageUrl', p.image_url, 'caption', p.caption) ORDER BY p.sort_order, p.created_at)
+                      FROM gallery_photos p WHERE p.album_id = a.id::text), '[]'::json) AS photos
+     FROM gallery_albums a WHERE a.status = 'Published' AND a.audience IN ('Public', 'Guardians')
+     ORDER BY a.event_date DESC NULLS LAST, a.created_at DESC LIMIT 50`,
+  )).rows;
+  res.json({ success: true, data: keysToCamel(albums) });
 }));
 
 router.get("/guardian/notifications", asyncHandler(async (req, res) => {
@@ -382,6 +404,12 @@ SELECT md5(concat_ws('|',
   (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM exams),
   (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM notices),
   (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM academic_events),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM clubs),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM house_points WHERE student_id IN (SELECT id FROM kids)),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM daily_logs WHERE student_id IN (SELECT id FROM kids)),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM club_attendance WHERE student_id IN (SELECT id FROM kids)),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM gallery_albums),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM gallery_photos),
   (SELECT md5(COALESCE(string_agg(i::text, ''), '')) FROM institute_profile i),
   (SELECT md5(COALESCE(string_agg(x::text, ''), '')) FROM system_settings x)
 )) AS version`;
@@ -619,7 +647,7 @@ router.get("/guardian/complaints", asyncHandler(async (req, res) => {
 router.get("/guardian/ptm-slots", asyncHandler(async (req, res) => {
   const gid = requireGuardian(req);
   const rows = (await query(
-    `SELECT p.*, t.name AS teacher_name FROM ptm_slots p JOIN teachers t ON t.id = p.teacher_id
+    `SELECT p.*, COALESCE(t.name, 'Class teacher') AS teacher_name FROM ptm_slots p LEFT JOIN teachers t ON t.id = p.teacher_id
      WHERE p.slot_date >= CURRENT_DATE AND (p.status = 'Available' OR p.guardian_id = $1) ORDER BY p.slot_date, p.start_time`,
     [gid],
   )).rows;
@@ -635,6 +663,18 @@ router.post("/guardian/ptm-slots/:id/book", asyncHandler(async (req, res) => {
     [gid, studentId, req.params.id],
   )).rows[0];
   if (!row) throw httpError(409, "This slot is no longer available.");
+  res.json({ success: true, data: keysToCamel(row) });
+}));
+
+// SB-09: a guardian may release their own upcoming booking so another family can take the slot.
+router.post("/guardian/ptm-slots/:id/cancel", asyncHandler(async (req, res) => {
+  const gid = requireGuardian(req);
+  const row = (await query(
+    `UPDATE ptm_slots SET status = 'Available', guardian_id = NULL, student_id = NULL
+     WHERE id::text = $1 AND guardian_id = $2 AND status = 'Booked' AND slot_date >= CURRENT_DATE RETURNING *`,
+    [req.params.id, gid],
+  )).rows[0];
+  if (!row) throw httpError(409, "This booking can no longer be cancelled.");
   res.json({ success: true, data: keysToCamel(row) });
 }));
 

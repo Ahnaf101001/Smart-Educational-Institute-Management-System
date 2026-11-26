@@ -12,7 +12,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
 const { keysToCamel } = require("../utils/case");
 const { resolveAccess } = require("../services/access");
-const { MODULES, ACTIONS } = require("../services/permissions");
+const { MODULES, ACTIONS, isAdminRoleName } = require("../services/permissions");
 const { writeAudit } = require("../services/audit");
 const { queueMessage, processQueue } = require("../services/notifications");
 
@@ -54,7 +54,7 @@ async function findUser(identifier) {
 }
 
 async function settings() {
-  return (await query("SELECT max_login_attempts, session_timeout_minutes FROM system_settings WHERE id = 1")).rows[0] || {};
+  return (await query("SELECT max_login_attempts, session_timeout_minutes, enforce_admin_two_factor FROM system_settings WHERE id = 1")).rows[0] || {};
 }
 
 async function issueSession(req, user, method = "password") {
@@ -138,13 +138,19 @@ router.post("/login", loginLimiter, validate(loginSchema), asyncHandler(async (r
     throw httpError(401, "Email/mobile or password is incorrect.");
   }
 
-  if (user.two_factor_enabled) {
+  // NF-43: when the institution enforces two-step sign-in for administrators, an admin account gets the
+  // SMS OTP step even if the user never switched it on. Without a mobile number the OTP cannot be sent,
+  // so the session is issued with a flag that tells the website to ask for a number / 2FA setup.
+  const isAdminAccount = [user.role, ...(Array.isArray(user.roles) ? user.roles : [])].some(isAdminRoleName);
+  const adminMust2fa = Boolean(policy.enforce_admin_two_factor) && isAdminAccount;
+  if (user.two_factor_enabled || (adminMust2fa && user.phone)) {
     const devCode = await sendOtp(user, "login");
     const challenge = jwt.sign({ sub: user.id, purpose: "2fa" }, env.jwtSecret, { expiresIn: "5m" });
     return res.json({ success: true, data: { requiresOtp: true, challenge, maskedPhone: user.phone ? `***${user.phone.slice(-3)}` : null, devCode } });
   }
 
-  res.json({ success: true, data: await issueSession(req, user) });
+  const session = await issueSession(req, user);
+  res.json({ success: true, data: adminMust2fa ? { ...session, twoFactorSetupRequired: true } : session });
 }));
 
 router.post("/verify-otp", otpLimiter, asyncHandler(async (req, res) => {

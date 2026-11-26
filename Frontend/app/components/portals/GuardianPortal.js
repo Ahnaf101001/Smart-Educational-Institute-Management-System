@@ -246,9 +246,39 @@ function SupportView({ students: children }) {
       </Card>
       <Card title="Parent–teacher meeting">
         <Table dense rows={slots} columns={[{ key: "slotDate", label: "Date", render: (s) => formatDate(s.slotDate) }, { key: "t", label: "Time", render: (s) => `${s.startTime}–${s.endTime}` }, { key: "teacherName", label: "Teacher" },
-          { key: "a", label: "", render: (s) => (s.status === "Available" ? <Select className="!h-8" value="" onChange={async (e) => { if (!e.target.value) return; try { await portalApi.bookPtm(s.id, e.target.value); toast.success("Booked"); load(); } catch (err) { toast.error(err); } }} options={children.map((c) => ({ value: c.id, label: `Book for ${c.name}` }))} placeholder="Book…" /> : <Badge>{s.status}</Badge>) }]} />
+          { key: "a", label: "", render: (s) => (s.status === "Available" ? <Select className="!h-8" value="" onChange={async (e) => { if (!e.target.value) return; try { await portalApi.bookPtm(s.id, e.target.value); toast.success("Booked"); load(); } catch (err) { toast.error(err); } }} options={children.map((c) => ({ value: c.id, label: `Book for ${c.name}` }))} placeholder="Book…" /> : s.status === "Booked" ? <span className="inline-flex items-center gap-2"><Badge>{s.status}</Badge><Button size="sm" variant="ghost" onClick={async () => { try { await portalApi.cancelPtm(s.id); toast.success("Booking cancelled"); load(); } catch (err) { toast.error(err); } }}>Cancel</Button></span> : <Badge>{s.status}</Badge>) }]} />
       </Card>
     </div>
+  );
+}
+
+// OM-05v1: school photo albums published for guardians.
+function GuardianGallery() {
+  const [albums, setAlbums] = useState(null);
+  const [open, setOpen] = useState(null);
+  useEffect(() => { portalApi.gallery().then(setAlbums).catch(() => setAlbums([])); }, []);
+  if (!albums?.length) return null;
+  const current = albums.find((a) => a.id === open);
+  return (
+    <Card title="Photo gallery" subtitle="Albums from school events">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {albums.map((a) => {
+          const cover = a.coverUrl || a.photos[0]?.imageUrl;
+          return (
+            <button key={a.id} type="button" onClick={() => setOpen(a.id === open ? null : a.id)} className={`overflow-hidden rounded-xl border text-left ${a.id === open ? "border-blue-400 ring-2 ring-blue-100" : "border-slate-200"}`}>
+              <div className="aspect-video bg-slate-100">{cover && <img src={cover} alt="" loading="lazy" className="size-full object-cover" />}</div>
+              <p className="truncate px-2 py-1.5 text-sm font-bold">{a.title}</p>
+            </button>
+          );
+        })}
+      </div>
+      {current && (
+        <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-6">
+          {current.photos.map((p) => <a key={p.id} href={p.imageUrl} target="_blank" rel="noreferrer"><img src={p.imageUrl} alt={p.caption || current.title} loading="lazy" className="aspect-square w-full rounded-lg object-cover" /></a>)}
+          {current.photos.length === 0 && <p className="col-span-full text-sm text-slate-500">No photos yet.</p>}
+        </div>
+      )}
+    </Card>
   );
 }
 
@@ -358,6 +388,7 @@ export default function GuardianPortal({ onLogout }) {
             </Card>
             <Conversations />
             <SupportView students={home.children} />
+            <GuardianGallery />
           </div>
         ) : (
           <div>

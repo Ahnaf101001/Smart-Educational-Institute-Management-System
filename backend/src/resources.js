@@ -799,6 +799,26 @@ module.exports = {
     search: ["reason", "student_id"], filters: ["club_id", "student_id"], dateColumn: "awarded_on",
     writable: ["club_id", "student_id", "points", "reason", "awarded_by", "awarded_on"], required: ["club_id", "points"], orderBy: "awarded_on DESC",
   },
+  // EM-08: attendance for club / house / ECA sessions.
+  clubAttendance: {
+    table: "club_attendance", module: "academic", label: "Club attendance",
+    search: ["student_id", "activity", "note"], filters: ["club_id", "student_id", "status", "session_date"], dateColumn: "session_date",
+    writable: ["club_id", "student_id", "session_date", "status", "activity", "note", "marked_by"],
+    required: ["club_id", "student_id", "session_date"], orderBy: "session_date DESC, created_at DESC",
+  },
+  // OM-05 / OPS-01: photo gallery albums and photos (shown on the guardian portal and app by audience).
+  galleryAlbums: {
+    table: "gallery_albums", module: "communication", label: "Gallery album",
+    search: ["title", "title_bn", "description"], filters: ["audience", "status"], dateColumn: "event_date",
+    writable: ["title", "title_bn", "description", "event_date", "cover_url", "audience", "status", "created_by"],
+    required: ["title"], orderBy: "event_date DESC NULLS LAST, created_at DESC",
+  },
+  galleryPhotos: {
+    table: "gallery_photos", module: "communication", label: "Gallery photo",
+    search: ["caption"], filters: ["album_id"],
+    writable: ["album_id", "image_url", "caption", "sort_order"], required: ["album_id", "image_url"],
+    orderBy: "sort_order, created_at",
+  },
   dailyLogs: {
     table: "daily_logs", module: "students", label: "Daily log",
     search: ["student_id", "activity", "note"], filters: ["student_id", "log_date", "teacher_id"], dateColumn: "log_date",

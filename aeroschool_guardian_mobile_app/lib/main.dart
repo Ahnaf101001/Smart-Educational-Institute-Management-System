@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'app.dart';
 import 'config/app_config.dart';
+import 'providers/app_lock_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/family_provider.dart';
 import 'providers/locale_provider.dart';
@@ -47,6 +48,7 @@ void main() {
         ChangeNotifierProvider(
           create: (_) => AuthProvider(api: api, tokens: tokens)..restore(),
         ),
+        ChangeNotifierProvider(create: (_) => AppLockProvider()..load()),
         ChangeNotifierProvider(create: (_) => FamilyProvider(guardian)),
         ChangeNotifierProvider(create: (_) => NotificationProvider(guardian)),
       ],

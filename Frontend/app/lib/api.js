@@ -133,6 +133,8 @@ export const portalApi = {
   complain: (data) => post("/portal/guardian/complaints", data),
   ptmSlots: () => get("/portal/guardian/ptm-slots"),
   bookPtm: (id, studentId) => post(`/portal/guardian/ptm-slots/${id}/book`, { studentId }),
+  cancelPtm: (id) => post(`/portal/guardian/ptm-slots/${id}/cancel`),
+  gallery: () => get("/portal/guardian/gallery"),
   teacherToday: () => get("/portal/teacher/today"),
   myNotifications: () => get("/portal/notifications"),
 };
@@ -431,4 +433,12 @@ export const publicApi = {
     reader.onerror = () => reject(new Error("Could not read the file."));
     reader.readAsDataURL(file);
   }),
+  // AD-02: applicant documents (JPG / PNG / WEBP / PDF, max 5 MB), stored privately.
+  uploadDocument: (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => post("/public/uploads/document", { data: reader.result, fileName: file.name }).then(resolve, reject);
+    reader.onerror = () => reject(new Error("Could not read the file."));
+    reader.readAsDataURL(file);
+  }),
+  gallery: () => get("/public/gallery"),
 };

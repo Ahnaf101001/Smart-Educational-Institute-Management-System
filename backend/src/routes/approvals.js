@@ -10,7 +10,7 @@ const router = express.Router();
 // Lists requests the user may act on (or made) – APR-05 pending dashboard.
 router.get("/", asyncHandler(async (req, res) => {
   const status = req.query.status || "Pending";
-  const settings = (await query("SELECT allow_self_approval FROM system_settings WHERE id = 1")).rows[0] || {};
+  const settings = (await query("SELECT allow_self_approval, admin_self_approval FROM system_settings WHERE id = 1")).rows[0] || {};
   const rows = (await query(
     `SELECT *, EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 AS age_hours
      FROM approval_requests

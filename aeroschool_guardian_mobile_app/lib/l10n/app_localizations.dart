@@ -2408,6 +2408,696 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'School asks: {note}'**
   String clarificationNeeded(String note);
+
+  /// No description provided for @campusLife.
+  ///
+  /// In en, this message translates to:
+  /// **'Campus life'**
+  String get campusLife;
+
+  /// No description provided for @hifzSalah.
+  ///
+  /// In en, this message translates to:
+  /// **'Hifz & Salah'**
+  String get hifzSalah;
+
+  /// No description provided for @library.
+  ///
+  /// In en, this message translates to:
+  /// **'Library'**
+  String get library;
+
+  /// No description provided for @hostel.
+  ///
+  /// In en, this message translates to:
+  /// **'Hostel'**
+  String get hostel;
+
+  /// No description provided for @activities.
+  ///
+  /// In en, this message translates to:
+  /// **'Activities'**
+  String get activities;
+
+  /// No description provided for @noMadrasaRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'No Hifz or Salah records yet'**
+  String get noMadrasaRecords;
+
+  /// No description provided for @noMadrasaRecordsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Records appear here when the ustad marks lessons and prayers.'**
+  String get noMadrasaRecordsHint;
+
+  /// No description provided for @parasMemorised.
+  ///
+  /// In en, this message translates to:
+  /// **'Paras memorised'**
+  String get parasMemorised;
+
+  /// No description provided for @hifzProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Hifz progress'**
+  String get hifzProgress;
+
+  /// No description provided for @salahThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Salah (7 days)'**
+  String get salahThisWeek;
+
+  /// No description provided for @salahPrayedCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'Prayers performed'**
+  String get salahPrayedCaption;
+
+  /// No description provided for @parasOfThirty.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of 30 paras completed'**
+  String parasOfThirty(int count);
+
+  /// No description provided for @recentLessons.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent lessons'**
+  String get recentLessons;
+
+  /// No description provided for @salahLast7Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Salah – last 7 days'**
+  String get salahLast7Days;
+
+  /// No description provided for @paraNo.
+  ///
+  /// In en, this message translates to:
+  /// **'Para {n}'**
+  String paraNo(int n);
+
+  /// No description provided for @sabak.
+  ///
+  /// In en, this message translates to:
+  /// **'Sabak'**
+  String get sabak;
+
+  /// No description provided for @sabqi.
+  ///
+  /// In en, this message translates to:
+  /// **'Sabqi'**
+  String get sabqi;
+
+  /// No description provided for @amukhta.
+  ///
+  /// In en, this message translates to:
+  /// **'Amukhta'**
+  String get amukhta;
+
+  /// No description provided for @mistakes.
+  ///
+  /// In en, this message translates to:
+  /// **'Mistakes'**
+  String get mistakes;
+
+  /// No description provided for @tajweed.
+  ///
+  /// In en, this message translates to:
+  /// **'Tajweed'**
+  String get tajweed;
+
+  /// No description provided for @ustad.
+  ///
+  /// In en, this message translates to:
+  /// **'Ustad'**
+  String get ustad;
+
+  /// No description provided for @comment.
+  ///
+  /// In en, this message translates to:
+  /// **'Comment'**
+  String get comment;
+
+  /// No description provided for @booksBorrowed.
+  ///
+  /// In en, this message translates to:
+  /// **'Books borrowed'**
+  String get booksBorrowed;
+
+  /// No description provided for @currentlyWithChild.
+  ///
+  /// In en, this message translates to:
+  /// **'Currently with your child'**
+  String get currentlyWithChild;
+
+  /// No description provided for @fineDue.
+  ///
+  /// In en, this message translates to:
+  /// **'Fine due {amount}'**
+  String fineDue(String amount);
+
+  /// No description provided for @noFine.
+  ///
+  /// In en, this message translates to:
+  /// **'No fine'**
+  String get noFine;
+
+  /// No description provided for @libraryCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Library card'**
+  String get libraryCard;
+
+  /// No description provided for @noBooksBorrowed.
+  ///
+  /// In en, this message translates to:
+  /// **'No books borrowed'**
+  String get noBooksBorrowed;
+
+  /// No description provided for @issuedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Issued {date}'**
+  String issuedOn(String date);
+
+  /// No description provided for @returnedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Returned {date}'**
+  String returnedOn(String date);
+
+  /// No description provided for @fine.
+  ///
+  /// In en, this message translates to:
+  /// **'Fine'**
+  String get fine;
+
+  /// No description provided for @notInHostel.
+  ///
+  /// In en, this message translates to:
+  /// **'Not staying in the hostel'**
+  String get notInHostel;
+
+  /// No description provided for @notInHostelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Room details appear here when the school allocates a seat.'**
+  String get notInHostelHint;
+
+  /// No description provided for @hostelRoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Hostel room'**
+  String get hostelRoom;
+
+  /// No description provided for @building.
+  ///
+  /// In en, this message translates to:
+  /// **'Building'**
+  String get building;
+
+  /// No description provided for @room.
+  ///
+  /// In en, this message translates to:
+  /// **'Room'**
+  String get room;
+
+  /// No description provided for @seat.
+  ///
+  /// In en, this message translates to:
+  /// **'Seat'**
+  String get seat;
+
+  /// No description provided for @since.
+  ///
+  /// In en, this message translates to:
+  /// **'Since'**
+  String get since;
+
+  /// No description provided for @boardingType.
+  ///
+  /// In en, this message translates to:
+  /// **'Boarding'**
+  String get boardingType;
+
+  /// No description provided for @lillah.
+  ///
+  /// In en, this message translates to:
+  /// **'Lillah (free)'**
+  String get lillah;
+
+  /// No description provided for @noActivities.
+  ///
+  /// In en, this message translates to:
+  /// **'No houses, clubs or daily logs yet'**
+  String get noActivities;
+
+  /// No description provided for @noActivitiesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Clubs, house points and the pre-school daily log appear here.'**
+  String get noActivitiesHint;
+
+  /// No description provided for @housesClubs.
+  ///
+  /// In en, this message translates to:
+  /// **'Houses, clubs & ECA'**
+  String get housesClubs;
+
+  /// No description provided for @totalPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'{points} points'**
+  String totalPoints(String points);
+
+  /// No description provided for @myPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'my points'**
+  String get myPoints;
+
+  /// No description provided for @clubAttendance.
+  ///
+  /// In en, this message translates to:
+  /// **'Club attendance'**
+  String get clubAttendance;
+
+  /// No description provided for @dailyLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily log'**
+  String get dailyLog;
+
+  /// No description provided for @meal.
+  ///
+  /// In en, this message translates to:
+  /// **'Meal'**
+  String get meal;
+
+  /// No description provided for @nap.
+  ///
+  /// In en, this message translates to:
+  /// **'Nap'**
+  String get nap;
+
+  /// No description provided for @activity.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity'**
+  String get activity;
+
+  /// No description provided for @onlineClasses.
+  ///
+  /// In en, this message translates to:
+  /// **'Online classes'**
+  String get onlineClasses;
+
+  /// No description provided for @upcomingOnlineClasses.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming & live'**
+  String get upcomingOnlineClasses;
+
+  /// No description provided for @noOnlineClasses.
+  ///
+  /// In en, this message translates to:
+  /// **'No online classes scheduled'**
+  String get noOnlineClasses;
+
+  /// No description provided for @minutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} min'**
+  String minutes(int n);
+
+  /// No description provided for @join.
+  ///
+  /// In en, this message translates to:
+  /// **'Join'**
+  String get join;
+
+  /// No description provided for @recordedLessons.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded lessons'**
+  String get recordedLessons;
+
+  /// No description provided for @meetingBooked.
+  ///
+  /// In en, this message translates to:
+  /// **'Meeting booked'**
+  String get meetingBooked;
+
+  /// No description provided for @cancelMeetingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this meeting?'**
+  String get cancelMeetingTitle;
+
+  /// No description provided for @cancelMeetingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The slot with {teacher} will be released for other guardians.'**
+  String cancelMeetingBody(String teacher);
+
+  /// No description provided for @keepBooking.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep'**
+  String get keepBooking;
+
+  /// No description provided for @cancelBooking.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel booking'**
+  String get cancelBooking;
+
+  /// No description provided for @meetingCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Booking cancelled'**
+  String get meetingCancelled;
+
+  /// No description provided for @parentTeacherMeeting.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent–teacher meetings'**
+  String get parentTeacherMeeting;
+
+  /// No description provided for @myBookings.
+  ///
+  /// In en, this message translates to:
+  /// **'My bookings'**
+  String get myBookings;
+
+  /// No description provided for @noBookings.
+  ///
+  /// In en, this message translates to:
+  /// **'No meetings booked'**
+  String get noBookings;
+
+  /// No description provided for @bookedFor.
+  ///
+  /// In en, this message translates to:
+  /// **'About {name}'**
+  String bookedFor(String name);
+
+  /// No description provided for @availableSlots.
+  ///
+  /// In en, this message translates to:
+  /// **'Available times'**
+  String get availableSlots;
+
+  /// No description provided for @noFreeSlots.
+  ///
+  /// In en, this message translates to:
+  /// **'No free times right now'**
+  String get noFreeSlots;
+
+  /// No description provided for @noFreeSlotsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Teachers publish meeting times before parent–teacher days.'**
+  String get noFreeSlotsHint;
+
+  /// No description provided for @book.
+  ///
+  /// In en, this message translates to:
+  /// **'Book'**
+  String get book;
+
+  /// No description provided for @bookMeetingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Book this meeting?'**
+  String get bookMeetingTitle;
+
+  /// No description provided for @meetingAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'Meeting about'**
+  String get meetingAbout;
+
+  /// No description provided for @linked.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked'**
+  String get linked;
+
+  /// No description provided for @primaryGuardian.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary'**
+  String get primaryGuardian;
+
+  /// No description provided for @familyCalendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Family calendar'**
+  String get familyCalendar;
+
+  /// No description provided for @photoGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo gallery'**
+  String get photoGallery;
+
+  /// No description provided for @meetings.
+  ///
+  /// In en, this message translates to:
+  /// **'Meetings'**
+  String get meetings;
+
+  /// No description provided for @noAlbums.
+  ///
+  /// In en, this message translates to:
+  /// **'No albums yet'**
+  String get noAlbums;
+
+  /// No description provided for @noAlbumsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos from school events will appear here.'**
+  String get noAlbumsHint;
+
+  /// No description provided for @photoCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No photos} =1{1 photo} other{{count} photos}}'**
+  String photoCount(int count);
+
+  /// No description provided for @noPhotosYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No photos in this album yet'**
+  String get noPhotosYet;
+
+  /// No description provided for @openPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Open photo'**
+  String get openPhoto;
+
+  /// No description provided for @next60Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Exams, homework deadlines, holidays and events for the next 60 days'**
+  String get next60Days;
+
+  /// No description provided for @nothingScheduled.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing scheduled'**
+  String get nothingScheduled;
+
+  /// No description provided for @exam.
+  ///
+  /// In en, this message translates to:
+  /// **'Exam'**
+  String get exam;
+
+  /// No description provided for @homeworkDue.
+  ///
+  /// In en, this message translates to:
+  /// **'Homework due'**
+  String get homeworkDue;
+
+  /// No description provided for @holiday.
+  ///
+  /// In en, this message translates to:
+  /// **'Holiday'**
+  String get holiday;
+
+  /// No description provided for @event.
+  ///
+  /// In en, this message translates to:
+  /// **'Event'**
+  String get event;
+
+  /// No description provided for @wholeSchool.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole school'**
+  String get wholeSchool;
+
+  /// No description provided for @untilDate.
+  ///
+  /// In en, this message translates to:
+  /// **'until {date}'**
+  String untilDate(String date);
+
+  /// No description provided for @pinTooManyAttempts.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many wrong PINs. Sign out and sign in again.'**
+  String get pinTooManyAttempts;
+
+  /// No description provided for @pinWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong PIN – {left} tries left'**
+  String pinWrong(int left);
+
+  /// No description provided for @enterPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your PIN'**
+  String get enterPin;
+
+  /// No description provided for @appLockedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The app is locked to keep your child\'s information private.'**
+  String get appLockedHint;
+
+  /// No description provided for @forgotPinSignOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot PIN? Sign out'**
+  String get forgotPinSignOut;
+
+  /// No description provided for @appLockOn.
+  ///
+  /// In en, this message translates to:
+  /// **'App lock is on'**
+  String get appLockOn;
+
+  /// No description provided for @turnOffAppLock.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off app lock?'**
+  String get turnOffAppLock;
+
+  /// No description provided for @turnOffAppLockBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Anyone using this phone will be able to open the app.'**
+  String get turnOffAppLockBody;
+
+  /// No description provided for @turnOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off'**
+  String get turnOff;
+
+  /// No description provided for @deviceSignedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Device signed out'**
+  String get deviceSignedOut;
+
+  /// No description provided for @settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settings;
+
+  /// No description provided for @settingsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'App lock, devices, privacy'**
+  String get settingsSubtitle;
+
+  /// No description provided for @appLock.
+  ///
+  /// In en, this message translates to:
+  /// **'App lock'**
+  String get appLock;
+
+  /// No description provided for @appLockPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock with a PIN'**
+  String get appLockPin;
+
+  /// No description provided for @appLockHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask for a 4-digit PIN when the app opens'**
+  String get appLockHint;
+
+  /// No description provided for @changePin.
+  ///
+  /// In en, this message translates to:
+  /// **'Change PIN'**
+  String get changePin;
+
+  /// No description provided for @signedInDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed-in devices'**
+  String get signedInDevices;
+
+  /// No description provided for @noDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'No other devices'**
+  String get noDevices;
+
+  /// No description provided for @guardianAppDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Guardian app'**
+  String get guardianAppDevice;
+
+  /// No description provided for @lastActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Last active {when}'**
+  String lastActive(String when);
+
+  /// No description provided for @thisDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'This device'**
+  String get thisDevice;
+
+  /// No description provided for @privacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy policy'**
+  String get privacyPolicy;
+
+  /// No description provided for @pinMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'PINs did not match. Try again.'**
+  String get pinMismatch;
+
+  /// No description provided for @chooseNewPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a 4-digit PIN'**
+  String get chooseNewPin;
+
+  /// No description provided for @confirmPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the PIN again'**
+  String get confirmPin;
 }
 
 class _AppLocalizationsDelegate
