@@ -68,28 +68,13 @@ class _LeaveScreenState extends State<LeaveScreen> {
                       )
                     : Column(
                         children: [
-                          for (final l in d.history)
-                            ListTile(
-                              title: Text(
-                                '${l.leaveType} • ${l.days} day${l.days == 1 ? '' : 's'}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              subtitle: Text(
-                                [
-                                  '${Fmt.date(l.fromDate)} – ${Fmt.date(l.toDate)}',
-                                  ?l.reason,
-                                  if (l.decisionNote != null)
-                                    context.l10n.schoolNote(
-                                      l.decisionNote ?? '',
-                                    ),
-                                ].join('\n'),
-                              ),
-                              isThreeLine:
-                                  l.reason != null || l.decisionNote != null,
-                              trailing: StatusChip(l.status),
+                          for (final (i, l) in d.history.indexed) ...[
+                            if (i > 0) const Divider(height: 1),
+                            _LeaveCard(
+                              leave: l,
+                              onChanged: () => setState(() => _version++),
                             ),
+                          ],
                         ],
                       ),
               ),
@@ -97,6 +82,232 @@ class _LeaveScreenState extends State<LeaveScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// One leave application with its status and the actions open to the guardian: reply to a
+/// clarification request, withdraw a pending application, and view the approval history.
+class _LeaveCard extends StatefulWidget {
+  const _LeaveCard({required this.leave, required this.onChanged});
+
+  final LeaveRecord leave;
+  final VoidCallback onChanged;
+
+  @override
+  State<_LeaveCard> createState() => _LeaveCardState();
+}
+
+class _LeaveCardState extends State<_LeaveCard> {
+  bool _busy = false;
+
+  Future<void> _run(Future<void> Function() action, String done) async {
+    setState(() => _busy = true);
+    try {
+      await action();
+      if (!mounted) return;
+      showSnack(context, done);
+      widget.onChanged();
+    } on ApiException catch (e) {
+      if (mounted) showSnack(context, e.message, error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _withdraw() async {
+    final l10n = context.l10n;
+    final service = context.read<GuardianService>();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.withdrawLeaveTitle),
+        content: Text(l10n.withdrawLeaveBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.withdraw),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    await _run(
+      () => service.withdrawLeave(widget.leave.id),
+      l10n.leaveWithdrawn,
+    );
+  }
+
+  Future<void> _respond() async {
+    final l10n = context.l10n;
+    final service = context.read<GuardianService>();
+    final note = await showDialog<String>(
+      context: context,
+      builder: (_) => const _ReplyDialog(),
+    );
+    if (note == null || note.isEmpty || !mounted) return;
+    await _run(
+      () => service.respondToLeave(widget.leave.id, note),
+      l10n.responseSent,
+    );
+  }
+
+  void _showHistory() {
+    final steps = widget.leave.history;
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          children: [
+            SectionTitle(ctx.l10n.history),
+            if (steps.isEmpty)
+              EmptyView(title: ctx.l10n.noHistoryYet, icon: Icons.history)
+            else
+              for (final h in steps)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  minLeadingWidth: 12,
+                  leading: Icon(
+                    Icons.circle,
+                    size: 12,
+                    color: StatusChip.colorFor(h.action),
+                  ),
+                  title: Text(
+                    h.action,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: Text(
+                    [
+                      [h.by, if (h.at != null) Fmt.dateTime(h.at)].join(' · '),
+                      if (h.note != null) '“${h.note}”',
+                    ].join('\n'),
+                  ),
+                ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = widget.leave;
+    final l10n = context.l10n;
+    final note = l.decisionNote;
+    final asking = l.status == 'Clarification';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 12, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  '${l.leaveType} • ${l.days} day${l.days == 1 ? '' : 's'}',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+              const SizedBox(width: 8),
+              StatusChip(l.status),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            [
+              '${Fmt.date(l.fromDate)} – ${Fmt.date(l.toDate)}',
+              ?l.reason,
+            ].join('\n'),
+            style: const TextStyle(color: AppColors.muted),
+          ),
+          if (note != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              asking ? l10n.clarificationNeeded(note) : l10n.schoolNote(note),
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: asking ? AppColors.info : null,
+              ),
+            ),
+          ],
+          Wrap(
+            spacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (l.needsReply)
+                FilledButton.tonalIcon(
+                  onPressed: _busy ? null : _respond,
+                  icon: const Icon(Icons.reply_rounded, size: 18),
+                  label: Text(l10n.respond),
+                ),
+              if (l.canWithdraw)
+                OutlinedButton.icon(
+                  onPressed: _busy ? null : _withdraw,
+                  icon: const Icon(Icons.undo_rounded, size: 18),
+                  label: Text(l10n.withdraw),
+                ),
+              TextButton.icon(
+                onPressed: _showHistory,
+                icon: const Icon(Icons.history_rounded, size: 18),
+                label: Text(l10n.history),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Asks for the guardian's reply to a clarification request; returns the trimmed text.
+class _ReplyDialog extends StatefulWidget {
+  const _ReplyDialog();
+
+  @override
+  State<_ReplyDialog> createState() => _ReplyDialogState();
+}
+
+class _ReplyDialogState extends State<_ReplyDialog> {
+  final _text = TextEditingController();
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final value = _text.text.trim();
+    return AlertDialog(
+      title: Text(l10n.respondTitle),
+      content: TextField(
+        controller: _text,
+        autofocus: true,
+        maxLines: 3,
+        decoration: InputDecoration(hintText: l10n.respondHint),
+        onChanged: (_) => setState(() {}),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: value.isEmpty ? null : () => Navigator.pop(context, value),
+          child: Text(l10n.sendReply),
+        ),
+      ],
     );
   }
 }

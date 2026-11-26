@@ -1265,4 +1265,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updatedFromSchool => 'Updated from school just now';
+
+  @override
+  String get withdraw => 'Withdraw';
+
+  @override
+  String get respond => 'Respond';
+
+  @override
+  String get history => 'History';
+
+  @override
+  String get withdrawLeaveTitle => 'Withdraw this application?';
+
+  @override
+  String get withdrawLeaveBody => 'The school will no longer review it.';
+
+  @override
+  String get leaveWithdrawn => 'Application withdrawn';
+
+  @override
+  String get respondTitle => 'Reply to the school';
+
+  @override
+  String get respondHint => 'Your answer';
+
+  @override
+  String get responseSent => 'Reply sent to the school';
+
+  @override
+  String get sendReply => 'Send reply';
+
+  @override
+  String clarificationNeeded(String note) {
+    return 'School asks: $note';
+  }
 }

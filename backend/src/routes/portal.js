@@ -4,6 +4,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
 const { keysToCamel } = require("../utils/case");
 const { localDate, localMonth, localWeekday } = require("../utils/dates");
+const { cancelApproval, resubmitApproval } = require("../services/approvals");
 
 const router = express.Router();
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -269,7 +270,13 @@ router.get("/guardian/students/:id/extras", asyncHandler(async (req, res) => {
            WHERE ta.student_id = $1 AND ta.status = 'Active'`, [id]),
     query("SELECT li.*, b.title FROM library_issues li JOIN library_books b ON b.id = li.book_id WHERE li.borrower_type = 'Student' AND li.borrower_id = $1 ORDER BY li.issue_date DESC LIMIT 10", [id]),
     query("SELECT a.*, r.building, r.room_no FROM hostel_allocations a JOIN hostel_rooms r ON r.id = a.room_id WHERE a.student_id = $1 AND a.status = 'Active'", [id]),
-    query("SELECT * FROM leave_requests WHERE applicant_type = 'Student' AND applicant_id = $1 ORDER BY created_at DESC LIMIT 20", [id]),
+    // Each leave carries its approval: id, live status (incl. Clarification), history and what this guardian may do.
+    query(`SELECT l.*, a.id AS approval_id, a.status AS approval_status, a.history AS approval_history,
+              a.decision_note AS approval_note, (a.maker_id = $2) AS own_request
+            FROM leave_requests l
+            LEFT JOIN LATERAL (SELECT * FROM approval_requests x WHERE x.request_type = 'leave' AND x.reference_id = l.id
+                               ORDER BY x.created_at DESC LIMIT 1) a ON TRUE
+            WHERE l.applicant_type = 'Student' AND l.applicant_id = $1 ORDER BY l.created_at DESC LIMIT 20`, [id, req.user.id]),
     query(`SELECT DISTINCT t.id, t.name, t.designation, t.phone, sub.name AS subject_name, (c.teacher_id = t.id) AS is_class_teacher
            FROM students s JOIN classes c ON c.id = s.class_id
            LEFT JOIN class_assignments ca ON ca.class_id = s.class_id AND (ca.section = s.section OR ca.section IS NULL)
@@ -282,7 +289,15 @@ router.get("/guardian/students/:id/extras", asyncHandler(async (req, res) => {
     data: keysToCamel({
       hifz: { parasDone: hifz.rows[0]?.done || 0, logs: hifzLogs.rows },
       salah: salah.rows, transport: transport.rows[0] || null, library: library.rows, hostel: hostel.rows[0] || null,
-      leaves: leaves.rows,
+      leaves: leaves.rows.map(({ approval_history: history, own_request: own, ...l }) => {
+        const status = l.approval_status === "Clarification" ? "Clarification" : l.status;
+        const open = ["Pending", "Clarification"].includes(status) && Boolean(l.approval_id);
+        return {
+          ...l, status, history: Array.isArray(history) ? history.map(({ byId, ...h }) => h) : [],
+          decision_note: l.decision_note || (status === "Clarification" ? l.approval_note : null),
+          can_withdraw: open && Boolean(own), can_respond: status === "Clarification" && Boolean(own),
+        };
+      }),
       teachers: (await guardianVisibility()).showTeacherPhone ? teachers.rows : teachers.rows.map((t) => ({ ...t, phone: null })),
     }),
   });
@@ -511,6 +526,29 @@ router.get("/guardian/leave-types", asyncHandler(async (req, res) => {
   requireGuardian(req);
   const rows = (await query("SELECT id, name, days_per_year FROM leave_types WHERE status = 'Active' AND applies_to IN ('Student','All') ORDER BY name")).rows;
   res.json({ success: true, data: keysToCamel(rows) });
+}));
+
+// Guardian actions on a leave application: withdraw it, or answer the school's clarification request.
+async function guardianLeaveApproval(req) {
+  const gid = requireGuardian(req);
+  const leave = (await query("SELECT * FROM leave_requests WHERE id = $1 AND applicant_type = 'Student'", [req.params.id])).rows[0];
+  if (!leave) throw httpError(404, "Leave application not found.");
+  await assertLinked(gid, leave.applicant_id);
+  const approval = (await query(
+    "SELECT id FROM approval_requests WHERE request_type = 'leave' AND reference_id = $1 ORDER BY created_at DESC LIMIT 1", [leave.id],
+  )).rows[0];
+  if (!approval) throw httpError(409, "This application has no open approval.");
+  return approval.id;
+}
+
+router.post("/guardian/leaves/:id/withdraw", asyncHandler(async (req, res) => {
+  const updated = await cancelApproval(req, await guardianLeaveApproval(req), req.body?.note);
+  res.json({ success: true, data: keysToCamel(updated) });
+}));
+
+router.post("/guardian/leaves/:id/respond", asyncHandler(async (req, res) => {
+  const updated = await resubmitApproval(req, await guardianLeaveApproval(req), req.body?.note);
+  res.json({ success: true, data: keysToCamel(updated) });
 }));
 
 router.post("/guardian/complaints", asyncHandler(async (req, res) => {

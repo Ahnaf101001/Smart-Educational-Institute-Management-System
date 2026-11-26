@@ -206,6 +206,7 @@ class StatusChip extends StatelessWidget {
       'rejected',
       'fail',
       'cancelled',
+      'withdrawn',
       'not submitted',
       'inactive',
       'unpaid',

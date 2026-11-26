@@ -107,6 +107,71 @@ async function isDelegateFor(userId, type) {
   return result.rowCount > 0;
 }
 
+/** Super Admins may decide their own requests; others only when the self-approval exception is on. */
+function canSelfDecide(req, settings) {
+  return Boolean(req.user?.isAdmin || settings?.allow_self_approval);
+}
+
+// The record behind a leave approval mirrors its lifecycle, so the guardian app (which reads
+// leave_requests) sees withdrawals immediately.
+async function syncLeaveRecord(run, approval, status, note) {
+  if (approval.request_type !== "leave" || !approval.payload?.leaveId) return;
+  await run(
+    "UPDATE leave_requests SET status = $1, decision_note = COALESCE($2, decision_note), updated_at = NOW() WHERE id = $3 AND status = 'Pending'",
+    [status, note || null, approval.payload.leaveId],
+  );
+}
+
+/** Withdraw a pending request (the maker, or a Super Admin for any request). Audit-logged. */
+async function cancelApproval(req, id, note) {
+  return transaction(async (client) => {
+    const row = (await client.query("SELECT * FROM approval_requests WHERE id = $1 FOR UPDATE", [id])).rows[0];
+    if (!row) throw httpError(404, "Request not found.");
+    if (row.maker_id !== req.user.id && !req.user.isAdmin) throw httpError(403, "Only the maker or a Super Admin can withdraw this request.");
+    if (!["Pending", "Clarification"].includes(row.status)) throw httpError(409, `This request is already ${row.status}.`);
+    const history = [...(row.history || []), { at: new Date().toISOString(), by: req.user.name, byId: req.user.id, action: "Withdrawn", note: note || null }];
+    const updated = (await client.query(
+      `UPDATE approval_requests SET status = 'Cancelled', decided_at = NOW(), checker_id = $1, checker_name = $2,
+         decision_note = COALESCE($3, decision_note), history = $4 WHERE id = $5 RETURNING *`,
+      [req.user.id, req.user.name, note || null, JSON.stringify(history), id],
+    )).rows[0];
+    await syncLeaveRecord(client.query.bind(client), row, "Cancelled", note || "Withdrawn");
+    await writeAudit(req, { entity: "approval_requests", entityId: id, action: "WITHDRAW", oldValue: { status: row.status }, newValue: { status: "Cancelled" }, reason: note || null }, client);
+    if (row.maker_id && row.maker_id !== req.user.id) {
+      await queueMessage({
+        channel: "Portal", eventType: "ApprovalDecision", recipientType: "User", recipientId: row.maker_id,
+        subject: "Request withdrawn", body: `${row.title}: withdrawn by ${req.user.name}${note ? ` – ${note}` : ""}`,
+        relatedType: "approval_requests", relatedId: id,
+      }, client);
+    }
+    return updated;
+  });
+}
+
+/** The maker answers a clarification request; the request goes back to Pending. Audit-logged. */
+async function resubmitApproval(req, id, note, payload = {}) {
+  if (!String(note || "").trim()) throw httpError(422, "Please write a response.");
+  return transaction(async (client) => {
+    const row = (await client.query("SELECT * FROM approval_requests WHERE id = $1 FOR UPDATE", [id])).rows[0];
+    if (!row) throw httpError(404, "Request not found.");
+    if (row.maker_id !== req.user.id) throw httpError(403, "Only the maker can resubmit.");
+    if (row.status !== "Clarification") throw httpError(409, "Only requests awaiting clarification can be resubmitted.");
+    const history = [...(row.history || []), { at: new Date().toISOString(), by: req.user.name, byId: req.user.id, action: "Resubmitted", note }];
+    const updated = (await client.query(
+      "UPDATE approval_requests SET status = 'Pending', payload = payload || $1::jsonb, history = $2 WHERE id = $3 RETURNING *",
+      [JSON.stringify(payload || {}), JSON.stringify(history), id],
+    )).rows[0];
+    await writeAudit(req, { entity: "approval_requests", entityId: id, action: "RESUBMIT", oldValue: { status: row.status }, newValue: { status: "Pending" }, reason: note }, client);
+    const meta = REQUEST_TYPES[row.request_type] || {};
+    await queueMessage({
+      channel: "Portal", eventType: "ApprovalPending", recipientType: "Role", recipientId: row.required_role || meta.module,
+      subject: "Clarification received", body: `${meta.label || row.request_type}: ${row.title} – ${note}`,
+      relatedType: "approval_requests", relatedId: id,
+    }, client);
+    return updated;
+  });
+}
+
 async function decide(req, id, decision, note) {
   if (!["Approved", "Rejected", "Clarification"].includes(decision)) {
     throw httpError(422, "Decision must be Approved, Rejected or Clarification.");
@@ -134,7 +199,11 @@ async function decide(req, id, decision, note) {
       throw httpError(403, "You already approved an earlier level of this request.");
     }
     if (!allowed) throw httpError(403, "You are not an authorised approver for this request.");
-    if (approval.maker_id && approval.maker_id === req.user.id && !settings.allow_self_approval) {
+    // Maker–checker: a maker may not decide their own request, except a Super Admin (who can override
+    // any request) or when the institution has switched on the self-approval exception. Such
+    // decisions are flagged in the history and the audit log.
+    const selfDecision = Boolean(approval.maker_id && approval.maker_id === req.user.id);
+    if (selfDecision && !canSelfDecide(req, settings)) {
       throw httpError(403, "Maker cannot approve their own request (maker–checker policy).");
     }
 
@@ -144,14 +213,14 @@ async function decide(req, id, decision, note) {
       const next = chain[nextLevel - 1] || {};
       const history = [...(approval.history || []), {
         at: new Date().toISOString(), by: req.user.name, byId: req.user.id, action: "Approved (level)",
-        level: approval.level, levelLabel: currentLevel?.label || null, note: note || null,
+        level: approval.level, levelLabel: currentLevel?.label || null, note: note || null, ...(selfDecision ? { selfDecision: true } : {}),
       }];
       const updated = await client.query(
         `UPDATE approval_requests SET level = $1, status = 'Pending', required_role = $2, history = $3, last_reminded_at = NULL
          WHERE id = $4 RETURNING *`,
         [nextLevel, next.role || next.module || meta.module, JSON.stringify(history), id],
       );
-      await writeAudit(req, { entity: "approval_requests", entityId: id, action: "APPROVE_LEVEL", newValue: { level: approval.level, next: nextLevel }, reason: note }, client);
+      await writeAudit(req, { entity: "approval_requests", entityId: id, action: "APPROVE_LEVEL", newValue: { level: approval.level, next: nextLevel, selfDecision }, reason: note }, client);
       await queueMessage({
         channel: "Portal", eventType: "ApprovalPending", recipientType: "Role", recipientId: next.role || next.module || meta.module,
         subject: "Approval required (next level)", body: `${meta.label}: ${approval.title} – level ${nextLevel}/${approval.total_levels} (${next.label || ""})`,
@@ -170,7 +239,8 @@ async function decide(req, id, decision, note) {
     }
 
     const history = [...(approval.history || []), {
-      at: new Date().toISOString(), by: req.user.name, action: decision, note: note || null,
+      at: new Date().toISOString(), by: req.user.name, byId: req.user.id, action: decision, note: note || null,
+      ...(selfDecision ? { selfDecision: true } : {}),
     }];
     const updated = await client.query(
       `UPDATE approval_requests SET status = $1, checker_id = $2, checker_name = $3, decision_note = $4,
@@ -181,7 +251,7 @@ async function decide(req, id, decision, note) {
     );
     await writeAudit(req, {
       entity: "approval_requests", entityId: id, action: decision.toUpperCase(),
-      oldValue: { status: approval.status }, newValue: { status: decision, outcome }, reason: note,
+      oldValue: { status: approval.status }, newValue: { status: decision, outcome, selfDecision }, reason: note,
     }, client);
 
     if (approval.maker_id) {
@@ -195,4 +265,7 @@ async function decide(req, id, decision, note) {
   });
 }
 
-module.exports = { REQUEST_TYPES, registerHandler, registerRejectHandler, createApproval, decide, resolveChain };
+module.exports = {
+  REQUEST_TYPES, registerHandler, registerRejectHandler, createApproval, decide, resolveChain,
+  cancelApproval, resubmitApproval, canSelfDecide,
+};

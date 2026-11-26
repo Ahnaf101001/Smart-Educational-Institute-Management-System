@@ -85,7 +85,7 @@ export const approvalsApi = {
   summary: () => get("/approvals/summary"),
   decide: (id, decision, note) => post(`/approvals/${id}/decide`, { decision, note }),
   resubmit: (id, note, payload) => post(`/approvals/${id}/resubmit`, { note, payload }),
-  cancel: (id) => post(`/approvals/${id}/cancel`),
+  cancel: (id, note) => post(`/approvals/${id}/cancel`, { note }),
 };
 
 export const auditApi = { list: (params) => request(`/audit-logs?${new URLSearchParams(params || {}).toString()}`) };

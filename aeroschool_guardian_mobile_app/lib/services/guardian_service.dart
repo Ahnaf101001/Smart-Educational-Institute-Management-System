@@ -196,6 +196,14 @@ class GuardianService {
     },
   );
 
+  /// Withdraw a pending leave application (only the guardian who made it).
+  Future<void> withdrawLeave(String leaveId) =>
+      _api.post('$_base/leaves/$leaveId/withdraw');
+
+  /// Answer the school's clarification request; the application goes back to Pending.
+  Future<void> respondToLeave(String leaveId, String note) =>
+      _api.post('$_base/leaves/$leaveId/respond', body: {'note': note});
+
   // Guardian ↔ teacher messages (Spec §1H teacher notifications). The server only allows
   // messaging the class / subject teachers of the guardian's own linked children.
   Future<List<Conversation>> conversations() async => J

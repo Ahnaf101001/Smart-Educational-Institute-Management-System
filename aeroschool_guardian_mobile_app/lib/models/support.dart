@@ -104,6 +104,9 @@ class LeaveRecord {
     this.toDate,
     this.reason,
     this.decisionNote,
+    this.history = const [],
+    this.canWithdraw = false,
+    this.canRespond = false,
   });
 
   final String id;
@@ -115,6 +118,17 @@ class LeaveRecord {
   final String? reason;
   final String? decisionNote;
 
+  /// Approval trail from the school (Submitted, Clarification, Resubmitted, Approved…), oldest first.
+  final List<ApprovalStep> history;
+
+  /// Server-computed: the guardian made this request and it is still open.
+  final bool canWithdraw;
+
+  /// The school asked for clarification and is waiting for this guardian's reply.
+  final bool canRespond;
+
+  bool get needsReply => canRespond && status == 'Clarification';
+
   factory LeaveRecord.fromJson(Map<String, dynamic> j) => LeaveRecord(
     id: J.str(j['id']),
     leaveType: J.str(j['leaveType'], 'Leave'),
@@ -124,6 +138,26 @@ class LeaveRecord {
     toDate: J.date(j['toDate']),
     reason: J.strOrNull(j['reason']),
     decisionNote: J.strOrNull(j['decisionNote']),
+    history: J.list(j['history']).map(ApprovalStep.fromJson).toList(),
+    canWithdraw: J.boolOf(j['canWithdraw']),
+    canRespond: J.boolOf(j['canRespond']),
+  );
+}
+
+/// One step of an approval's history.
+class ApprovalStep {
+  ApprovalStep({required this.action, required this.by, this.at, this.note});
+
+  final String action;
+  final String by;
+  final DateTime? at;
+  final String? note;
+
+  factory ApprovalStep.fromJson(Map<String, dynamic> j) => ApprovalStep(
+    action: J.str(j['action']),
+    by: J.str(j['by']),
+    at: J.date(j['at']),
+    note: J.strOrNull(j['note']),
   );
 }
 

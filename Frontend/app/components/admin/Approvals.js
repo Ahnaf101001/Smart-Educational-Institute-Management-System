@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, ClipboardCheck, HelpCircle, History, RefreshCw, XCircle } from "lucide-react";
+import { CheckCircle2, ClipboardCheck, HelpCircle, History, MessageSquareReply, RefreshCw, Undo2, XCircle } from "lucide-react";
 import { approvalsApi } from "../../lib/api";
 import { useUser } from "../../lib/access";
 import ResourceManager from "../ui/ResourceManager";
@@ -55,6 +55,21 @@ export default function Approvals() {
       load();
     } catch (e) { toast.error(e); }
   }
+  async function withdraw(row) {
+    const own = row.makerId === user?.id;
+    const note = await ask({
+      title: `Withdraw ${row.id}?`,
+      message: own ? "The request is closed without a decision." : `This request was made by ${row.makerName}; they will be notified.`,
+      placeholder: "Optional reason", required: false, danger: true,
+    });
+    if (note === null) return;
+    try {
+      await approvalsApi.cancel(row.id, note || null);
+      toast.success("Request withdrawn");
+      setDetail(null);
+      load();
+    } catch (e) { toast.error(e); }
+  }
   async function resubmit(row) {
     const note = await ask({ title: "Resubmit with clarification", placeholder: "Your response" });
     if (!note) return;
@@ -63,7 +78,7 @@ export default function Approvals() {
 
   return (
     <div>
-      <PageHeader title="Approvals" icon={ClipboardCheck} subtitle="Maker–checker workflow: a maker cannot approve their own request. Every decision is audit-logged (§26)." actions={<Button variant="secondary" icon={RefreshCw} onClick={load}>Refresh</Button>} />
+      <PageHeader title="Approvals" icon={ClipboardCheck} subtitle="Maker–checker workflow: a maker cannot approve their own request unless they are a Super Admin. Every decision is audit-logged (§26)." actions={<Button variant="secondary" icon={RefreshCw} onClick={load}>Refresh</Button>} />
       <Tabs tabs={[{ key: "inbox", label: "Requests" }, { key: "delegation", label: "Delegation" }]} value={tab} onChange={setTab} />
       {tab === "delegation" ? <ResourceManager config={CONFIGS.approvalDelegations} embedded /> : (
         <Card>
@@ -86,19 +101,17 @@ export default function Approvals() {
                     <p className="mt-1 font-semibold text-slate-900">{r.title}</p>
                     <p className="text-xs text-slate-500">By {r.makerName} · {formatDateTime(r.createdAt)} · waiting {ageLabel(r.ageHours)}{r.amount ? ` · ${money(r.amount)}` : ""}</p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {["Pending", "Clarification"].includes(r.status) && r.canDecide && (
+                  <div className="flex shrink-0 flex-wrap items-center gap-2 md:justify-end">
+                    {r.canDecide && (
                       <>
                         <Button size="sm" variant="success" icon={CheckCircle2} onClick={() => decide(r, "Approved")}>Approve</Button>
                         <Button size="sm" variant="danger" icon={XCircle} onClick={() => decide(r, "Rejected")}>Reject</Button>
                         <Button size="sm" variant="secondary" icon={HelpCircle} onClick={() => decide(r, "Clarification")}>Clarify</Button>
                       </>
                     )}
-                    {r.status === "Clarification" && r.makerId === user?.id && <Button size="sm" onClick={() => resubmit(r)}>Respond</Button>}
-                    {["Pending", "Clarification"].includes(r.status) && r.makerId === user?.id && (
-                      <Button size="sm" variant="ghost" onClick={async () => { try { await approvalsApi.cancel(r.id); load(); } catch (e) { toast.error(e); } }}>Withdraw</Button>
-                    )}
-                    <Button size="sm" variant="ghost" icon={History} onClick={() => setDetail(r)} />
+                    {r.canRespond && <Button size="sm" icon={MessageSquareReply} onClick={() => resubmit(r)}>Respond</Button>}
+                    {r.canWithdraw && <Button size="sm" variant="secondary" icon={Undo2} onClick={() => withdraw(r)}>Withdraw</Button>}
+                    <Button size="sm" variant="ghost" icon={History} onClick={() => setDetail(r)} title="History" aria-label={`History of ${r.id}`} />
                   </div>
                 </div>
               ))}
@@ -125,7 +138,7 @@ export default function Approvals() {
               <p className="mb-1 font-semibold">Decision history</p>
               <ol className="space-y-1">
                 {(detail.history || []).map((h, i) => (
-                  <li key={i} className="rounded-lg bg-slate-50 px-3 py-2"><b>{h.action}</b> by {h.by} · {formatDateTime(h.at)}{h.note ? ` – “${h.note}”` : ""}</li>
+                  <li key={i} className="rounded-lg bg-slate-50 px-3 py-2"><b>{h.action}</b> by {h.by} · {formatDateTime(h.at)}{h.note ? ` – “${h.note}”` : ""}{h.selfDecision && <span className="ml-2"><Badge tone="amber">Own request</Badge></span>}</li>
                 ))}
               </ol>
             </div>

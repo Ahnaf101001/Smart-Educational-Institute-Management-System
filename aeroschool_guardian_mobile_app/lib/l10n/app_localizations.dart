@@ -2342,6 +2342,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Updated from school just now'**
   String get updatedFromSchool;
+
+  /// No description provided for @withdraw.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdraw'**
+  String get withdraw;
+
+  /// No description provided for @respond.
+  ///
+  /// In en, this message translates to:
+  /// **'Respond'**
+  String get respond;
+
+  /// No description provided for @history.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get history;
+
+  /// No description provided for @withdrawLeaveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdraw this application?'**
+  String get withdrawLeaveTitle;
+
+  /// No description provided for @withdrawLeaveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The school will no longer review it.'**
+  String get withdrawLeaveBody;
+
+  /// No description provided for @leaveWithdrawn.
+  ///
+  /// In en, this message translates to:
+  /// **'Application withdrawn'**
+  String get leaveWithdrawn;
+
+  /// No description provided for @respondTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply to the school'**
+  String get respondTitle;
+
+  /// No description provided for @respondHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your answer'**
+  String get respondHint;
+
+  /// No description provided for @responseSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply sent to the school'**
+  String get responseSent;
+
+  /// No description provided for @sendReply.
+  ///
+  /// In en, this message translates to:
+  /// **'Send reply'**
+  String get sendReply;
+
+  /// No description provided for @clarificationNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'School asks: {note}'**
+  String clarificationNeeded(String note);
 }
 
 class _AppLocalizationsDelegate

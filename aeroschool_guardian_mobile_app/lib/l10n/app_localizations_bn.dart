@@ -1262,4 +1262,39 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get updatedFromSchool => 'স্কুল থেকে এইমাত্র হালনাগাদ হয়েছে';
+
+  @override
+  String get withdraw => 'প্রত্যাহার';
+
+  @override
+  String get respond => 'উত্তর দিন';
+
+  @override
+  String get history => 'ইতিহাস';
+
+  @override
+  String get withdrawLeaveTitle => 'এই আবেদন প্রত্যাহার করবেন?';
+
+  @override
+  String get withdrawLeaveBody => 'স্কুল আর এটি পর্যালোচনা করবে না।';
+
+  @override
+  String get leaveWithdrawn => 'আবেদন প্রত্যাহার করা হয়েছে';
+
+  @override
+  String get respondTitle => 'স্কুলকে উত্তর দিন';
+
+  @override
+  String get respondHint => 'আপনার উত্তর';
+
+  @override
+  String get responseSent => 'স্কুলে উত্তর পাঠানো হয়েছে';
+
+  @override
+  String get sendReply => 'উত্তর পাঠান';
+
+  @override
+  String clarificationNeeded(String note) {
+    return 'স্কুলের প্রশ্ন: $note';
+  }
 }

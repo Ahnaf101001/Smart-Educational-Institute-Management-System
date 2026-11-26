@@ -373,5 +373,16 @@
   "daysPresentOf": "{present}/{total} দিন • {percent}",
   "tomorrow": "আগামীকাল",
   "daysCount": "{count, plural, other{{count} দিন}}",
-  "updatedFromSchool": "স্কুল থেকে এইমাত্র হালনাগাদ হয়েছে"
+  "updatedFromSchool": "স্কুল থেকে এইমাত্র হালনাগাদ হয়েছে",
+  "withdraw": "প্রত্যাহার",
+  "respond": "উত্তর দিন",
+  "history": "ইতিহাস",
+  "withdrawLeaveTitle": "এই আবেদন প্রত্যাহার করবেন?",
+  "withdrawLeaveBody": "স্কুল আর এটি পর্যালোচনা করবে না।",
+  "leaveWithdrawn": "আবেদন প্রত্যাহার করা হয়েছে",
+  "respondTitle": "স্কুলকে উত্তর দিন",
+  "respondHint": "আপনার উত্তর",
+  "responseSent": "স্কুলে উত্তর পাঠানো হয়েছে",
+  "sendReply": "উত্তর পাঠান",
+  "clarificationNeeded": "স্কুলের প্রশ্ন: {note}"
 }

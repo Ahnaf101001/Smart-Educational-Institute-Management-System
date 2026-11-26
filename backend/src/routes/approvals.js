@@ -3,14 +3,14 @@ const { query } = require("../db/pool");
 const asyncHandler = require("../utils/asyncHandler");
 const { keysToCamel } = require("../utils/case");
 const { hasPermission } = require("../middleware/auth");
-const { REQUEST_TYPES, decide, createApproval } = require("../services/approvals");
-const httpError = require("../utils/httpError");
+const { REQUEST_TYPES, decide, createApproval, cancelApproval, resubmitApproval, canSelfDecide } = require("../services/approvals");
 
 const router = express.Router();
 
 // Lists requests the user may act on (or made) – APR-05 pending dashboard.
 router.get("/", asyncHandler(async (req, res) => {
   const status = req.query.status || "Pending";
+  const settings = (await query("SELECT allow_self_approval FROM system_settings WHERE id = 1")).rows[0] || {};
   const rows = (await query(
     `SELECT *, EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 AS age_hours
      FROM approval_requests
@@ -23,11 +23,19 @@ router.get("/", asyncHandler(async (req, res) => {
   const visible = rows.filter((r) => {
     const mod = REQUEST_TYPES[r.request_type]?.module;
     return r.maker_id === req.user.id || hasPermission(req.user, mod, "approve") || hasPermission(req.user, "approvals", "view");
-  }).map((r) => ({
-    ...r,
-    type_label: REQUEST_TYPES[r.request_type]?.label || r.request_type,
-    can_decide: r.maker_id !== req.user.id && (hasPermission(req.user, REQUEST_TYPES[r.request_type]?.module, "approve") || hasPermission(req.user, "approvals", "approve")),
-  }));
+  }).map((r) => {
+    const open = ["Pending", "Clarification"].includes(r.status);
+    const own = r.maker_id === req.user.id;
+    const permitted = hasPermission(req.user, REQUEST_TYPES[r.request_type]?.module, "approve") || hasPermission(req.user, "approvals", "approve");
+    return {
+      ...r,
+      type_label: REQUEST_TYPES[r.request_type]?.label || r.request_type,
+      // Super Admin decides every request, own ones included; others follow maker–checker.
+      can_decide: open && permitted && (!own || canSelfDecide(req, settings)),
+      can_withdraw: open && (own || Boolean(req.user.isAdmin)),
+      can_respond: r.status === "Clarification" && own,
+    };
+  });
   res.json({ success: true, data: keysToCamel(visible) });
 }));
 
@@ -53,25 +61,14 @@ router.post("/:id/decide", asyncHandler(async (req, res) => {
 
 // Maker resubmits after clarification.
 router.post("/:id/resubmit", asyncHandler(async (req, res) => {
-  const row = (await query("SELECT * FROM approval_requests WHERE id = $1", [req.params.id])).rows[0];
-  if (!row) throw httpError(404, "Request not found.");
-  if (row.maker_id !== req.user.id) throw httpError(403, "Only the maker can resubmit.");
-  if (row.status !== "Clarification") throw httpError(409, "Only requests awaiting clarification can be resubmitted.");
-  const history = [...(row.history || []), { at: new Date().toISOString(), by: req.user.name, action: "Resubmitted", note: req.body?.note }];
-  const updated = (await query(
-    "UPDATE approval_requests SET status = 'Pending', payload = payload || $1::jsonb, history = $2 WHERE id = $3 RETURNING *",
-    [JSON.stringify(req.body?.payload || {}), JSON.stringify(history), req.params.id],
-  )).rows[0];
+  const updated = await resubmitApproval(req, req.params.id, req.body?.note, req.body?.payload);
   res.json({ success: true, data: keysToCamel(updated) });
 }));
 
+// Withdraw: the maker, or a Super Admin for any open request.
 router.post("/:id/cancel", asyncHandler(async (req, res) => {
-  const row = (await query("SELECT * FROM approval_requests WHERE id = $1", [req.params.id])).rows[0];
-  if (!row) throw httpError(404, "Request not found.");
-  if (row.maker_id !== req.user.id && !req.user.isAdmin) throw httpError(403, "Only the maker can cancel.");
-  if (!["Pending", "Clarification"].includes(row.status)) throw httpError(409, "Request is already decided.");
-  await query("UPDATE approval_requests SET status = 'Cancelled', decided_at = NOW() WHERE id = $1", [req.params.id]);
-  res.json({ success: true });
+  const updated = await cancelApproval(req, req.params.id, req.body?.note);
+  res.json({ success: true, data: keysToCamel(updated) });
 }));
 
 router.post("/", asyncHandler(async (req, res) => {

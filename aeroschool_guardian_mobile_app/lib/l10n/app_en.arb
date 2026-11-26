@@ -699,5 +699,17 @@
       }
     }
   },
-  "updatedFromSchool": "Updated from school just now"
+  "updatedFromSchool": "Updated from school just now",
+  "withdraw": "Withdraw",
+  "respond": "Respond",
+  "history": "History",
+  "withdrawLeaveTitle": "Withdraw this application?",
+  "withdrawLeaveBody": "The school will no longer review it.",
+  "leaveWithdrawn": "Application withdrawn",
+  "respondTitle": "Reply to the school",
+  "respondHint": "Your answer",
+  "responseSent": "Reply sent to the school",
+  "sendReply": "Send reply",
+  "clarificationNeeded": "School asks: {note}",
+  "@clarificationNeeded": {"placeholders":{"note":{"type":"String"}}}
 }
