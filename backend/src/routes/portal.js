@@ -345,6 +345,53 @@ router.delete("/guardian/devices", asyncHandler(async (req, res) => {
   res.status(204).send();
 }));
 
+// Live-sync version: one hash over everything this guardian can see in the app. Row counts catch
+// creates and deletes, max(updated_at) (kept current by the set_updated_at triggers) catches edits;
+// tables without that trigger are hashed row by row. The app polls this every 30 s and reloads
+// open screens when it changes, so web edits, including deletions, reach the phone without a restart.
+const SYNC_STATE_SQL = `
+WITH kids AS (
+  SELECT s.id, s.class_id FROM guardian_students gs JOIN students s ON s.id = gs.student_id
+  WHERE gs.guardian_id = $1 AND gs.access_status = 'Enabled'
+),
+leaves AS (SELECT id FROM leave_requests WHERE applicant_type = 'Student' AND applicant_id IN (SELECT id FROM kids))
+SELECT md5(concat_ws('|',
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM guardians WHERE id = $1),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM guardian_students WHERE guardian_id = $1),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM students WHERE id IN (SELECT id FROM kids)),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM attendance WHERE student_id IN (SELECT id FROM kids)),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM salah_attendance WHERE student_id IN (SELECT id FROM kids)),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM hifz_logs WHERE student_id IN (SELECT id FROM kids)),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM results WHERE student_id IN (SELECT id FROM kids)),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM fee_invoices WHERE student_id IN (SELECT id FROM kids)),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM fee_discounts WHERE student_id IN (SELECT id FROM kids)),
+  (SELECT md5(COALESCE(string_agg(p::text, '' ORDER BY p.id), '')) FROM fee_payments p WHERE student_id IN (SELECT id FROM kids)),
+  (SELECT md5(COALESCE(string_agg(h::text, '' ORDER BY h.id), '')) FROM homework_submissions h WHERE student_id IN (SELECT id FROM kids)),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM transport_assignments WHERE student_id IN (SELECT id FROM kids)),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM hostel_allocations WHERE student_id IN (SELECT id FROM kids)),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM library_issues WHERE borrower_type = 'Student' AND borrower_id IN (SELECT id FROM kids)),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM leave_requests WHERE id IN (SELECT id FROM leaves)),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM approval_requests WHERE request_type = 'leave' AND reference_id IN (SELECT id FROM leaves)),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM complaints WHERE guardian_id = $1),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM ptm_slots),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM routine_entries WHERE class_id IN (SELECT class_id FROM kids)),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM homework WHERE class_id IN (SELECT class_id FROM kids)),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM exam_schedules WHERE class_id IN (SELECT class_id FROM kids)),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM learning_resources WHERE class_id IN (SELECT class_id FROM kids)),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM online_classes WHERE class_id IN (SELECT class_id FROM kids)),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM exams),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM notices),
+  (SELECT count(*) || ':' || COALESCE(max(updated_at)::text, '') FROM academic_events),
+  (SELECT md5(COALESCE(string_agg(i::text, ''), '')) FROM institute_profile i),
+  (SELECT md5(COALESCE(string_agg(x::text, ''), '')) FROM system_settings x)
+)) AS version`;
+
+router.get("/guardian/sync-state", asyncHandler(async (req, res) => {
+  const gid = requireGuardian(req);
+  const { version } = (await query(SYNC_STATE_SQL, [gid])).rows[0];
+  res.json({ success: true, data: { version } });
+}));
+
 router.get("/guardian/notifications/unread-count", asyncHandler(async (req, res) => {
   const gid = requireGuardian(req);
   const n = (await query("SELECT COUNT(*)::int AS n FROM message_logs WHERE recipient_type = 'Guardian' AND recipient_id = $1 AND channel = 'Portal' AND read_at IS NULL", [gid])).rows[0].n;

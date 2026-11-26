@@ -12,6 +12,11 @@ const { encryptField, decryptField } = require("../utils/crypto");
 const METHOD_ACTION = { GET: "view", POST: "create", PATCH: "edit", PUT: "edit", DELETE: "delete" };
 const HIDDEN_FIELDS = ["password_hash", "otp_hash", "api_key_hash", "pin_hash"];
 
+/** A signed-in school employee (not a guardian / student portal login, not an API key). */
+function isStaffAccount(user) {
+  return Boolean(user && !user.isApiKey && !["Guardian", "Student"].includes(user.linkedType));
+}
+
 function sanitizePayload(body, config, partial = false) {
   const snakeBody = objectToSnake(body || {});
   const payload = {};
@@ -116,6 +121,13 @@ function createCrudRouter(resourceName) {
     // Read-only access for roles whose work depends on this list (e.g. marks entry needs the
     // exam list). Writes still require the resource's own module permission.
     if (req.method === "GET" && (config.alsoReadableBy || []).some((m) => hasPermission(req.user, m, "view"))) return next();
+    // Dropdown lookup: staff whose pages pick a teacher / user (routine, homework, attendance…)
+    // may list only the harmless lookup columns – never phone, salary, NID or email.
+    if (req.method === "GET" && req.path === "/" && config.lookupFields && isStaffAccount(req.user)
+        && moduleKey && !hasPermission(req.user, moduleKey, "view")) {
+      req.lookupOnly = true;
+      return next();
+    }
     if (moduleKey && !hasPermission(req.user, moduleKey, action)) {
       return next(httpError(403, `You do not have '${action}' permission for ${config.label || resourceName}.`));
     }
@@ -132,9 +144,11 @@ function createCrudRouter(resourceName) {
     if (config.softDelete && req.query.includeArchived !== "true") {
       conditions.push(`${config.softDelete.column} IS DISTINCT FROM '${config.softDelete.value}'`);
     }
-    if (req.query.search && config.search.length) {
+    // Lookup mode searches the visible columns only, so hidden ones (phone, email) cannot be probed.
+    const searchFields = req.lookupOnly ? config.search.filter((f) => config.lookupFields.includes(f)) : config.search;
+    if (req.query.search && searchFields.length) {
       values.push(`%${req.query.search}%`);
-      conditions.push(`(${config.search.map((field) => `${field}::text ILIKE $${values.length}`).join(" OR ")})`);
+      conditions.push(`(${searchFields.map((field) => `${field}::text ILIKE $${values.length}`).join(" OR ")})`);
     }
     for (const filter of config.filters) {
       const camelFilter = filter.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
@@ -154,15 +168,16 @@ function createCrudRouter(resourceName) {
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
     const countResult = await query(`SELECT COUNT(*)::int AS total FROM ${config.table} ${where}`, values);
     values.push(limit, offset);
+    const columns = req.lookupOnly ? config.lookupFields.join(", ") : "*";
     const result = await query(
-      `SELECT * FROM ${config.table} ${where}
+      `SELECT ${columns} FROM ${config.table} ${where}
        ORDER BY ${config.orderBy || "created_at DESC"}
        LIMIT $${values.length - 1} OFFSET $${values.length}`,
       values,
     );
     res.json({
       success: true,
-      data: keysToCamel(present(result.rows, config, req.user)),
+      data: keysToCamel(req.lookupOnly ? result.rows : present(result.rows, config, req.user)),
       pagination: {
         page, limit, total: countResult.rows[0].total, pages: Math.ceil(countResult.rows[0].total / limit),
       },

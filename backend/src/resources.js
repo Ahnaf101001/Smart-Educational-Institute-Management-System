@@ -186,6 +186,8 @@ module.exports = {
     sensitive: ["salary", "nid", "phone"],
     softDelete: { column: "status", value: "Archived" },
     encrypted: ["nid"], genderColumn: "gender",
+    // Teacher pickers on routine / homework / attendance / result pages for staff without Teachers access.
+    lookupFields: ["id", "name", "name_bn", "designation", "department", "subjects", "status"],
   },
   staff: {
     table: "staff", module: "staff", label: "Staff",
@@ -702,6 +704,8 @@ module.exports = {
     writable: ["name", "email", "phone", "password_hash", "role", "roles", "status", "scope", "linked_type",
       "linked_id", "two_factor_enabled", "preferred_language", "permissions", "gender_scope", "is_support", "access_expires_at"],
     required: ["name", "email", "role"],
+    // "Assign to" pickers (complaints / PTM) for staff without Users access: names only.
+    lookupFields: ["id", "name", "role", "status"],
   },
   roles: {
     table: "roles", module: "users", label: "Role",

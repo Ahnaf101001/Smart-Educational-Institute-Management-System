@@ -18,6 +18,7 @@ class FamilyProvider extends ChangeNotifier {
   String? _error;
   String? _selectedChildId;
   String? _fingerprint;
+  String? _syncVersion;
 
   /// The values a guardian sees on the dashboards. When a silent re-check
   /// returns different values, open screens are told to reload.
@@ -84,11 +85,19 @@ class FamilyProvider extends ChangeNotifier {
       notifyListeners();
     }
     try {
+      // The overview covers the dashboards; the sync version covers everything else a guardian
+      // can open (routine, results, notices, leave, profiles…), including deletions.
+      // Both requests run in parallel; syncVersion() never throws, so home() errors keep their type.
+      final pendingVersion = service.syncVersion();
       final o = await service.home();
+      final version = await pendingVersion;
       final fp = fingerprintOf(o);
-      final changed = _fingerprint != null && fp != _fingerprint;
+      final changed =
+          (_fingerprint != null && fp != _fingerprint) ||
+          (version != null && _syncVersion != null && version != _syncVersion);
       _overview = o;
       _fingerprint = fp;
+      _syncVersion = version ?? _syncVersion;
       _error = null;
       if (changed) LiveSync.instance.signal();
       if (_selectedChildId == null || childById(_selectedChildId!) == null) {
@@ -105,6 +114,7 @@ class FamilyProvider extends ChangeNotifier {
   void clear() {
     _overview = null;
     _fingerprint = null;
+    _syncVersion = null;
     _selectedChildId = null;
     _error = null;
     notifyListeners();

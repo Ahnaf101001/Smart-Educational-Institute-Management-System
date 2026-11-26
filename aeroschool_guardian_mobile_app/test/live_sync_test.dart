@@ -33,9 +33,16 @@ class School {
     'recentNotifications': <dynamic>[],
   };
 
+  /// Changes with any edit or deletion the dashboards do not show (routine, notices, profiles…).
+  int version = 1;
+
   http.Client client() => MockClient((r) async {
     final path = r.url.path.replaceFirst('/api/v1', '');
-    final data = path.endsWith('/unread-count') ? {'unread': unread} : home;
+    final data = path.endsWith('/unread-count')
+        ? {'unread': unread}
+        : path.endsWith('/sync-state')
+        ? {'version': 'v$version'}
+        : home;
     return http.Response(
       jsonEncode({'success': true, 'data': data}),
       200,
@@ -74,6 +81,23 @@ void main() {
       await family.load(silent: true);
       expect(signals, 1);
       expect(family.children.single.todayAttendance, 'Present');
+    },
+  );
+
+  test(
+    'an edit or deletion outside the dashboards still refreshes open screens',
+    () async {
+      final family = FamilyProvider(service);
+      await family.load();
+      await family.load(silent: true);
+      expect(signals, 0);
+
+      school.version++; // e.g. a routine period deleted on the website
+      await family.load(silent: true);
+      expect(signals, 1);
+
+      await family.load(silent: true);
+      expect(signals, 1, reason: 'no further change, no further reload');
     },
   );
 

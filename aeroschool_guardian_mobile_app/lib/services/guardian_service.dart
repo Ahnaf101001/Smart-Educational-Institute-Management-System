@@ -8,6 +8,7 @@ import '../models/school.dart';
 import '../models/student.dart';
 import '../models/support.dart';
 import 'api_client.dart';
+import 'api_exception.dart';
 
 /// Guardian portal API (`/portal/guardian/*`). The server enforces that a
 /// guardian only ever receives data for students linked to their account.
@@ -156,6 +157,17 @@ class GuardianService {
 
   Future<void> unregisterDevice(String token) =>
       _api.delete('$_base/devices', body: {'token': token});
+
+  /// Hash of everything this guardian can see; it changes whenever the school creates, edits or
+  /// deletes any of it. Null when the server is unreachable or predates this endpoint, so a
+  /// failed check never triggers a reload (the home overview still does its own comparison).
+  Future<String?> syncVersion() async {
+    try {
+      return J.strOrNull(J.map(await _api.get('$_base/sync-state'))['version']);
+    } on ApiException {
+      return null;
+    }
+  }
 
   Future<int> unreadCount() async => J.intOf(
     J.map(await _api.get('$_base/notifications/unread-count'))['unread'],
