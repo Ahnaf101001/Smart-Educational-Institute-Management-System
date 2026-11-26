@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/motion.dart';
+
 import '../../l10n/l10n_ext.dart';
 
 import 'package:provider/provider.dart';
@@ -56,7 +58,7 @@ class DocumentsScreen extends StatelessWidget {
         load: () => service.documents(child.id),
         builder: (context, d, reload) => RefreshIndicator(
           onRefresh: reload,
-          child: ListView(
+          child: StaggeredListView(
             padding: const EdgeInsets.all(16),
             children: [
               SectionTitle(context.l10n.studentDocuments),

@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/motion.dart';
+
 import '../../l10n/l10n_ext.dart';
 
 import 'package:provider/provider.dart';
@@ -98,7 +100,7 @@ class _RoutineTabState extends State<_RoutineTab> {
     }
     return RefreshIndicator(
       onRefresh: widget.onRefresh,
-      child: ListView(
+      child: StaggeredListView(
         padding: const EdgeInsets.all(16),
         children: [
           SegmentedButton<bool>(
@@ -247,7 +249,7 @@ class _HomeworkTabState extends State<_HomeworkTab> {
     final tests = all.where((h) => h.isClassTest && !h.isSubmitted).toList();
     return RefreshIndicator(
       onRefresh: widget.onRefresh,
-      child: ListView(
+      child: StaggeredListView(
         padding: const EdgeInsets.all(16),
         children: [
           Wrap(
@@ -289,7 +291,9 @@ class _HomeworkCard extends StatelessWidget {
   final Homework hw;
 
   @override
-  Widget build(BuildContext context) => Padding(
+  Widget build(BuildContext context) => Pressable(child: _card(context));
+
+  Widget _card(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 10),
     child: Card(
       clipBehavior: Clip.antiAlias,
@@ -439,7 +443,7 @@ class _CalendarTab extends StatelessWidget {
     final others = upcoming.where((e) => !e.isHoliday).toList();
     return RefreshIndicator(
       onRefresh: onRefresh,
-      child: ListView(
+      child: StaggeredListView(
         padding: const EdgeInsets.all(16),
         children: [
           SectionTitle(context.l10n.holidays),

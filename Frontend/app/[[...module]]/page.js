@@ -636,7 +636,7 @@ export default function Home() {
             <Topbar openMenu={() => setSidebarOpen(true)} pageTitle={title} dark={dark} setDark={setDark} onLogout={handleLogout} user={user}
               navigateTo={navigateTo} t={i18n.t} lang={lang} setLang={setLang} digits={i18n.digits} approvalsCount={approvalsCount}
               openSearch={(query) => setSearch({ open: true, query })} />
-            <section key={currentPath} className="min-h-[calc(100vh-4rem)] min-w-0 overflow-x-clip p-3 sm:p-5 lg:p-7">{view}</section>
+            <section key={currentPath} className="motion-page min-h-[calc(100vh-4rem)] min-w-0 overflow-x-clip p-3 sm:p-5 lg:p-7">{view}</section>
           </main>
           <CommandPalette open={search.open} initialQuery={search.query} onClose={() => setSearch({ open: false, query: "" })}
             items={items} t={i18n.t} navigateTo={navigateTo} canSearchStudents={can(user, "students")} />

@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/motion.dart';
+
 import '../../l10n/l10n_ext.dart';
 
 import 'package:provider/provider.dart';
@@ -65,7 +67,7 @@ class ChildDashboardScreen extends StatelessWidget {
           }
           return RefreshIndicator(
             onRefresh: family.load,
-            child: ListView(
+            child: StaggeredListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               children: [
                 Text(
@@ -370,7 +372,7 @@ class _ModuleGrid extends StatelessWidget {
       return Wrap(
         spacing: 10,
         runSpacing: 10,
-        children: [
+        children: staggered(press: true, [
           for (final m in items)
             SizedBox(
               width: width,
@@ -409,7 +411,7 @@ class _ModuleGrid extends StatelessWidget {
                 ),
               ),
             ),
-        ],
+        ]),
       );
     },
   );

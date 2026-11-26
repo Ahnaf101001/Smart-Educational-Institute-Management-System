@@ -1259,4 +1259,7 @@ class AppLocalizationsBn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get updatedFromSchool => 'স্কুল থেকে এইমাত্র হালনাগাদ হয়েছে';
 }

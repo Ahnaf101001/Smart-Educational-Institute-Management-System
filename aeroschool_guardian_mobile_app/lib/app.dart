@@ -125,6 +125,9 @@ class _AuthGateState extends State<AuthGate> {
               ),
             ),
           );
+      // Live sync: every poll also re-checks the family overview; a change
+      // reloads open screens (core/live_sync.dart).
+      notifications.onTick = () => family.load(silent: true);
       notifications.startPolling();
       // Background push (H7): refresh on foreground pushes, open Alerts when a push is tapped.
       push.onForegroundMessage = (m) {

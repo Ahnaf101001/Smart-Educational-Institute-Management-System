@@ -372,5 +372,6 @@
   "selectedCount": "{count}টি নির্বাচিত",
   "daysPresentOf": "{present}/{total} দিন • {percent}",
   "tomorrow": "আগামীকাল",
-  "daysCount": "{count, plural, other{{count} দিন}}"
+  "daysCount": "{count, plural, other{{count} দিন}}",
+  "updatedFromSchool": "স্কুল থেকে এইমাত্র হালনাগাদ হয়েছে"
 }

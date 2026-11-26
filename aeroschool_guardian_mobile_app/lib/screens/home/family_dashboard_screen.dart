@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/motion.dart';
+
 import '../../l10n/l10n_ext.dart';
 
 import 'package:provider/provider.dart';
@@ -39,7 +41,13 @@ class FamilyDashboardScreen extends StatelessWidget {
     final family = context.watch<FamilyProvider>();
     final o = family.overview;
     return Scaffold(
-      appBar: AppBar(title: Text(context.l10n.dashTitle)),
+      appBar: AppBar(
+        title: Text(context.l10n.dashTitle),
+        bottom: const PreferredSize(
+          preferredSize: Size.zero,
+          child: LiveSyncBanner(),
+        ),
+      ),
       body: Builder(
         builder: (context) {
           if (o == null && family.loading) {
@@ -53,7 +61,7 @@ class FamilyDashboardScreen extends StatelessWidget {
           }
           return RefreshIndicator(
             onRefresh: family.load,
-            child: ListView(
+            child: StaggeredListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               children: [
                 _GuardianHeader(overview: o, greeting: _greeting(context)),
@@ -106,7 +114,12 @@ class FamilyDashboardScreen extends StatelessWidget {
                   )
                 else
                   for (final c in o.children) ...[
-                    _ChildCard(child: c, onTap: () => onOpenChild(c.id)),
+                    Pressable(
+                      child: _ChildCard(
+                        child: c,
+                        onTap: () => onOpenChild(c.id),
+                      ),
+                    ),
                     const SizedBox(height: 10),
                   ],
                 if (o.children.isNotEmpty) ...[
@@ -175,7 +188,7 @@ class FamilyDashboardScreen extends StatelessWidget {
                           title: context.l10n.noNotices,
                           icon: Icons.campaign_outlined,
                         )
-                      : Column(
+                      : StaggeredColumn(
                           children: [
                             for (final n in o.notices.take(5))
                               ListTile(
@@ -516,7 +529,7 @@ class _AttendanceLine extends StatelessWidget {
           const SizedBox(height: 6),
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
+            child: AnimatedProgressBar(
               value: pct == null ? 0 : (pct / 100).clamp(0, 1).toDouble(),
               minHeight: 8,
               backgroundColor: AppColors.surfaceTint,

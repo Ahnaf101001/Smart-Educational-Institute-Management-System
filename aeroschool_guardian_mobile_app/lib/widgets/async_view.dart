@@ -2,6 +2,8 @@ import 'package:material_ui/material_ui.dart';
 
 import '../l10n/l10n_ext.dart';
 
+import '../core/live_sync.dart';
+import '../core/motion.dart';
 import '../core/theme.dart';
 import '../services/api_exception.dart';
 
@@ -10,19 +12,11 @@ class LoadingView extends StatelessWidget {
 
   final String? message;
 
+  /// Shimmering skeleton instead of a spinner; [message] is read out by
+  /// screen readers.
   @override
-  Widget build(BuildContext context) => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const CircularProgressIndicator(),
-        if (message != null) ...[
-          const SizedBox(height: 12),
-          Text(message!, style: const TextStyle(color: AppColors.muted)),
-        ],
-      ],
-    ),
-  );
+  Widget build(BuildContext context) =>
+      Semantics(label: message, child: const SkeletonList());
 }
 
 class ErrorView extends StatelessWidget {
@@ -124,11 +118,27 @@ class _AsyncViewState<T> extends State<AsyncView<T>> {
   T? _data;
   String? _error;
   bool _loading = true;
+  int _synced = 0;
 
   @override
   void initState() {
     super.initState();
+    LiveSync.instance.addListener(_onLiveSync);
     _reload();
+  }
+
+  @override
+  void dispose() {
+    LiveSync.instance.removeListener(_onLiveSync);
+    super.dispose();
+  }
+
+  /// School data changed on the server: reload in place (no skeleton) and
+  /// pulse the content once.
+  Future<void> _onLiveSync() async {
+    if (_data == null || !mounted) return;
+    await _reload();
+    if (mounted && _error == null) setState(() => _synced++);
   }
 
   @override
@@ -166,7 +176,10 @@ class _AsyncViewState<T> extends State<AsyncView<T>> {
     if (_error != null && _data == null) {
       return ErrorView(message: _error!, onRetry: _reload);
     }
-    return widget.builder(context, _data as T, _reload);
+    return SyncPulse(
+      trigger: _synced,
+      child: widget.builder(context, _data as T, _reload),
+    );
   }
 }
 

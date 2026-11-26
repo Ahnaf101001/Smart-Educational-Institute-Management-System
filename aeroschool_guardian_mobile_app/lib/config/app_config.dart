@@ -69,8 +69,10 @@ class AppConfig {
         : '${uri.scheme}://${uri.host}';
   }
 
-  /// How often the app checks for new notifications while open.
-  static const Duration notificationPollInterval = Duration(seconds: 60);
+  /// How often the app re-checks the school server while it is open (unread
+  /// count + family overview). Changes made on the website show up within this
+  /// interval, immediately on a push, and whenever the app is reopened.
+  static const Duration notificationPollInterval = Duration(seconds: 30);
 
   static const Duration requestTimeout = Duration(seconds: 30);
 

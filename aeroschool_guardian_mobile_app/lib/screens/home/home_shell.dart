@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/motion.dart';
 import '../../l10n/l10n_ext.dart';
 
 import 'package:provider/provider.dart';
@@ -28,8 +29,20 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
+class _HomeShellState extends State<HomeShell>
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   int _index = 0;
+  late final AnimationController _tabFade = AnimationController(
+    vsync: this,
+    duration: Motion.base,
+    value: 1,
+  );
+
+  void _setTab(int i) {
+    if (i == _index) return;
+    setState(() => _index = i);
+    if (!Motion.reduced(context)) _tabFade.forward(from: 0.4);
+  }
 
   @override
   void initState() {
@@ -43,6 +56,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   void dispose() {
     HomeShell.requestedTab.removeListener(_onTabRequest);
     WidgetsBinding.instance.removeObserver(this);
+    _tabFade.dispose();
     super.dispose();
   }
 
@@ -50,7 +64,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     final tab = HomeShell.requestedTab.value;
     if (tab == null || !mounted) return;
     HomeShell.requestedTab.value = null;
-    setState(() => _index = tab);
+    _setTab(tab);
   }
 
   @override
@@ -66,7 +80,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
 
   void _openChild(String childId) {
     context.read<FamilyProvider>().selectChild(childId);
-    setState(() => _index = 1);
+    _setTab(1);
   }
 
   @override
@@ -75,17 +89,20 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     final pages = [
       FamilyDashboardScreen(
         onOpenChild: _openChild,
-        onOpenNotifications: () => setState(() => _index = 2),
+        onOpenNotifications: () => _setTab(2),
       ),
       const ChildDashboardScreen(),
       const NotificationsScreen(),
       const ProfileScreen(),
     ];
     return Scaffold(
-      body: IndexedStack(index: _index, children: pages),
+      body: FadeTransition(
+        opacity: CurvedAnimation(parent: _tabFade, curve: Motion.curve),
+        child: IndexedStack(index: _index, children: pages),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
+        onDestinationSelected: _setTab,
         destinations: [
           NavigationDestination(
             icon: const Icon(Icons.home_outlined),

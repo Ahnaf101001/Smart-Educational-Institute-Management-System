@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../config/app_config.dart';
+import '../core/live_sync.dart';
 import '../models/family.dart';
 import '../services/api_exception.dart';
 import '../services/guardian_service.dart';
@@ -21,6 +22,11 @@ class NotificationProvider extends ChangeNotifier {
   bool _loading = false;
   String? _error;
   Timer? _timer;
+  bool _baseline = false;
+
+  /// Called on every poll tick so other data (the family overview) is
+  /// re-checked on the same schedule.
+  VoidCallback? onTick;
 
   /// Called with the number of newly arrived notifications.
   void Function(int newCount)? onNewNotifications;
@@ -33,10 +39,10 @@ class NotificationProvider extends ChangeNotifier {
   void startPolling() {
     _timer?.cancel();
     refreshCount();
-    _timer = Timer.periodic(
-      AppConfig.notificationPollInterval,
-      (_) => refreshCount(),
-    );
+    _timer = Timer.periodic(AppConfig.notificationPollInterval, (_) {
+      refreshCount();
+      onTick?.call();
+    });
   }
 
   void stopPolling() {
@@ -47,9 +53,13 @@ class NotificationProvider extends ChangeNotifier {
   Future<void> refreshCount() async {
     try {
       final n = await service.unreadCount();
-      if (n > _unread && _unread >= 0 && _items.isNotEmpty) {
+      // Compare with the last known count, whether or not the Alerts list was
+      // ever opened (previously new items were only announced after it was).
+      if (_baseline && n > _unread) {
         onNewNotifications?.call(n - _unread);
+        LiveSync.instance.signal();
       }
+      _baseline = true;
       if (n != _unread) {
         _unread = n;
         notifyListeners();
@@ -103,6 +113,8 @@ class NotificationProvider extends ChangeNotifier {
 
   void clear() {
     stopPolling();
+    onTick = null;
+    _baseline = false;
     _items = const [];
     _unread = 0;
     notifyListeners();

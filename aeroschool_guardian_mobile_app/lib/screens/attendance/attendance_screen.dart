@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/motion.dart';
+
 import '../../l10n/l10n_ext.dart';
 
 import 'package:provider/provider.dart';
@@ -77,7 +79,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               load: () => service.attendance(widget.child.id, monthKey),
               builder: (context, r, reload) => RefreshIndicator(
                 onRefresh: reload,
-                child: ListView(
+                child: StaggeredListView(
                   padding: const EdgeInsets.all(16),
                   children: [
                     _Summary(report: r),
@@ -94,7 +96,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                               title: context.l10n.noAttendanceRecordedThisMonth,
                               icon: Icons.event_busy_outlined,
                             )
-                          : Column(
+                          : StaggeredColumn(
                               children: [
                                 for (final rec in r.records.reversed)
                                   ListTile(
@@ -134,7 +136,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     Card(
                       child: r.history.isEmpty
                           ? EmptyView(title: context.l10n.noHistoryYet)
-                          : Column(
+                          : StaggeredColumn(
                               children: [
                                 for (final h in r.history)
                                   ListTile(
@@ -209,7 +211,7 @@ class _Summary extends StatelessWidget {
           const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
+            child: AnimatedProgressBar(
               value: report.percentage == null
                   ? 0
                   : (report.percentage! / 100).clamp(0, 1).toDouble(),

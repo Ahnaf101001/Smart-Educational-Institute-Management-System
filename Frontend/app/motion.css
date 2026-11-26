@@ -1,0 +1,131 @@
+/* UI animations. Timings are CSS variables generated from app/lib/motion.js (injected in layout.js), so
+   every duration lives in one file. Only transform and opacity are animated (GPU-friendly); the
+   prefers-reduced-motion rule in globals.css turns all of this off. */
+
+@keyframes motion-fade-up {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes motion-flash {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes motion-shimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+/* Route / page transition: the page section is keyed by path, so it re-enters on every navigation. */
+.motion-page {
+  animation: motion-fade-up var(--motion-slow) var(--motion-ease) both;
+}
+
+/* Staggered card entrances: every grid on a page (stat cards, dashboard panels) and explicit
+   .motion-stagger lists. Items added later (data arriving) animate as they appear. */
+.motion-page .grid > *,
+.motion-stagger > * {
+  animation: motion-fade-up var(--motion-base) var(--motion-ease) both;
+}
+.motion-page .grid > *:nth-child(2), .motion-stagger > *:nth-child(2) { animation-delay: calc(var(--motion-stagger) * 1); }
+.motion-page .grid > *:nth-child(3), .motion-stagger > *:nth-child(3) { animation-delay: calc(var(--motion-stagger) * 2); }
+.motion-page .grid > *:nth-child(4), .motion-stagger > *:nth-child(4) { animation-delay: calc(var(--motion-stagger) * 3); }
+.motion-page .grid > *:nth-child(5), .motion-stagger > *:nth-child(5) { animation-delay: calc(var(--motion-stagger) * 4); }
+.motion-page .grid > *:nth-child(6), .motion-stagger > *:nth-child(6) { animation-delay: calc(var(--motion-stagger) * 5); }
+.motion-page .grid > *:nth-child(7), .motion-stagger > *:nth-child(7) { animation-delay: calc(var(--motion-stagger) * 6); }
+.motion-page .grid > *:nth-child(8), .motion-stagger > *:nth-child(8) { animation-delay: calc(var(--motion-stagger) * 7); }
+.motion-page .grid > *:nth-child(9), .motion-stagger > *:nth-child(9) { animation-delay: calc(var(--motion-stagger) * 8); }
+.motion-page .grid > *:nth-child(10), .motion-stagger > *:nth-child(10) { animation-delay: calc(var(--motion-stagger) * 9); }
+.motion-page .grid > *:nth-child(11), .motion-stagger > *:nth-child(11) { animation-delay: calc(var(--motion-stagger) * 10); }
+.motion-page .grid > *:nth-child(n + 12), .motion-stagger > *:nth-child(n + 12) { animation-delay: calc(var(--motion-stagger) * 11); }
+
+/* Table rows: delay comes from --i (set by staggerStyle() in lib/motion.js). Hand-built tables inside a
+   page get the same staggered entrance from their position. */
+.motion-row {
+  animation: motion-fade-up var(--motion-fast) var(--motion-ease) both;
+  animation-delay: calc(var(--i, 0) * var(--motion-stagger));
+}
+.motion-page tbody > tr {
+  animation: motion-fade-up var(--motion-fast) var(--motion-ease) both;
+}
+.motion-page tbody > tr:nth-child(2) { animation-delay: calc(var(--motion-stagger) * 1); }
+.motion-page tbody > tr:nth-child(3) { animation-delay: calc(var(--motion-stagger) * 2); }
+.motion-page tbody > tr:nth-child(4) { animation-delay: calc(var(--motion-stagger) * 3); }
+.motion-page tbody > tr:nth-child(5) { animation-delay: calc(var(--motion-stagger) * 4); }
+.motion-page tbody > tr:nth-child(6) { animation-delay: calc(var(--motion-stagger) * 5); }
+.motion-page tbody > tr:nth-child(7) { animation-delay: calc(var(--motion-stagger) * 6); }
+.motion-page tbody > tr:nth-child(8) { animation-delay: calc(var(--motion-stagger) * 7); }
+.motion-page tbody > tr:nth-child(9) { animation-delay: calc(var(--motion-stagger) * 8); }
+.motion-page tbody > tr:nth-child(10) { animation-delay: calc(var(--motion-stagger) * 9); }
+.motion-page tbody > tr:nth-child(11) { animation-delay: calc(var(--motion-stagger) * 10); }
+.motion-page tbody > tr:nth-child(n + 12) { animation-delay: calc(var(--motion-stagger) * 11); }
+
+/* Real-time update highlight: a record that changed since the last load glows once, then fades. */
+.motion-flash > td {
+  position: relative;
+}
+.motion-flash > td::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: rgb(37 99 235 / 0.12);
+  animation: motion-flash var(--motion-flash) ease-out forwards;
+}
+
+/* Tactile buttons: lift on hover, press-in on click. Kit buttons carry .motion-press; hand-built page
+   buttons in the standard rounded styles get the same feedback. */
+.motion-page button.rounded-xl,
+.motion-page button.rounded-2xl,
+.motion-press {
+  transition: transform var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) ease,
+    color var(--motion-fast) ease, border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease,
+    opacity var(--motion-fast) ease;
+}
+.motion-page button.rounded-xl:not(:disabled):hover,
+.motion-page button.rounded-2xl:not(:disabled):hover,
+.motion-press:not(:disabled):hover {
+  transform: translateY(var(--motion-lift));
+}
+.motion-page button.rounded-xl:not(:disabled):active,
+.motion-page button.rounded-2xl:not(:disabled):active,
+.motion-press:not(:disabled):active {
+  transform: scale(var(--motion-press));
+}
+
+/* Cards that respond to hover (stat cards). */
+.motion-lift {
+  transition: transform var(--motion-base) var(--motion-ease), box-shadow var(--motion-base) ease;
+}
+.motion-lift:hover {
+  transform: translateY(var(--motion-lift));
+}
+
+/* Loading skeletons: grey blocks with a light sweep. */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #e9eef5;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.65), transparent);
+  animation: motion-shimmer 1.3s ease-in-out infinite;
+}
+.dark-shell .skeleton {
+  background: #1e293b;
+}
+.dark-shell .skeleton::after {
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.08), transparent);
+}
+
+@media print {
+  .motion-page,
+  .motion-page .grid > *,
+  .motion-page tbody > tr,
+  .motion-row {
+    animation: none !important;
+  }
+}

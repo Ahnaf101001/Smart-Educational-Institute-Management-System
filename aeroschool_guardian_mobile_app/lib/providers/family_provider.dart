@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../core/live_sync.dart';
 import '../models/child.dart';
 import '../models/family.dart';
 import '../services/api_exception.dart';
@@ -16,6 +17,38 @@ class FamilyProvider extends ChangeNotifier {
   bool _loading = false;
   String? _error;
   String? _selectedChildId;
+  String? _fingerprint;
+
+  /// The values a guardian sees on the dashboards. When a silent re-check
+  /// returns different values, open screens are told to reload.
+  static String fingerprintOf(FamilyOverview o) => [
+    o.totalDue,
+    o.unreadNotifications,
+    for (final c in o.children) ...[
+      c.id,
+      c.todayAttendance,
+      c.todayInTime,
+      c.todayOutTime,
+      c.monthPresent,
+      c.monthAbsent,
+      c.monthLate,
+      c.feeDue,
+      c.homeworkCount,
+      c.nextExamName,
+      c.nextExamDate,
+      c.latestResultExam,
+      c.latestResultGrade,
+      c.canViewFees,
+      c.canViewResults,
+      c.className,
+      c.section,
+      c.roll,
+      c.photoUrl,
+    ],
+    for (final n in o.notices) n.id,
+    for (final e in o.upcomingExams) '${e.examName}${e.subjectName}${e.date}',
+    for (final n in o.recentNotifications) n.id,
+  ].join('|');
 
   FamilyOverview? get overview => _overview;
   bool get loading => _loading;
@@ -51,8 +84,13 @@ class FamilyProvider extends ChangeNotifier {
       notifyListeners();
     }
     try {
-      _overview = await service.home();
+      final o = await service.home();
+      final fp = fingerprintOf(o);
+      final changed = _fingerprint != null && fp != _fingerprint;
+      _overview = o;
+      _fingerprint = fp;
       _error = null;
+      if (changed) LiveSync.instance.signal();
       if (_selectedChildId == null || childById(_selectedChildId!) == null) {
         _selectedChildId = children.isEmpty ? null : children.first.id;
       }
@@ -66,6 +104,7 @@ class FamilyProvider extends ChangeNotifier {
 
   void clear() {
     _overview = null;
+    _fingerprint = null;
     _selectedChildId = null;
     _error = null;
     notifyListeners();

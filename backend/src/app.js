@@ -37,6 +37,13 @@ app.get("/health", (req, res) => {
   res.json({ success: true, service: env.appName, timestamp: new Date().toISOString() });
 });
 
+// API data changes all the time (attendance, notices, fees …) and is read by the website and the guardian
+// app: never let a browser, the app's HTTP stack or a proxy / CDN serve a stale copy. Handlers that serve
+// files may still set their own Cache-Control after this.
+app.use("/api/v1", (req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
 app.use("/api/v1", apiRoutes);
 app.use(notFound);
 app.use(errorHandler);

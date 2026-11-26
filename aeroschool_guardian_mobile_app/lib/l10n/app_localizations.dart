@@ -2336,6 +2336,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 day} other{{count} days}}'**
   String daysCount(int count);
+
+  /// No description provided for @updatedFromSchool.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated from school just now'**
+  String get updatedFromSchool;
 }
 
 class _AppLocalizationsDelegate

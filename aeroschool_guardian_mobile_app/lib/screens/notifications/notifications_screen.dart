@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/motion.dart';
+
 import '../../l10n/l10n_ext.dart';
 
 import 'package:provider/provider.dart';
@@ -182,8 +184,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           padding: const EdgeInsets.all(12),
                           itemCount: items.length,
                           separatorBuilder: (_, _) => const SizedBox(height: 8),
-                          itemBuilder: (context, i) =>
-                              _NotificationTile(item: items[i]),
+                          itemBuilder: (context, i) => Reveal(
+                            index: i,
+                            child: Pressable(
+                              child: _NotificationTile(item: items[i]),
+                            ),
+                          ),
                         ),
                 );
               },

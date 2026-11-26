@@ -2,7 +2,10 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Info, Loader2, X } from "lucide-react";
+import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "framer-motion";
 import { useI18n } from "../../lib/i18n";
+import { staggerStyle, transitions } from "../../lib/motion";
+import { useChangedRows } from "../../lib/useChangedRows";
 
 export function cx(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -37,7 +40,7 @@ export function Button({ variant = "primary", size = "md", loading, icon: Icon, 
   return (
     <button
       type="button"
-      className={cx("inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition disabled:cursor-not-allowed disabled:opacity-60", styles[variant], sizes[size], className)}
+      className={cx("motion-press inline-flex items-center justify-center gap-2 rounded-xl font-semibold disabled:cursor-not-allowed disabled:opacity-60", styles[variant], sizes[size], className)}
       disabled={loading || props.disabled}
       {...props}
     >
@@ -88,7 +91,7 @@ export function Badge({ children, tone }) {
 
 export function StatCard({ label, value, hint, icon: Icon, tone = "blue" }) {
   return (
-    <div className="dashboard-panel flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+    <div className="dashboard-panel motion-lift flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
       {Icon && <span className={cx("hidden size-12 shrink-0 place-items-center rounded-2xl min-[400px]:grid", TONES[tone])}><Icon size={22} /></span>}
       <div className="min-w-0">
         <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:text-xs">{label}</p>
@@ -110,7 +113,7 @@ export function Tabs({ tabs, value, onChange }) {
             key={key}
             type="button"
             onClick={() => onChange(key)}
-            className={cx("whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition", value === key ? "bg-blue-600 text-white shadow" : "text-slate-600 hover:bg-slate-100")}
+            className={cx("motion-press whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold", value === key ? "bg-blue-600 text-white shadow" : "text-slate-600 hover:bg-slate-100")}
           >
             {label}
           </button>
@@ -127,18 +130,31 @@ export function Modal({ open, title, onClose, children, footer, width = "max-w-2
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
-  if (!open) return null;
+  const reduce = useReducedMotion();
   return (
-    <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-slate-900/40 p-4 pt-10" onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}>
-      <div className={cx("w-full rounded-2xl bg-white shadow-2xl", width)} role="dialog" aria-modal="true">
+    <AnimatePresence>
+      {open && (
+    <motion.div
+      key="modal"
+      className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-slate-900/40 p-4 pt-10"
+      onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={transitions.fast}
+    >
+      <motion.div
+        className={cx("w-full rounded-2xl bg-white shadow-2xl", width)} role="dialog" aria-modal="true"
+        initial={reduce ? false : { opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={reduce ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.98 }} transition={transitions.base}
+      >
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
           <h3 className="text-lg font-bold text-slate-900">{title}</h3>
           <button type="button" aria-label="Close" onClick={onClose} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"><X size={18} /></button>
         </div>
         <div className="max-h-[70vh] overflow-y-auto px-5 py-4">{children}</div>
         {footer && <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 px-5 py-3">{footer}</div>}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -184,11 +200,20 @@ export function EmptyState({ title = "No records found.", hint, icon: Icon = Inf
   );
 }
 
-export function Spinner({ label = "Loading..." }) {
-  return <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-500"><Loader2 size={18} className="animate-spin" />{label}</div>;
+/** Loading placeholder: shimmering skeleton rows (the label is read by screen readers). */
+export function Spinner({ label = "Loading...", rows = 4 }) {
+  return (
+    <div role="status" aria-live="polite" className="space-y-3 py-4">
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className="skeleton h-9 rounded-xl" style={{ width: `${100 - i * 8}%` }} />
+      ))}
+      <span className="sr-only">{label}</span>
+    </div>
+  );
 }
 
 export function Table({ columns, rows, empty, rowKey = "id", onRowClick, dense }) {
+  const changed = useChangedRows(rows, rowKey);
   if (!rows?.length) return <EmptyState title={empty || "No records found."} />;
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-100">
@@ -198,7 +223,7 @@ export function Table({ columns, rows, empty, rowKey = "id", onRowClick, dense }
         </thead>
         <tbody className="divide-y divide-slate-100">
           {rows.map((r, i) => (
-            <tr key={r[rowKey] ?? i} className={cx("bg-white", onRowClick && "cursor-pointer hover:bg-blue-50/40")} onClick={onRowClick ? () => onRowClick(r) : undefined}>
+            <tr key={r[rowKey] ?? i} style={staggerStyle(i)} className={cx("motion-row bg-white", changed.has(String(r[rowKey] ?? i)) && "motion-flash", onRowClick && "cursor-pointer hover:bg-blue-50/40")} onClick={onRowClick ? () => onRowClick(r) : undefined}>
               {columns.map((c) => (
                 <td key={c.key || c.label} className={cx(dense ? "px-3 py-2" : "px-4 py-3", "align-middle text-slate-700", c.cellClass)}>
                   {c.render ? c.render(r) : r[c.key] ?? "—"}
@@ -223,7 +248,7 @@ export function ToastProvider({ children }) {
   }, []);
   return (
     <ToastContext.Provider value={{ push }}>
-      {children}
+      <MotionConfig reducedMotion="user">{children}</MotionConfig>
       <div className="pointer-events-none fixed bottom-4 right-4 z-[80] flex w-[340px] max-w-[90vw] flex-col gap-2">
         {items.map((t) => (
           <div key={t.id} className={cx("pointer-events-auto flex items-start gap-2 rounded-xl px-4 py-3 text-sm font-medium shadow-xl", t.tone === "error" ? "bg-rose-600 text-white" : t.tone === "warning" ? "bg-amber-500 text-white" : "bg-slate-900 text-white")}>

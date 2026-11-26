@@ -3,6 +3,8 @@ import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/motion.dart';
+
 import '../../l10n/l10n_ext.dart';
 
 import 'package:provider/provider.dart';
@@ -40,7 +42,7 @@ class TransportScreen extends StatelessWidget {
           final t = x.transport;
           return RefreshIndicator(
             onRefresh: reload,
-            child: ListView(
+            child: StaggeredListView(
               padding: const EdgeInsets.all(16),
               children: [
                 if (t == null)

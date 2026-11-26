@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../config/app_config.dart';
 import '../l10n/l10n_ext.dart';
 import '../core/format.dart';
+import '../core/motion.dart';
 import '../core/theme.dart';
 
 /// Card with a title row and optional trailing action.
@@ -135,7 +136,9 @@ class StatGrid extends StatelessWidget {
       return Wrap(
         spacing: 10,
         runSpacing: 10,
-        children: [for (final w in children) SizedBox(width: width, child: w)],
+        children: staggered(press: true, [
+          for (final w in children) SizedBox(width: width, child: w),
+        ]),
       );
     },
   );
@@ -196,6 +199,19 @@ class StatusChip extends StatelessWidget {
 
   static Color colorFor(String status) {
     final s = status.toLowerCase();
+    // Negative words first: 'not submitted', 'inactive' and 'unpaid' contain 'submitted', 'active' and 'paid'.
+    if ([
+      'absent',
+      'overdue',
+      'rejected',
+      'fail',
+      'cancelled',
+      'not submitted',
+      'inactive',
+      'unpaid',
+    ].any(s.contains)) {
+      return AppColors.danger;
+    }
     if ([
       'present',
       'paid',
@@ -211,17 +227,6 @@ class StatusChip extends StatelessWidget {
       'issued',
     ].any(s.contains)) {
       return AppColors.success;
-    }
-    if ([
-      'absent',
-      'overdue',
-      'rejected',
-      'fail',
-      'cancelled',
-      'not submitted',
-      'inactive',
-    ].any(s.contains)) {
-      return AppColors.danger;
     }
     if ([
       'late',
@@ -242,15 +247,22 @@ class StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = color ?? colorFor(label);
-    return Container(
+    // Colour and text cross-fade when a status changes (e.g. Not marked -> Present).
+    return AnimatedContainer(
+      duration: Motion.base,
+      curve: Motion.curve,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: c.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(
-        context.l10n.word(label),
-        style: TextStyle(color: c, fontWeight: FontWeight.w700, fontSize: 12),
+      child: AnimatedSwitcher(
+        duration: Motion.base,
+        child: Text(
+          context.l10n.word(label),
+          key: ValueKey(label),
+          style: TextStyle(color: c, fontWeight: FontWeight.w700, fontSize: 12),
+        ),
       ),
     );
   }

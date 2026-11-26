@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/motion.dart';
+
 import '../../l10n/l10n_ext.dart';
 
 import 'package:provider/provider.dart';
@@ -18,7 +20,7 @@ class NoticeDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(context.l10n.schoolNotice)),
-    body: ListView(
+    body: StaggeredListView(
       padding: const EdgeInsets.all(16),
       children: [
         Card(

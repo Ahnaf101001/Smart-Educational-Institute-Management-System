@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'motion.dart';
+
 /// AeroSchool brand palette (navy header colour from the specification documents).
 class AppColors {
   AppColors._();
@@ -28,6 +30,16 @@ class AppTheme {
     final base = ThemeData(useMaterial3: true, colorScheme: scheme);
     return base.copyWith(
       scaffoldBackgroundColor: AppColors.background,
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: FadeSlidePageTransitionsBuilder(),
+          TargetPlatform.iOS: FadeSlidePageTransitionsBuilder(),
+          TargetPlatform.windows: FadeSlidePageTransitionsBuilder(),
+          TargetPlatform.macOS: FadeSlidePageTransitionsBuilder(),
+          TargetPlatform.linux: FadeSlidePageTransitionsBuilder(),
+          TargetPlatform.fuchsia: FadeSlidePageTransitionsBuilder(),
+        },
+      ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.navy,
         foregroundColor: Colors.white,

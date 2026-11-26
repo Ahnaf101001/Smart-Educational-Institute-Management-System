@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./motion.css";
 
 * {
   box-sizing: border-box;
@@ -180,6 +181,7 @@ select {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
   }
 }

@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/motion.dart';
+
 import '../../l10n/l10n_ext.dart';
 
 import 'package:provider/provider.dart';
@@ -98,7 +100,7 @@ class _ScheduleTab extends StatelessWidget {
     }
     return RefreshIndicator(
       onRefresh: onRefresh,
-      child: ListView(
+      child: StaggeredListView(
         padding: const EdgeInsets.all(16),
         children: [
           if (items.isEmpty)
@@ -167,7 +169,7 @@ class _ResultsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) => RefreshIndicator(
     onRefresh: onRefresh,
-    child: ListView(
+    child: StaggeredListView(
       padding: const EdgeInsets.all(16),
       children: [
         if (message != null) ...[
@@ -319,7 +321,7 @@ class _ProgressTab extends StatelessWidget {
     }
     return RefreshIndicator(
       onRefresh: onRefresh,
-      child: ListView(
+      child: StaggeredListView(
         padding: const EdgeInsets.all(16),
         children: [
           if (message != null) ...[
@@ -372,7 +374,7 @@ class _ProgressTab extends StatelessWidget {
                           const SizedBox(height: 4),
                           ClipRRect(
                             borderRadius: BorderRadius.circular(6),
-                            child: LinearProgressIndicator(
+                            child: AnimatedProgressBar(
                               value: ((r.percentage ?? 0) / 100)
                                   .clamp(0, 1)
                                   .toDouble(),

@@ -1262,4 +1262,7 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get updatedFromSchool => 'Updated from school just now';
 }

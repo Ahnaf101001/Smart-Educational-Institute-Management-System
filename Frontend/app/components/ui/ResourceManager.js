@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { staggerStyle } from "../../lib/motion";
+import { useChangedRows } from "../../lib/useChangedRows";
 import { ChevronLeft, ChevronRight, Download, Edit3, FileSpreadsheet, FileText, Plus, Printer, RefreshCw, Search, Trash2 } from "lucide-react";
 import { resource, uploadsApi } from "../../lib/api";
 import PhotoUpload from "./PhotoUpload";
@@ -199,8 +201,10 @@ export default function ResourceManager({ config, embedded = false, fixedFilters
   const allowDelete = config.delete !== false && can(user, permModule, "delete");
   const fixedKey = JSON.stringify(fixedFilters);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  // silent: refresh in place (no skeleton) – used when the tab regains focus so changes made elsewhere
+  // (another user, the guardian app) show up and are highlighted.
+  const load = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const res = await api.list({ page, limit: PAGE_SIZE, search, ...filters, ...JSON.parse(fixedKey) });
       setRows(res.data || []);
@@ -212,6 +216,12 @@ export default function ResourceManager({ config, embedded = false, fixedFilters
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api, page, search, filters, fixedKey]);
+  const changedRows = useChangedRows(rows);
+  useEffect(() => {
+    const onVisible = () => document.visibilityState === "visible" && load({ silent: true });
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [load]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -347,8 +357,8 @@ export default function ResourceManager({ config, embedded = false, fixedFilters
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {rows.map((r) => (
-                  <tr key={r.id} className="bg-white hover:bg-slate-50/60">
+                {rows.map((r, i) => (
+                  <tr key={r.id} style={staggerStyle(i)} className={cx("motion-row bg-white hover:bg-slate-50/60", changedRows.has(String(r.id)) && "motion-flash")}>
                     {columns.map((c) => <td key={c.key || c.label} className={cx("px-4 py-3 align-middle text-slate-700", c.cellClass)}>{c.cell(r)}</td>)}
                     <td className="px-4 py-3 text-right print:hidden">
                       <RowActions

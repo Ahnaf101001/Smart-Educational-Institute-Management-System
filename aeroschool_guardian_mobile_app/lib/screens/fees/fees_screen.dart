@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/motion.dart';
+
 import '../../l10n/l10n_ext.dart';
 
 import 'package:provider/provider.dart';
@@ -229,7 +231,7 @@ class _DuesTabState extends State<_DuesTab> {
         Expanded(
           child: RefreshIndicator(
             onRefresh: widget.onRefresh,
-            child: ListView(
+            child: StaggeredListView(
               padding: const EdgeInsets.all(16),
               children: [
                 StatGrid(
@@ -296,7 +298,7 @@ class _DuesTabState extends State<_DuesTab> {
                   )
                 else
                   Card(
-                    child: Column(
+                    child: StaggeredColumn(
                       children: [
                         for (final i in open)
                           CheckboxListTile(
@@ -595,7 +597,7 @@ class _HistoryTab extends StatelessWidget {
     final paid = fees.invoices.where((i) => !i.isOpen).toList();
     return RefreshIndicator(
       onRefresh: onRefresh,
-      child: ListView(
+      child: StaggeredListView(
         padding: const EdgeInsets.all(16),
         children: [
           SectionTitle(context.l10n.paymentsReceipts),
@@ -605,7 +607,7 @@ class _HistoryTab extends StatelessWidget {
                     title: context.l10n.noPaymentsYet,
                     icon: Icons.receipt_long_outlined,
                   )
-                : Column(
+                : StaggeredColumn(
                     children: [
                       for (final p in fees.payments)
                         ListTile(
@@ -649,7 +651,7 @@ class _HistoryTab extends StatelessWidget {
           if (paid.isNotEmpty) ...[
             SectionTitle(context.l10n.paidFees),
             Card(
-              child: Column(
+              child: StaggeredColumn(
                 children: [
                   for (final i in paid)
                     ListTile(

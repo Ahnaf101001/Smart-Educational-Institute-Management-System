@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/motion.dart';
+
 import '../../l10n/l10n_ext.dart';
 
 import 'package:provider/provider.dart';
@@ -37,7 +39,7 @@ class ReceiptScreen extends StatelessWidget {
       appBar: AppBar(title: Text(context.l10n.receiptTitle(receiptNo))),
       body: AsyncView<Receipt>(
         load: () => service.receipt(receiptNo),
-        builder: (context, r, _) => ListView(
+        builder: (context, r, _) => StaggeredListView(
           padding: const EdgeInsets.all(16),
           children: [
             Card(

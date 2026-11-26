@@ -698,5 +698,6 @@
         "type": "int"
       }
     }
-  }
+  },
+  "updatedFromSchool": "Updated from school just now"
 }

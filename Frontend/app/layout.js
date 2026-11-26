@@ -11,6 +11,7 @@ import "@fontsource/noto-sans-bengali/700.css";
 import "@fontsource/noto-sans-bengali/800.css";
 import "@fontsource/noto-sans-bengali/900.css";
 import "./globals.css";
+import { motionCssVars } from "./lib/motion";
 import { ToastProvider } from "./components/ui/kit";
 import PwaRegister from "./components/PwaRegister";
 
@@ -29,6 +30,10 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="bn">
+      <head>
+        {/* Animation timing variables from lib/motion.js (the one place they are defined). */}
+        <style dangerouslySetInnerHTML={{ __html: motionCssVars }} />
+      </head>
       <body>
         <ToastProvider>{children}</ToastProvider>
         <PwaRegister />
